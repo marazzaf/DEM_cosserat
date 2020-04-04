@@ -41,16 +41,12 @@ SCF = AnalyticalSolution(nu, l, c, R)
 # Matrix
 def D_Matrix(G, nu, l, N):
     d = np.array([ \
-                   [(2.0*(1.0 - nu))/(1.0 - 2.0*nu), (2.0*nu)/(1.0 - 2.0 * nu),
-                    0.0,0.0,0.0,0.0], \
-                   [(2.0*nu)/(1.0 - 2.0*nu), (2.0*(1.0 - nu)) / (1.0 - 2.0*nu),
-                    0.0,0.0,0.0,0.0], \
-                   [0.0,0.0, 1.0/(1.0 - N**2), (1.0 - 2.0*N**2)/(1.0 - N**2),
-                    250.0,0.0], \
-                   0.0,0.0], \
-                 [0.0,0.0, (1.0 - 2.0*N**2)/(1.0 - N**2), 1.0/(1.0 - N**2),
-                  [0.0,0.0,0.0,0.0, 4.0*l**2, 0.0], \
-                  [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
+        [(2.0*(1.0 - nu))/(1.0 - 2.0*nu), (2.0*nu)/(1.0 - 2.0 * nu), 0.0,0.0,0.0,0.0], \
+        [(2.0*nu)/(1.0 - 2.0*nu), (2.0*(1.0 - nu)) / (1.0 - 2.0*nu), 0.0,0.0,0.0,0.0], \
+        [0.0,0.0, 1.0/(1.0 - N**2), (1.0 - 2.0*N**2)/(1.0 - N**2), 0.0,0.0], \
+        [0.0,0.0, (1.0 - 2.0*N**2)/(1.0 - N**2), 1.0/(1.0 - N**2), 0.0,0.0], \
+        [0.0,0.0,0.0,0.0, 4.0*l**2, 0.0], \
+        [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
     
     d *= G
     D = Constant(d)
@@ -81,7 +77,8 @@ for hx in h :
     S = FiniteElement("Lagrange", mesh.ufl_cell(), 1) # micro rotation space
     TH = U * S
     V = FunctionSpace(mesh, TH)
-    U_1, U_2 = U.split()
+    U_1, U_2 = V.sub(0).sub(0), V.sub(0).sub(1)
+    S = V.sub(1)
     
     # Boundary conditions
     class BotBoundary(SubDomain):
@@ -89,62 +86,62 @@ for hx in h :
             tol = 1e-6
             return on_boundary and abs(x[1]) < tol
         
-        class LeftBoundary(SubDomain):
-            def inside(self, x, on_boundary):
-                tol = 1e-6
-                return on_boundary and abs(x[0]) < tol
+    class LeftBoundary(SubDomain):
+        def inside(self, x, on_boundary):
+            tol = 1e-6
+            return on_boundary and abs(x[0]) < tol
 
-        class TopBoundary(SubDomain):
-            def inside(self,x,on_boundary):
-                tol = 1e-6
-                return on_boundary and abs(x[1] - plate) < tol
+    class TopBoundary(SubDomain):
+        def inside(self,x,on_boundary):
+            tol = 1e-6
+            return on_boundary and abs(x[1] - plate) < tol
 
-        t = Constant((0.0, T))
-        boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-        boundary_parts.set_all(0)
+    t = Constant((0.0, T))
+    boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+    boundary_parts.set_all(0)
         
-        bot_boundary = BotBoundary()
-        left_boundary = LeftBoundary()
-        top_boundary = TopBoundary()
-        top_boundary.mark(boundary_parts, 1)
+    bot_boundary = BotBoundary()
+    left_boundary = LeftBoundary()
+    top_boundary = TopBoundary()
+    top_boundary.mark(boundary_parts, 1)
         
-        ds = Measure("ds")[boundary_parts]
+    ds = Measure("ds")[boundary_parts]
 
-        u_0 = Constant(0.0)
-        left_U_1 = DirichletBC(U_1, u_0, left_boundary)
-        bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
-        left_S = DirichletBC(S, u_0, left_boundary)
-        bot_S = DirichletBC(S, u_0, bot_boundary)
+    u_0 = Constant(0.0)
+    left_U_1 = DirichletBC(U_1, u_0, left_boundary)
+    bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
+    left_S = DirichletBC(S, u_0, left_boundary)
+    bot_S = DirichletBC(S, u_0, bot_boundary)
 
-        bc = [left_U_1, bot_U_2, left_S, bot_S]
+    bc = [left_U_1, bot_U_2, left_S, bot_S]
 
-        # Variational problem
-        u, psi = TrialFunctions(V)
-        v, eta = TestFunctions(V)
-        
-        D = D_Matrix(G, nu, l, N)
-        
-        a = inner(strain(v, eta), D*strain(u, psi))*dx
-        L = inner(t, v)*ds(1)
-        
-        U_h = Function(V)
-        problem = LinearVariationalProblem(a, L, U_h, bc)
-        solver = LinearVariationalSolver(problem)
-        solver.solve()
-        u_h, psi_h = U_h.split()
-        
-        # Stress
-        epsilon = strain(u_h, psi_h)
-        sigma = D*epsilon
-        sigma_yy = project(sigma[1])
+    # Variational problem
+    u, psi = TrialFunctions(V)
+    v, eta = TestFunctions(V)
 
-        error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
+    D = D_Matrix(G, nu, l, N)
+
+    a = inner(strain(v, eta), D*strain(u, psi))*dx
+    L = inner(t, v)*ds(1)
+
+    U_h = Function(V)
+    problem = LinearVariationalProblem(a, L, U_h, bc)
+    solver = LinearVariationalSolver(problem)
+    solver.solve()
+    u_h, psi_h = U_h.split()
+
+    # Stress
+    epsilon = strain(u_h, psi_h)
+    sigma = D*epsilon
+    sigma_yy = project(sigma[1])
+
+    error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
+
+    elements_size.append(hm)
+    SCF_0.append(sigma_yy(10.0, 1e-6))
+    errors.append(error)
         
-        elements_size.append(hm)
-        SCF_0.append(sigma_yy(10.0, 1e-6))
-        errors.append(error)
-        
-print("Analytical SCF : ") + str(SCF)
+print("Analytical SCF: %.5e" % SCF)
 print(elements_size)
 print(errors)
 print(SCF_0)
