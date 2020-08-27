@@ -69,15 +69,15 @@ def strain(v, eta):
 
     return strain
 
-#def strain(v, eta):
+#def strain_bis(v, eta):
 #    deformation = nabla_grad(v) + as_tensor(([0.,-eta],[eta,0.]))
 #    curvature = grad(eta)
 #    return deformation, curvature
-
-def stress(deformation, curvature):
-    sigma = lmbda * tr(deformation) * Indentity(d) + mu * deformation + mu_c * deformation.T
-    mu = alpha * tr(curvature) * Identity(d) + gamma * curvature + beta * curvature.T
-    #mu = 4*l*l * curvature
+#
+#def stress(deformation, curvature):
+#    sigma = lmbda * tr(deformation) * Indentity(d) + mu * deformation + mu_c * deformation.T
+#    mu = alpha * tr(curvature) * Identity(d) + gamma * curvature + beta * curvature.T
+#    #mu = 4*l*l * curvature
     
 
 for hx in h :
