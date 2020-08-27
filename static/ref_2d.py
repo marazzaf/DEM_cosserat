@@ -5,7 +5,9 @@ from dolfin import *
 import numpy as np
 from mshr import Rectangle, Circle, generate_mesh
 import matplotlib.pyplot as plt
+
 # Parameters
+d = 2 #2d problem
 R = 10.0 # radius
 plate = 100.0 # plate dimension
 nu = 0.3 # Poisson's ratio
@@ -65,6 +67,17 @@ def strain(v, eta):
     
     return strain
 
+def strain(v, eta):
+    deformation = nabla_grad(v) + as_tensor(([0.,-eta],[eta,0.]))
+    curvature = grad(eta)
+    return deformation, curvature
+
+def stress(deformation, curvature):
+    sigma = lmbda * tr(deformation) * Indentity(d) + mu * deformation + mu_c * deformation.T
+    mu = alpha * tr(curvature) * Identity(d) + gamma * curvature + beta * curvature.T
+    #mu = 4*l*l * curvature
+    
+
 for hx in h :
     
     # Mesh
@@ -105,7 +118,7 @@ for hx in h :
     top_boundary = TopBoundary()
     top_boundary.mark(boundary_parts, 1)
         
-    ds = Measure("ds")[boundary_parts]
+    ds = Measure("ds")(subdomain_data=boundary_parts)
 
     u_0 = Constant(0.0)
     left_U_1 = DirichletBC(U_1, u_0, left_boundary)
@@ -121,7 +134,11 @@ for hx in h :
 
     D = D_Matrix(G, nu, l, N)
 
-    a = inner(strain(v, eta), D*strain(u, psi))*dx
+    a = inner(strain(v, eta), dot(D,strain(u, psi)))*dx
+    #trial_strain = strain(u, psi)
+    #test_strain = strain(v, eta)
+    #a = inner(trial_strain[0], test_strain[0]) * dx + inner(trial_strain[1], test_strain[1]) * dx
+    #a = inner(strain(v, eta)[0], strain(u, psi)[0]) * dx + inner(strain(v, eta)[1], strain(u, psi)[1]) * dx
     L = inner(t, v)*ds(1)
 
     U_h = Function(V)
