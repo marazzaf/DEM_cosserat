@@ -5,6 +5,7 @@ from dolfin import *
 import numpy as np
 from mshr import Rectangle, Circle, generate_mesh
 import matplotlib.pyplot as plt
+import sys
 
 # Parameters
 d = 2 #2d problem
@@ -51,12 +52,15 @@ def D_Matrix(G, nu, l, N):
         [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
     
     d *= G
-    D = Constant(d)
-    
+
+    #print(type(d))
+    D = as_matrix(d) #Constant(d)
     return D
 
 # Strain
 def strain(v, eta):
+    print(type(v[0]))
+    print('MTF')
     strain = as_vector([ \
                          v[0].dx(0),
                          v[1].dx(1),
@@ -64,7 +68,7 @@ def strain(v, eta):
                          v[0].dx(1) + eta,
                          eta.dx(0),
                          eta.dx(1)])
-    
+
     return strain
 
 def strain(v, eta):
@@ -86,12 +90,17 @@ for hx in h :
     mesh = generate_mesh(geometry, hx)
     hm = mesh.hmax()
     
-    U = VectorElement("Lagrange", mesh.ufl_cell(), 2) # disp space
-    S = FiniteElement("Lagrange", mesh.ufl_cell(), 1) # micro rotation space
-    TH = U * S
-    V = FunctionSpace(mesh, TH)
-    U_1, U_2 = V.sub(0).sub(0), V.sub(0).sub(1)
-    S = V.sub(1)
+    #U = VectorElement("Lagrange", mesh.ufl_cell(), 2) # disp space
+    #S = FiniteElement("Lagrange", mesh.ufl_cell(), 1) # micro rotation space
+    #TH = U * S
+    #U_1, U_2 = V.sub(0).sub(0), V.sub(0).sub(1)
+    #S = V.sub(1)
+    
+    U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
+    S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
+    V = FunctionSpace(mesh, MixedElement(U,S))
+    U,S = V.split()
+    U_1, U_2 = U.sub(0), U.sub(1)
     
     # Boundary conditions
     class BotBoundary(SubDomain):
@@ -118,10 +127,10 @@ for hx in h :
     top_boundary = TopBoundary()
     top_boundary.mark(boundary_parts, 1)
         
-    ds = Measure("ds")(subdomain_data=boundary_parts)
+    ds = ds(subdomain_data=boundary_parts) #Measure("ds")
 
     u_0 = Constant(0.0)
-    left_U_1 = DirichletBC(U_1, u_0, left_boundary)
+    left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
     bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
     left_S = DirichletBC(S, u_0, left_boundary)
     bot_S = DirichletBC(S, u_0, bot_boundary)
@@ -134,9 +143,11 @@ for hx in h :
 
     D = D_Matrix(G, nu, l, N)
 
+    truc = dot(D,strain(u, psi)) # test
     a = inner(strain(v, eta), dot(D,strain(u, psi)))*dx
-    #trial_strain = strain(u, psi)
-    #test_strain = strain(v, eta)
+    
+    trial_strain = strain(u, psi)
+    test_strain = strain(v, eta)
     #a = inner(trial_strain[0], test_strain[0]) * dx + inner(trial_strain[1], test_strain[1]) * dx
     #a = inner(strain(v, eta)[0], strain(u, psi)[0]) * dx + inner(strain(v, eta)[1], strain(u, psi)[1]) * dx
     L = inner(t, v)*ds(1)
