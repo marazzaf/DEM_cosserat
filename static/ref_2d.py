@@ -59,8 +59,6 @@ def D_Matrix(G, nu, l, N):
 
 # Strain
 def strain(v, eta):
-    print(type(v[0]))
-    print('MTF')
     strain = as_vector([ \
                          v[0].dx(0),
                          v[1].dx(1),
@@ -71,10 +69,10 @@ def strain(v, eta):
 
     return strain
 
-def strain(v, eta):
-    deformation = nabla_grad(v) + as_tensor(([0.,-eta],[eta,0.]))
-    curvature = grad(eta)
-    return deformation, curvature
+#def strain(v, eta):
+#    deformation = nabla_grad(v) + as_tensor(([0.,-eta],[eta,0.]))
+#    curvature = grad(eta)
+#    return deformation, curvature
 
 def stress(deformation, curvature):
     sigma = lmbda * tr(deformation) * Indentity(d) + mu * deformation + mu_c * deformation.T
@@ -143,13 +141,7 @@ for hx in h :
 
     D = D_Matrix(G, nu, l, N)
 
-    truc = dot(D,strain(u, psi)) # test
-    a = inner(strain(v, eta), dot(D,strain(u, psi)))*dx
-    
-    trial_strain = strain(u, psi)
-    test_strain = strain(v, eta)
-    #a = inner(trial_strain[0], test_strain[0]) * dx + inner(trial_strain[1], test_strain[1]) * dx
-    #a = inner(strain(v, eta)[0], strain(u, psi)[0]) * dx + inner(strain(v, eta)[1], strain(u, psi)[1]) * dx
+    a = inner(strain(v, eta), D*strain(u, psi))*dx
     L = inner(t, v)*ds(1)
 
     U_h = Function(V)
