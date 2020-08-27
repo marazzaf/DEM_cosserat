@@ -29,7 +29,7 @@ def AnalyticalSolution(R, l, nu):
 SCF_a = AnalyticalSolution(R, l, nu)
 error = []
 h = []
-mesh = Mesh("meshes/1.xml")
+mesh = Mesh("mesh_3d.xml")
 hm = mesh.hmax()
 SCF_0 = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
 e = abs(SCF_0 - SCF_a) / SCF_a

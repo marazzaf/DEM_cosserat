@@ -88,12 +88,6 @@ for hx in h :
     mesh = generate_mesh(geometry, hx)
     hm = mesh.hmax()
     
-    #U = VectorElement("Lagrange", mesh.ufl_cell(), 2) # disp space
-    #S = FiniteElement("Lagrange", mesh.ufl_cell(), 1) # micro rotation space
-    #TH = U * S
-    #U_1, U_2 = V.sub(0).sub(0), V.sub(0).sub(1)
-    #S = V.sub(1)
-    
     U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
     S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
     V = FunctionSpace(mesh, MixedElement(U,S))
@@ -125,7 +119,7 @@ for hx in h :
     top_boundary = TopBoundary()
     top_boundary.mark(boundary_parts, 1)
         
-    ds = ds(subdomain_data=boundary_parts) #Measure("ds")
+    ds = Measure('ds')(subdomain_data=boundary_parts) #Measure("ds")
 
     u_0 = Constant(0.0)
     left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
