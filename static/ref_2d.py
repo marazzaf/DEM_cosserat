@@ -19,6 +19,16 @@ N = 0.8 # coupling parameter
 T = 1.0 # load
 c = l/N
 
+#for other version
+K = 16.67e3
+G = 10e3
+Gc = 5e3
+L = 10 #pas de valeur
+R = 0.01
+h3 = 2/5
+M = G*R*R/h3
+Mc = M
+
 # Convergence
 h = [15, 30, 50, 70, 90] # mesh density
 
@@ -74,10 +84,11 @@ def strain_bis(v, omega):
     kappa = grad(omega)
     return gamma, kappa
 
-#def stress(deformation, curvature):
-#    sigma = (K - 2/3*G) * tr(deformation) * Indentity(d) + (G+Gc) * tr(deformation) - tr(deformation) * Indentity(d) / 3.) + 2*Gc * curvature
-#    mu = L * tr(curvature) * Identity(d) + 2*M * (sym(curvature) - tr( + beta * curvature.T + 2*Mc * skew(curvature)
-#    return sigma,mu
+def stress(Tuple):
+    gamma,kappa = Tuple
+    sigma = K * tr(gamma) * Indentity(d) + 2*G * (sym(gamma) - tr(gamma) * Indentity(d) / 3) + 2*Gc * skew(gamma)
+    mu = L * tr(kappa) * Identity(d) + 2*M * (sym(kappa) - tr(kappa) * Identity(d) / 3) + 2*Mc * skew(curvature)
+    return sigma,mu
     
 
 for hx in h :
@@ -135,10 +146,11 @@ for hx in h :
 
     D = D_Matrix(G, nu, l, N)
 
-    #test forme varia...
-    truc = strain_bis(v,eta)
-    ttruc = strain_bis(u, psi)
-    a = (inner(truc[0],ttruc[0]) + inner(truc[1],ttruc[1])) * dx
+    ##test forme varia... Fonctionne!
+    #truc = strain_bis(v,eta)
+    #ttruc = strain_bis(u, psi)
+    #ttruc = stress(ttruc)
+    #a = (inner(truc[0],ttruc[0]) + inner(truc[1],ttruc[1])) * dx
     
     a = inner(strain(v, eta), D*strain(u, psi))*dx
     L = inner(t, v)*ds(1)
