@@ -29,14 +29,37 @@ def AnalyticalSolution(R, l, nu):
 SCF_a = AnalyticalSolution(R, l, nu)
 error = []
 h = []
-mesh = Mesh("mesh_3d.xml")
+
+mesh = Mesh("meshes/1.xml")
 hm = mesh.hmax()
 SCF_0 = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
 e = abs(SCF_0 - SCF_a) / SCF_a
 error.append(e)
 h.append(hm)
 
+mesh = Mesh("meshes/2.xml")
+hm = mesh.hmax()
+SCF_0 = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
+e = abs(SCF_0 - SCF_a) / SCF_a
+error.append(e)
+h.append(hm)
+
+mesh = Mesh("meshes/3.xml")
+hm = mesh.hmax()
+SCF_0 = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
+e = abs(SCF_0 - SCF_a) / SCF_a
+error.append(e)
+h.append(hm)
+
+#mesh = Mesh("meshes/4.xml")
+#hm = mesh.hmax()
+#SCF_0 = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
+#e = abs(SCF_0 - SCF_a) / SCF_a
+#error.append(e)
+#h.append(hm)
+
 plt.plot(h, error, "-*", linewidth=2)
 plt.xlabel("elements size")
 plt.ylabel("error")
+plt.savefig('convergence.pdf')
 plt.show()

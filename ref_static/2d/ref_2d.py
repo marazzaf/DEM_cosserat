@@ -165,6 +165,10 @@ for hx in h :
     epsilon = strain(u_h, psi_h)
     sigma = D*epsilon
     sigma_yy = project(sigma[1])
+    #Other version
+    #epsilon = strain_bis(u_h, psi_h)
+    #sigma = stress(epsilon)[0]
+    #sigma_yy = project(sigma[1])
 
     error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
 
