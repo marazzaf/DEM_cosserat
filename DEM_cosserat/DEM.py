@@ -39,33 +39,29 @@ class DEMProblem:
 
         #gradient
         self.mat_grad,self.mat_grad_phi = gradient_matrix(self)
-        sys.exit()
 
         #useful
         self.facet_num = facet_neighborhood(self.mesh)
-        self.bary_facets = dico_position_bary_face(self.mesh, self.d)
-        self.vertex_associe_face,self.pos_ddl_vertex,self.num_ddl_vertex,self.nb_dof_DEM = dico_position_vertex_bord(self.mesh, self.facet_num, self.d)
-        self.bary_cells = position_cell_dofs(self.mesh,self.d)
 
         #DEM reconstructions
-        self.DEM_to_DG, self.DEM_to_CR, self.DEM_to_DG_1 = compute_all_reconstruction_matrices(self)
-        print('Reconstruction matrices ok!')
+        #self.DEM_to_DG, self.DEM_to_CR, self.DEM_to_DG_1 = compute_all_reconstruction_matrices(self)
+        #print('Reconstruction matrices ok!')
 
         #Dirichlet conditions
 
-    def for_dirichlet(self, A, boundary_dirichlet=None):
-        hF = FacetArea(self.mesh)
-        v_CG = TestFunction(self.CG)
-        if boundary_dirichlet == None: #dependence on self.d ???
-            form_dirichlet = inner(v_CG('+'),as_vector((1.,1.))) / hF * ds
-        else:
-            form_dirichlet = inner(v_CG('+'),as_vector((1.,1.))) / hF * ds(boundary_dirichlet)
-        A_BC = Dirichlet_BC(form_dirichlet, self.DEM_to_CG)
-        self.mat_not_D,self.mat_D = schur_matrices(A_BC)
-        #A_D = mat_D * A * mat_D.T
-        A_not_D = self.mat_not_D * A * self.mat_not_D.T
-        B = self.mat_not_D * A * self.mat_D.T
-        return A_not_D,B
+   #def for_dirichlet(self, A, boundary_dirichlet=None):
+   #    hF = FacetArea(self.mesh)
+   #    v_CG = TestFunction(self.CG)
+   #    if boundary_dirichlet == None: #dependence on self.d ???
+   #        form_dirichlet = inner(v_CG('+'),as_vector((1.,1.))) / hF * ds
+   #    else:
+   #        form_dirichlet = inner(v_CG('+'),as_vector((1.,1.))) / hF * ds(boundary_dirichlet)
+   #    A_BC = Dirichlet_BC(form_dirichlet, self.DEM_to_CG)
+   #    self.mat_not_D,self.mat_D = schur_matrices(A_BC)
+   #    #A_D = mat_D * A * mat_D.T
+   #    A_not_D = self.mat_not_D * A * self.mat_not_D.T
+   #    B = self.mat_not_D * A * self.mat_D.T
+   #    return A_not_D,B
 
 
 def elastic_bilinear_form(mesh_, d_, DEM_to_CR_matrix, sigma=grad, eps=grad):
