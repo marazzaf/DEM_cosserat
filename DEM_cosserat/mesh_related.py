@@ -19,6 +19,8 @@ def facet_neighborhood(mesh_):
 def connectivity_graph(problem):
     G = nx.Graph()
 
+    #useful in the following
+    dofmap_DG = problem.U_DG.dofmap()
     dofmap_CR = problem.U_CR.dofmap()
     nb_dof_CR = 2*dofmap_CR.global_dimension() #modify that if I create a mixed space
 
@@ -37,20 +39,15 @@ def connectivity_graph(problem):
 
     #importing cell dofs
     for c in cells(mesh_): #Importing cells
-        aux = list(np.arange(count, count+d_))
-        count += d_
-        #computing volume and barycentre of the cell
-        vert = []
-        for v in vertices(c):
-            vert.append( np.array(v.point()[:])[:dim] )
-        vert = np.array(vert)
-        bary = vert.sum(axis=0) / vert.shape[0]
-
-        #Get the barycentre another way.
-        #Get the num of the dofs another way too!
+        #Get the position of the barycentre
+        bary = dofmap_DG.cell_dofs(c.index())
+        #Get the num of the dofs in global DEM vector
+        num_global_dof = dofmap_DG.entity_dofs(problem.mesh, dim, np.array([c.index()], dtype="uintp"))
         
         #adding node to the graph
-        G.add_node(c.index(), dof=aux, pos=bary, bnd=False) #bnd=True if cell is on boundary of the domain
+        G.add_node(c.index(), dof=num_global_dof, pos=bary)
+
+    #CONTINUE HERE !!!!
         
     #importing connectivity and facet dofs
     for f in facets(mesh_):
