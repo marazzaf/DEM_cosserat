@@ -17,14 +17,21 @@ class DEMProblem:
         self.d = d
 
         #Rotation is a scalar in 3d and a vector in 3d
+        U_DG = VectorElement('DG', self.mesh.ufl_cell(), 2)
         if self.dim == 2:
+            PHI_DG = FiniteElement('DG', self.mesh.ufl_cell(), 0)
             self.PHI_CR = FunctionSpace(self.mesh, 'CR', 1)
             self.PHI_W = VectorFunctionSpace(self.mesh, 'DG', 0)
         elif self.dim == 3:
+            PHI_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
             self.PHI_CR = VectorFunctionSpace(self.mesh, 'CR', 1)
             self.PHI_W = TensorFunctionSpace(self.mesh, 'DG', 0)
         else:
             raise ValueError('Problem is whether scalar or vectorial')
+        self.V = FunctionSpace(self.mesh, MixedElement(U_DG,PHI_DG))
+        self.U_DG,self.PHI_DG = self.V.split()
+
+        #what to do with these ?
         self.CR = VectorFunctionSpace(self.mesh, 'CR', 1)
         self.W = TensorFunctionSpace(self.mesh, 'DG', 0)
         self.DG_0 = VectorFunctionSpace(self.mesh, 'DG', 0)

@@ -53,44 +53,57 @@ def AnalyticalSolution(nu, l, c, R):
 
 SCF = AnalyticalSolution(nu, l, c, R)
 
-# Matrix
+## Matrix
+#def D_Matrix(G, nu, l, N):
+#    d = G * np.array([ \
+#        [(2.0*(1.0 - nu))/(1.0 - 2.0*nu), (2.0*nu)/(1.0 - 2.0 * nu), 0.0,0.0,0.0,0.0], \
+#        [(2.0*nu)/(1.0 - 2.0*nu), (2.0*(1.0 - nu)) / (1.0 - 2.0*nu), 0.0,0.0,0.0,0.0], \
+#        [0.0,0.0, 1.0/(1.0 - N**2), (1.0 - 2.0*N**2)/(1.0 - N**2), 0.0,0.0], \
+#        [0.0,0.0, (1.0 - 2.0*N**2)/(1.0 - N**2), 1.0/(1.0 - N**2), 0.0,0.0], \
+#        [0.0,0.0,0.0,0.0, 4.0*l**2, 0.0], \
+#        [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
+#    
+#
+#    D = as_matrix(d)
+#    return D
+
 def D_Matrix(G, nu, l, N):
-    d = np.array([ \
-        [(2.0*(1.0 - nu))/(1.0 - 2.0*nu), (2.0*nu)/(1.0 - 2.0 * nu), 0.0,0.0,0.0,0.0], \
-        [(2.0*nu)/(1.0 - 2.0*nu), (2.0*(1.0 - nu)) / (1.0 - 2.0*nu), 0.0,0.0,0.0,0.0], \
-        [0.0,0.0, 1.0/(1.0 - N**2), (1.0 - 2.0*N**2)/(1.0 - N**2), 0.0,0.0], \
-        [0.0,0.0, (1.0 - 2.0*N**2)/(1.0 - N**2), 1.0/(1.0 - N**2), 0.0,0.0], \
-        [0.0,0.0,0.0,0.0, 4.0*l**2, 0.0], \
-        [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
+    a = 2*(1-nu)/(1-2*nu)
+    b = 2*nu/(1-2*nu)
+    c = 1/(1-N*N)
+    d = (1-2*N*N)/(1-N*N)
     
-    d *= G
+    D = as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
+    return G * D
 
-    #print(type(d))
-    D = as_matrix(d) #Constant(d)
-    return D
-
-# Strain
-def strain(v, eta):
-    strain = as_vector([ \
-                         v[0].dx(0),
-                         v[1].dx(1),
-                         v[1].dx(0) - eta,
-                         v[0].dx(1) + eta,
-                         eta.dx(0),
-                         eta.dx(1)])
-
-    return strain
+## Strain
+#def strain(v, eta):
+#    strain = as_vector([ \
+#                         v[0].dx(0),
+#                         v[1].dx(1),
+#                         v[1].dx(0) - eta,
+#                         v[0].dx(1) + eta,
+#                         eta.dx(0),
+#                         eta.dx(1)])
+#
+#    return strain
 
 def strain_bis(v, omega):
     gamma = grad(v) + as_tensor(([0.,-omega],[omega,0.]))
     kappa = grad(omega)
     return gamma, kappa
 
-def stress(Tuple):
-    gamma,kappa = Tuple
-    sigma = K * tr(gamma) * Indentity(d) + 2*G * (sym(gamma) - tr(gamma) * Indentity(d) / 3) + 2*Gc * skew(gamma)
-    mu = L * tr(kappa) * Identity(d) + 2*M * (sym(kappa) - tr(kappa) * Identity(d) / 3) + 2*Mc * skew(curvature)
-    return sigma,mu
+def stess(D,strains):
+    gamma,kappa = strains
+    sigma = dot(D, gamma)
+    mu = 4*G*l*l * kappa
+    return sigma, mu
+
+#def stress(Tuple):
+#    gamma,kappa = Tuple
+#    sigma = K * tr(gamma) * Indentity(d) + 2*G * (sym(gamma) - tr(gamma) * Indentity(d) / 3) + 2*Gc * skew(gamma)
+#    mu = L * tr(kappa) * Identity(d) + 2*M * (sym(kappa) - tr(kappa) * Identity(d) / 3) + 2*Mc * skew(curvature)
+#    return sigma,mu
     
     
 # Mesh
@@ -149,13 +162,13 @@ v, eta = TestFunctions(V)
 
 D = D_Matrix(G, nu, l, N)
 
-##test forme varia... Fonctionne!
-#truc = strain_bis(v,eta)
-#ttruc = strain_bis(u, psi)
-#ttruc = stress(ttruc)
-#a = (inner(truc[0],ttruc[0]) + inner(truc[1],ttruc[1])) * dx
+#test forme varia... Fonctionne!
+truc = strain_bis(v,eta)
+ttruc = strain_bis(u, psi)
+ttruc = stress(D,ttruc)
+a = (inner(truc[0],ttruc[0]) + inner(truc[1],ttruc[1])) * dx
 
-a = inner(strain(v, eta), D*strain(u, psi))*dx
+#rhs
 L = inner(t, v)*ds(1)
 
 U_h = Function(V)
