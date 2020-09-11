@@ -30,11 +30,12 @@ class DEMProblem:
             raise ValueError('Problem is whether scalar or vectorial')
         self.V = FunctionSpace(self.mesh, MixedElement(U_DG,PHI_DG))
         self.U_DG,self.PHI_DG = self.V.split()
+        self.nb_dof_DEM = self.V.dofmap().global_dimension()
+        #Create a mixed space with CR reconstructions in facets too?
 
         #what to do with these ?
-        self.CR = VectorFunctionSpace(self.mesh, 'CR', 1)
+        self.U_CR = VectorFunctionSpace(self.mesh, 'CR', 1)
         self.W = TensorFunctionSpace(self.mesh, 'DG', 0)
-        self.DG_0 = VectorFunctionSpace(self.mesh, 'DG', 0)
         self.DG_1 = VectorFunctionSpace(self.mesh, 'DG', 1)
 
         #gradient

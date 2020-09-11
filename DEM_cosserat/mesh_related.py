@@ -16,21 +16,11 @@ def facet_neighborhood(mesh_):
     return indices
 
 #Adapt that to use the graph to store information
-def connectivity_graph(mesh_, d_, penalty_):
+def connectivity_graph(problem):
     G = nx.Graph()
-    count = 0
 
-    #useful mesh entities
-    dim = mesh_.topology().dim()
-    if d_ == 1:
-        U_CR = FunctionSpace(mesh_, 'CR', 1)
-        U_DG = FunctionSpace(mesh_, 'DG', 0)
-    elif d_ >= 2:
-        U_CR = VectorFunctionSpace(mesh_, 'CR', 1)
-        U_DG = VectorFunctionSpace(mesh_, 'DG', 0)
-    nb_ddl_cells = U_DG.dofmap().global_dimension()
-    dofmap_CR = U_CR.dofmap()
-    nb_ddl_CR = dofmap_CR.global_dimension()
+    dofmap_CR = problem.U_CR.dofmap()
+    nb_dof_CR = 2*dofmap_CR.global_dimension() #modify that if I create a mixed space
 
     #useful auxiliary functions
     vol_c = CellVolume(mesh_) #Pour volume des particules voisines
@@ -43,20 +33,7 @@ def connectivity_graph(mesh_, d_, penalty_):
     vectorial_CR = VectorFunctionSpace(mesh_, 'CR', 1) #for normals
     v_CR = TestFunction(vectorial_CR)
 
-    #assembling penalty factor
-    #print(assemble(f_CR * ds + f_CR('+') * dS).get_local()) #areas
-    #print(assemble(f_DG * dx).get_local()) #volumes
-    #sys.exit()
-    a_aux = penalty_ * hF / vol_c * f_CR * ds + penalty_ * (2.*hF('+'))/ (vol_c('+') + vol_c('-')) * f_CR('+') * dS
-    pen_factor = assemble(a_aux).get_local()
 
-    #computation of volumes, surfaces and normals
-    volumes = assemble(f_DG * dx).get_local()
-    assert(volumes.min() > 0.)
-    areas = assemble(f_CR('+') * (dS + ds)).get_local()
-    assert(areas.min() > 0.)
-    normals_aux = assemble( dot(n('-'), v_CR('-')) / hF('-') * dS + dot(n, v_CR) / hF * ds ).get_local() #(dS + ds)
-    normals = normals_aux.reshape((nb_ddl_CR // d_, dim))
 
     #importing cell dofs
     for c in cells(mesh_): #Importing cells
@@ -64,15 +41,16 @@ def connectivity_graph(mesh_, d_, penalty_):
         count += d_
         #computing volume and barycentre of the cell
         vert = []
-        vert_ind = []
         for v in vertices(c):
             vert.append( np.array(v.point()[:])[:dim] )
-            vert_ind.append(v.index())
-        vol = volumes[c.index()]
         vert = np.array(vert)
         bary = vert.sum(axis=0) / vert.shape[0]
+
+        #Get the barycentre another way.
+        #Get the num of the dofs another way too!
+        
         #adding node to the graph
-        G.add_node(c.index(), dof=aux, pos=bary, measure=vol, vertices=vert, bnd=False) #bnd=True if cell is on boundary of the domain
+        G.add_node(c.index(), dof=aux, pos=bary, bnd=False) #bnd=True if cell is on boundary of the domain
         
     #importing connectivity and facet dofs
     for f in facets(mesh_):
