@@ -17,25 +17,34 @@ class DEMProblem:
         self.d = d
 
         #Rotation is a scalar in 3d and a vector in 3d
-        U_DG = VectorElement('DG', self.mesh.ufl_cell(), 2)
+        U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
+        U_CR = VectorElement('CR', self.mesh.ufl_cell(), 1)
+        WW = TensorElement('DG', self.mesh.ufl_cell(), 0)
         if self.dim == 2:
             PHI_DG = FiniteElement('DG', self.mesh.ufl_cell(), 0)
-            self.PHI_CR = FunctionSpace(self.mesh, 'CR', 1)
-            self.PHI_W = VectorFunctionSpace(self.mesh, 'DG', 0)
+            PHI_CR = FiniteElement('CR', self.mesh.ufl_cell(), 1)
+            PHI_W = VectorElement('DG', self.mesh.ufl_cell(), 0)
         elif self.dim == 3:
             PHI_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
-            self.PHI_CR = VectorFunctionSpace(self.mesh, 'CR', 1)
-            self.PHI_W = TensorFunctionSpace(self.mesh, 'DG', 0)
+            PHI_CR = VectorElement('CR', self.mesh.ufl_cell(), 1)
+            PHI_W = TensorElement('DG', self.mesh.ufl_cell(), 0)
         else:
             raise ValueError('Problem is whether scalar or vectorial')
-        self.V = FunctionSpace(self.mesh, MixedElement(U_DG,PHI_DG))
-        self.U_DG,self.PHI_DG = self.V.split()
-        self.nb_dof_DEM = self.V.dofmap().global_dimension()
-        #Create a mixed space with CR reconstructions in facets too?
+        #Spaces for DEM dofs
+        self.V_DG = FunctionSpace(self.mesh, MixedElement(U_DG,PHI_DG))
+        self.U_DG,self.PHI_DG = self.V_DG.split()
+        self.nb_dof_DEM = self.V_DG.dofmap().global_dimension()
+
+        #Spaces for facet interpolations
+        self.V_CR = FunctionSpace(self.mesh, MixedElement(U_CR,PHI_CR))
+        self.U_CR,self.PHI_CR = self.V_CR.split()
+        self.nb_dof_CR = self.V_CR.dofmap().global_dimension()
+        #Spaces for gradients (strains and stresses)
+        self.W = FunctionSpace(self.mesh, MixedElement(WW,PHI_W))
+        self.WW,self.PHI_W = self.W.split()
+        self.nb_dof_grad = self.W.dofmap().global_dimension()
 
         #what to do with these ?
-        self.U_CR = VectorFunctionSpace(self.mesh, 'CR', 1)
-        self.W = TensorFunctionSpace(self.mesh, 'DG', 0)
         self.DG_1 = VectorFunctionSpace(self.mesh, 'DG', 1)
 
         #gradient
