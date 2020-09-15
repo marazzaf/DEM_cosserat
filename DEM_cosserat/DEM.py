@@ -65,30 +65,22 @@ class DEMProblem:
    #    return A_not_D,B
 
 
-def elastic_bilinear_form(mesh_, d_, DEM_to_CR_matrix, sigma=grad, eps=grad):
-    dim = mesh_.geometric_dimension()
-    if d_ == 1:
-        U_CR = FunctionSpace(mesh_, 'CR', 1)
-    elif d_ == dim:
-        U_CR = VectorFunctionSpace(mesh_, 'CR', 1)
-    else:
-        raise ValueError('Problem is either scalar or vectorial (in 2d and 3d)')
+def elastic_bilinear_form(problem, D, strain, stress):
+    u_CR = TrialFunction(problem.U_CR)
+    v_CR = TestFunction(problem.U_CR)
+    psi_CR = TrialFunction(problem.PHI_CR)
+    eta_CR = TestFunction(problem.PHI_CR)
 
-    u_CR = TrialFunction(U_CR)
-    v_CR = TestFunction(U_CR)
-
-    #Mettre eps et sigma en arguments de la fonction ?
-    if d_ == 1:
-        a1 = eps(u_CR) * sigma(v_CR) * dx
-    elif d_ == dim:
-        a1 = inner(eps(u_CR), sigma(v_CR)) * dx
-    else:
-        raise ValueError('Problem is either scalar or vectorial (in 2d and 3d)')
+    #Variationnal formulation
+    def_test = strain(v_CR,eta_CR)
+    def_trial = strain(u_CR, psi_CR)
+    stress_trial = stress(D,def_trial)
+    a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
     
-    A1 = assemble(a1)
-    row,col,val = as_backend_type(A1).mat().getValuesCSR()
-    A1 = csr_matrix((val, col, row))
-    return DEM_to_CR_matrix.T * A1 * DEM_to_CR_matrix
+    A = assemble(a)
+    row,col,val = as_backend_type(A).mat().getValuesCSR()
+    A = csr_matrix((val, col, row))
+    return problem.DEM_to_CR_matrix.T * A * problem.DEM_to_CR_matrix
 
 def penalties(problem):
     """Creates the penalty matrix to stabilize the DEM."""

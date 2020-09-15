@@ -53,20 +53,6 @@ def AnalyticalSolution(nu, l, c, R):
 
 SCF = AnalyticalSolution(nu, l, c, R)
 
-## Matrix
-#def D_Matrix(G, nu, l, N):
-#    d = G * np.array([ \
-#        [(2.0*(1.0 - nu))/(1.0 - 2.0*nu), (2.0*nu)/(1.0 - 2.0 * nu), 0.0,0.0,0.0,0.0], \
-#        [(2.0*nu)/(1.0 - 2.0*nu), (2.0*(1.0 - nu)) / (1.0 - 2.0*nu), 0.0,0.0,0.0,0.0], \
-#        [0.0,0.0, 1.0/(1.0 - N**2), (1.0 - 2.0*N**2)/(1.0 - N**2), 0.0,0.0], \
-#        [0.0,0.0, (1.0 - 2.0*N**2)/(1.0 - N**2), 1.0/(1.0 - N**2), 0.0,0.0], \
-#        [0.0,0.0,0.0,0.0, 4.0*l**2, 0.0], \
-#        [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
-#    
-#
-#    D = as_matrix(d)
-#    return D
-
 def D_Matrix(G, nu, l, N):
     a = 2*(1-nu)/(1-2*nu)
     b = 2*nu/(1-2*nu)
@@ -76,34 +62,18 @@ def D_Matrix(G, nu, l, N):
     D = as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
     return G * D
 
-## Strain
-#def strain(v, eta):
-#    strain = as_vector([ \
-#                         v[0].dx(0),
-#                         v[1].dx(1),
-#                         v[1].dx(0) - eta,
-#                         v[0].dx(1) + eta,
-#                         eta.dx(0),
-#                         eta.dx(1)])
-#
-#    return strain
-
-def strain_bis(v, omega):
-    gamma = grad(v) + as_tensor(([0.,-omega],[omega,0.]))
-    kappa = grad(omega)
+def strain(v, eta):
+    gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
+    kappa = grad(eta)
     return gamma, kappa
 
-def stess(D,strains):
+def stress(D,strains):
     gamma,kappa = strains
+    print(D)
+    print(gamma)
     sigma = dot(D, gamma)
     mu = 4*G*l*l * kappa
     return sigma, mu
-
-#def stress(Tuple):
-#    gamma,kappa = Tuple
-#    sigma = K * tr(gamma) * Indentity(d) + 2*G * (sym(gamma) - tr(gamma) * Indentity(d) / 3) + 2*Gc * skew(gamma)
-#    mu = L * tr(kappa) * Identity(d) + 2*M * (sym(kappa) - tr(kappa) * Identity(d) / 3) + 2*Mc * skew(curvature)
-#    return sigma,mu
     
     
 # Mesh
@@ -112,17 +82,11 @@ geometry = Rectangle(Point(0,0),Point(plate, plate)) - \
 mesh = generate_mesh(geometry, h)
 hm = mesh.hmax()
 
-#U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
-#S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
-#V = FunctionSpace(mesh, MixedElement(U,S))
-#U,S = V.split()
-#U_1, U_2 = U.sub(0), U.sub(1)
-
 #Creating the DEM problem
 problem = DEMProblem(mesh, d)
 
 #Creating the graph
-G = connectivity_graph(problem)
+Graph = connectivity_graph(problem)
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -152,24 +116,20 @@ top_boundary.mark(boundary_parts, 1)
 ds = Measure('ds')(subdomain_data=boundary_parts)
 
 u_0 = Constant(0.0)
-left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
-bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
-left_S = DirichletBC(S, u_0, left_boundary)
-bot_S = DirichletBC(S, u_0, bot_boundary)
+left_U_1 = DirichletBC(problem.U_CR.sub(0), u_0, left_boundary)
+bot_U_2 = DirichletBC(problem.U_CR.sub(1), u_0, bot_boundary)
+left_S = DirichletBC(problem.PHI_CR, u_0, left_boundary)
+bot_S = DirichletBC(problem.PHI_CR, u_0, bot_boundary)
 
 bc = [left_U_1, bot_U_2, left_S, bot_S]
 
-# Variational problem
-u, psi = TrialFunctions(V)
-v, eta = TestFunctions(V)
-
+#compliance tensor
 D = D_Matrix(G, nu, l, N)
 
-#test forme varia... Fonctionne!
-truc = strain_bis(v,eta)
-ttruc = strain_bis(u, psi)
-ttruc = stress(D,ttruc)
-a = (inner(truc[0],ttruc[0]) + inner(truc[1],ttruc[1])) * dx
+# Variational problem
+elasticity_matrix = elastic_bilinear_form(problem, D, strain, stress)
+
+sys.exit()
 
 #rhs
 L = inner(t, v)*ds(1)
