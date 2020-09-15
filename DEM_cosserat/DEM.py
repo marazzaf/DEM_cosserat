@@ -44,14 +44,16 @@ class DEMProblem:
         self.WW,self.PHI_W = self.W.split()
         self.nb_dof_grad = self.W.dofmap().global_dimension()
 
-        #what to do with these ?
-        self.DG_1 = VectorFunctionSpace(self.mesh, 'DG', 1)
+        ##what to do with these ?
+        #self.DG_1 = VectorFunctionSpace(self.mesh, 'DG', 1)
 
-        #gradient
-        self.mat_grad,self.mat_grad_phi = gradient_matrix(self)
+        ##gradient
+        #self.mat_grad,self.mat_grad_phi = gradient_matrix(self)
+        #Creating the graph associated with the mesh
+        Graph = connectivity_graph(self)
 
-        #useful
-        self.facet_num = facet_neighborhood(self.mesh)
+        ##Still useful ? Not sure with the graph...
+        #self.facet_num = facet_neighborhood(self.mesh)
 
         #DEM reconstructions
         #self.DEM_to_DG, self.DEM_to_CR, self.DEM_to_DG_1 = compute_all_reconstruction_matrices(self)

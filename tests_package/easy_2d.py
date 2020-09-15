@@ -85,9 +85,6 @@ hm = mesh.hmax()
 #Creating the DEM problem
 problem = DEMProblem(mesh, d)
 
-#Creating the graph
-Graph = connectivity_graph(problem)
-
 # Boundary conditions
 class BotBoundary(SubDomain):
     def inside(self, x, on_boundary):
