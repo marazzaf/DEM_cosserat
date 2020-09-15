@@ -80,10 +80,6 @@ from DEM_cosserat.errors import *
 def facet_interpolation(problem):
     """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
     #assert isinstance(problem,DEMProblem)
-
-    #for c in cells(problem.mesh):
-    #    print(problem.U_DG.element().tabulate_dof_coordinates(c))
-    #    sys.exit()
     
     #To store the results of the computations
     res_num = dict([])
@@ -123,7 +119,7 @@ def facet_interpolation(problem):
             for_deletion = np.where(np.absolute(neigh_pool) >= problem.nb_dof_DEM // problem.d)
             neigh_pool[for_deletion] = -1
             neigh_pool = set(neigh_pool) - {-1}
-
+            
         #Finding the convex
         for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
             chosen_coord_bary = []
@@ -143,6 +139,7 @@ def facet_interpolation(problem):
             except np.linalg.LinAlgError: #singular matrix
                 pass
             else:
+                print(aux_coord_bary)
                 if max(max(abs(aux_coord_bary)),1.-aux_coord_bary.sum()) < 10.:
                     chosen_coord_bary = np.append(1. - aux_coord_bary.sum(), aux_coord_bary)
                     coord_num = []
@@ -154,8 +151,8 @@ def facet_interpolation(problem):
             assert len(chosen_coord_bary) > 0 #otherwise no coordinates have been computed
             #else:
             #    raise ConvexError('Not possible to find a non-degenerate simplex for the facet reconstruction.\n')
-            res_num[f] = coord_num
-            res_coord[f] = chosen_coord_bary
+            res_num[num_facet] = coord_num
+            res_coord[num_facet] = chosen_coord_bary
                                 
     return res_num,res_coord
 

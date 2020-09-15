@@ -9,12 +9,13 @@ def connectivity_graph(problem):
 
     #useful in the following
     dofmap_DG = problem.U_DG.dofmap()
+    elt_DG = problem.U_DG.element()
     dofmap_CR = problem.U_CR.dofmap()
 
     #importing cell dofs
     for c in cells(problem.mesh): #Importing cells
         #Get the position of the barycentre
-        bary = dofmap_DG.cell_dofs(c.index())
+        bary = elt_DG.tabulate_dof_coordinates(c)[0]
         #Get the num of the dofs in global DEM vector
         num_global_dof = dofmap_DG.entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
         
