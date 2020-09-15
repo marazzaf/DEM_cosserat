@@ -51,7 +51,7 @@ def gradient_matrix(problem):
     vol = CellVolume(problem.mesh)
 
     #variational form gradient
-    u_CR = TrialFunction(problem.CR)
+    u_CR = TrialFunction(problem.U_CR)
     Dv_DG = TestFunction(problem.W)
     a = inner(grad(u_CR), Dv_DG) / vol * dx
     A = assemble(a)
