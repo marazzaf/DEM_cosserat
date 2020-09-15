@@ -77,10 +77,8 @@ class DEMProblem:
 
 
 def elastic_bilinear_form(problem, D, strain, stress):
-    u_CR = TrialFunction(problem.U_CR)
-    v_CR = TestFunction(problem.U_CR)
-    psi_CR = TrialFunction(problem.PHI_CR)
-    eta_CR = TestFunction(problem.PHI_CR)
+    u_CR,psi_CR = TrialFunctions(problem.V_CR)
+    v_CR,eta_CR = TestFunctions(problem.V_CR)
 
     #Variationnal formulation
     def_test = strain(v_CR,eta_CR)
@@ -91,7 +89,7 @@ def elastic_bilinear_form(problem, D, strain, stress):
     A = assemble(a)
     row,col,val = as_backend_type(A).mat().getValuesCSR()
     A = csr_matrix((val, col, row))
-    return problem.DEM_to_CR_matrix.T * A * problem.DEM_to_CR_matrix
+    return problem.DEM_to_CR.T * A * problem.DEM_to_CR
 
 def penalties(problem):
     """Creates the penalty matrix to stabilize the DEM."""

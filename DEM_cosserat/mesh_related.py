@@ -3,17 +3,17 @@ from dolfin import *
 from numpy import array
 import networkx as nx
 
-def facet_neighborhood(mesh_):
-    """Returns a dictionnary containing as key the index of the facets and as values the list of indices of the cells (or cell) containing the facet. """
-    indices = dict([])
-
-    for f in facets(mesh_):
-        voisins_num = []
-        for c in cells(f):
-            voisins_num.append(c.index())
-
-        indices[f.index()] = voisins_num
-    return indices
+#def facet_neighborhood(mesh_):
+#    """Returns a dictionnary containing as key the index of the facets and as values the list of indices of the cells (or cell) containing the facet. """
+#    indices = dict([])
+#
+#    for f in facets(mesh_):
+#        voisins_num = []
+#        for c in cells(f):
+#            voisins_num.append(c.index())
+#
+#        indices[f.index()] = voisins_num
+#    return indices
 
 #Adapt that to use the graph to store information
 def connectivity_graph(problem):

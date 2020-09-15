@@ -69,8 +69,6 @@ def strain(v, eta):
 
 def stress(D,strains):
     gamma,kappa = strains
-    print(D)
-    print(gamma)
     sigma = dot(D, gamma)
     mu = 4*G*l*l * kappa
     return sigma, mu
