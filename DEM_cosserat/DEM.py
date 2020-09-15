@@ -4,7 +4,7 @@ from dolfin import *
 from scipy.sparse import csr_matrix,dok_matrix
 import numpy as np
 from DEM_cosserat.errors import *
-from DEM_cosserat.reconstructions import compute_all_reconstruction_matrices,gradient_matrix
+from DEM_cosserat.reconstructions import DEM_to_CR_matrix
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.miscellaneous import Dirichlet_BC,schur_matrices
 import sys
@@ -50,7 +50,7 @@ class DEMProblem:
         ##gradient
         #self.mat_grad,self.mat_grad_phi = gradient_matrix(self)
         #Creating the graph associated with the mesh
-        Graph = connectivity_graph(self)
+        self.Graph = connectivity_graph(self)
 
         ##Still useful ? Not sure with the graph...
         #self.facet_num = facet_neighborhood(self.mesh)
@@ -58,6 +58,7 @@ class DEMProblem:
         #DEM reconstructions
         #self.DEM_to_DG, self.DEM_to_CR, self.DEM_to_DG_1 = compute_all_reconstruction_matrices(self)
         #print('Reconstruction matrices ok!')
+        self.DEM_to_CR = DEM_to_CR_matrix(self)
 
         #Dirichlet conditions
 

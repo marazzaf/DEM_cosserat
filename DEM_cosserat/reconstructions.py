@@ -1,10 +1,13 @@
 # coding: utf-8
 import scipy.sparse as sp
 from dolfin import *
-from numpy import array,arange,append
-from scipy.spatial import ConvexHull, Delaunay, KDTree
+import numpy as np
+import networkx as nx
+from itertools import combinations
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.errors import *
+#from DEM_cosserat.DEM import DEMProblem
+
 
 #def DEM_to_DG_matrix(problem,nb_dof_ccG_): #still useful? Not sure
 #    """Creates a csr companion matrix to get the cells values of a DEM vector."""
@@ -74,86 +77,99 @@ from DEM_cosserat.errors import *
 #    else:
 #        raise ValueError('Wrong dimension')
 
-def facet_interpolation(problem, I=10):
+def facet_interpolation(problem):
     """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
-    assert isinstance(problem,DEMProblem)
-    
-    toutes_pos_ddl = [] #ordre : d'abord tous les ddl de cellules puis tous ceux des vertex au bord
-    for i in pos_bary_cells.values():
-        if dim_ == 2:
-            toutes_pos_ddl.append(i)
-        elif dim_ == 3:
-            toutes_pos_ddl.append(i)
-    for i in pos_vert.values():
-        toutes_pos_ddl.append(i)
-    toutes_pos_ddl = array(toutes_pos_ddl)
-    #calcul des voisinages par arbre
-    tree = KDTree(toutes_pos_ddl)
-    #num de tous les ddl
-    tous_num_ddl = arange(len(toutes_pos_ddl) * d_)
+    #assert isinstance(problem,DEMProblem)
 
-    #Fixing limits to the number of dofs used in the search for an interpolating simplex
-    if dim_ == 3 and I < 25:
-        I = 25 #comes from experience as default but can be changed
-    if dim_ == 2 and I < 10:
-        I = 10 #idem
+    #for c in cells(problem.mesh):
+    #    print(problem.U_DG.element().tabulate_dof_coordinates(c))
+    #    sys.exit()
     
-    #calcul du convexe associé à chaque face
+    #To store the results of the computations
     res_num = dict([])
-    res_pos = dict([])
     res_coord = dict([])
-    for f,neigh in facet_num.items():
-        if len(neigh) > 1: #Inner facet
-            aux_num = []
-            aux_pos = []
-            x = pos_bary_facets.get(f) #position du barycentre de la face
-            distance,pos_voisins = tree.query(x, I)
+
+    #Loop over all facets of the mesh
+    for c1,c2 in problem.Graph.edges():
+        c1,c2 = min(c1,c2),max(c1,c2)
+        facet = problem.Graph[c1][c2]
+        num_facet = facet['num']
+        cell_1 = problem.Graph.node[c1]
+        cell_2 = problem.Graph.node[c2]
+        x = facet['barycentre'] #Position of the barycentre of the facet
+
+        #Defining the set of dofs in which to look for the convex for barycentric reconstruction
+        if not facet['bnd']: #inner facet
+            #Neighbours of first cell
+            path_1 = nx.neighbors(problem.Graph, c1)
+            path_1 = np.array(list(path_1))
+            for_deletion = np.where(np.absolute(path_1) >= problem.nb_dof_DEM // problem.d)
+            path_1[for_deletion] = -1
+            path_1 = set(path_1) - {-1}
+            #Neighbours of second cell
+            path_2 = nx.neighbors(problem.Graph, c2)
+            path_2 = np.array(list(path_2))
+            for_deletion = np.where(np.absolute(path_2) >= problem.nb_dof_DEM // problem.d)
+            path_2[for_deletion] = -1
+            path_2 = set(path_2) - {-1}
+            neigh_pool = path_1 | path_2
             
-            #adding points to compute the convex hull
-            data_convex_hull = [x]
-            for k in range(I):
-                data_convex_hull.append(tree.data[pos_voisins[k]])
+        else: #boundary facet
+            assert c2 >= problem.nb_dof_DEM // problem.d #Check that cell_2 is a boundary node that is not useful
 
-            #computing the convex with the points in the list
-            convex = ConvexHull(data_convex_hull,qhull_options='Qc QJ Pp')
-            if 0 not in convex.vertices: #convex strictly contains the facet barycentre
-                #Faire une triangulation de Delaunay des points du tree
-                list_points = convex.points
-                delau = Delaunay(list_points[1:]) #on retire le barycentre de la face de ces données. On ne le veut pas dans le Delaunay
-                #Ensuite, utiliser le transform sur le Delaunay pour avoir les coords bary du bay de la face. Il reste seulement à trouver dans quel tétra est-ce que toutes les coords sont toutes positives !
-                trans = delau.transform
-                num_simplex = delau.find_simplex(x)
-                coord_bary = delau.transform[num_simplex,:dim_].dot(x - delau.transform[num_simplex,dim_])
-                coord_bary = append(coord_bary, 1. - coord_bary.sum())
+            neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=2)) - {num_facet + problem.nb_dof_DEM // problem.d}
 
-                res_coord[f] = coord_bary
-                for k in delau.simplices[num_simplex]:
-                    num = pos_voisins[k] #not k-1 because the barycentre of the face x has been removed from the Delaunay triangulation
-                    if d_ == 1:
-                        aux_num.append([num]) #numéro dans vecteur ccG
-                    elif d_ == 2:
-                        aux_num.append([num * d_, num * d_ + 1])
-                    elif d_ == 3:
-                        aux_num.append([num * d_, num * d_ + 1, num * d_ + 2])
+            neigh_pool = np.array(list(neigh_pool))
+            for_deletion = np.where(np.absolute(neigh_pool) >= problem.nb_dof_DEM // problem.d)
+            neigh_pool[for_deletion] = -1
+            neigh_pool = set(neigh_pool) - {-1}
 
-                #On associe le tetra à la face 
-                res_num[f] = aux_num
-                res_pos[f] = aux_pos
+        #Finding the convex
+        for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
+            chosen_coord_bary = []
+            coord_num = []
             
+            #Dof positions to assemble matrix to compute barycentric coordinates
+            list_positions = []   
+            for l in dof_num:
+                list_positions.append(problem.Graph.node[l]['barycentre'])
+
+            #Computation of barycentric coordinates
+            A = np.array(list_positions)
+            A = A[1:,:] - A[0,:]
+            b = np.array(x - list_positions[0])
+            try:
+                aux_coord_bary = np.linalg.solve(A.T,b)
+            except np.linalg.LinAlgError: #singular matrix
+                pass
             else:
-                raise ConvexError('Not possible to find a convex containing the barycenter of the facet.\n')
+                if max(max(abs(aux_coord_bary)),1.-aux_coord_bary.sum()) < 10.:
+                    chosen_coord_bary = np.append(1. - aux_coord_bary.sum(), aux_coord_bary)
+                    coord_num = []
+                    for l in dof_num:
+                        #assert len(G_.node[l]['dof']) > 0
+                        coord_num.append(problem.Graph.node[l]['dof'])
+
+            #Tests if search was fruitful
+            assert len(chosen_coord_bary) > 0 #otherwise no coordinates have been computed
+            #else:
+            #    raise ConvexError('Not possible to find a non-degenerate simplex for the facet reconstruction.\n')
+            res_num[f] = coord_num
+            res_coord[f] = chosen_coord_bary
                                 
     return res_num,res_coord
 
 def DEM_to_CR_matrix(problem):
-    assert isinstance(problem,DEMProblem)
+    #assert isinstance(problem,DEMProblem)
 
     #dofmaps to fill the matrix
     dofmap_U_CR = problem.U_CR.dofmap()
-    dofmap_V_CR = problem.V_CR.dofmap()
+    dofmap_PHI_CR = problem.PHI_CR.dofmap()
     
     #Computing the facet reconstructions
     convex_num,convex_coord = facet_interpolation(problem)
+
+    sys.exit()
 
     #Storing the facet reconstructions in a matrix
     result_matrix = sp.dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
@@ -172,13 +188,12 @@ def DEM_to_CR_matrix(problem):
         
     return result_matrix.tocsr()
 
-def compute_all_reconstruction_matrices(problem):
-    """Computes all the required reconstruction matrices."""
-
-    #calling functions to construct the matrices
-    DEM_to_DG = DEM_to_DG_matrix(problem, problem.nb_dof_DEM)
-    DEM_to_CG = DEM_to_CG_matrix(problem, problem.num_ddl_vertex, problem.nb_dof_DEM)
-    DEM_to_CR = DEM_to_CR_matrix(problem, problem.nb_dof_DEM, problem.facet_num, problem.vertex_associe_face, problem.num_ddl_vertex, problem.pos_ddl_vertex)
-    DEM_to_DG_1 = DEM_to_DG_1_matrix(problem, problem.nb_dof_DEM, DEM_to_CR)
-
-    return DEM_to_DG, DEM_to_CG, DEM_to_CR, DEM_to_DG_1
+#def compute_all_reconstruction_matrices(problem):
+#    """Computes all the required reconstruction matrices."""
+#
+#    #calling functions to construct the matrices
+#    DEM_to_DG = DEM_to_DG_matrix(problem, problem.nb_dof_DEM)
+#    DEM_to_CR = DEM_to_CR_matrix(problem, problem.nb_dof_DEM, problem.facet_num, problem.vertex_associe_face, problem.num_ddl_vertex, problem.pos_ddl_vertex)
+#    DEM_to_DG_1 = DEM_to_DG_1_matrix(problem, problem.nb_dof_DEM, DEM_to_CR)
+#
+#    return DEM_to_DG, DEM_to_CG, DEM_to_CR, DEM_to_DG_1

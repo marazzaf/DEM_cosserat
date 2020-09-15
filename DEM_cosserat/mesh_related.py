@@ -43,11 +43,11 @@ def connectivity_graph(problem):
 
         #adding the facets to the graph
         if not bnd: #add the link between two cell dofs       
-            G.add_edge(aux_bis[0],aux_bis[1], num=num_global_ddl_facet[0] // problem.d, dof_CR=num_global_ddl_facet, barycentre=bary)
+            G.add_edge(aux_bis[0],aux_bis[1], num=num_global_ddl_facet[0] // problem.d, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
             
         elif bnd: #add the link between a cell dof and a boundary facet
             #number of the dof is total number of cells + num of the facet
             G.add_node(problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // problem.d)
-            G.add_edge(aux_bis[0], problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // problem.d, num=num_global_ddl_facet[0] // problem.d, dof_CR=num_global_ddl_facet, barycentre=bary)
+            G.add_edge(aux_bis[0], problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // problem.d, num=num_global_ddl_facet[0] // problem.d, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
                 
     return G
