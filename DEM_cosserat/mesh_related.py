@@ -23,12 +23,6 @@ def connectivity_graph(problem):
     dofmap_DG = problem.U_DG.dofmap()
     dofmap_CR = problem.U_CR.dofmap()
 
-    ##To get the position of the facet dofs
-    #N = problem.U_CR.dim()
-    #dof_x = dofmap_CR.tabulate_entity_dofs(0,1)
-    #print(dof_x)
-    #dof_x.resize(N, problem.d)
-
     #importing cell dofs
     for c in cells(problem.mesh): #Importing cells
         #Get the position of the barycentre
@@ -43,13 +37,14 @@ def connectivity_graph(problem):
     for f in facets(problem.mesh):
         bnd = f.exterior() #cell on boundary or not
         mp = f.midpoint()
+        
         #Getting number of neighbouring cells
         aux_bis = []
         for c in cells(f):
             aux_bis.append(c.index())
-        sys.exit()
+
         #Get the num of the dofs in global DEM vector
-        num_global_ddl_facet = dofmap_CR.entity_dofs(mesh_, dim - 1, np.array([f.index()], dtype="uintp")) #number of the dofs in CR
+        num_global_ddl_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
         #Get the position of the barycentre
         if problem.dim == 2:
             bary = array([mp.x(), mp.y()])
@@ -59,11 +54,10 @@ def connectivity_graph(problem):
             raise ValueError('Problem with dimension of mesh')
 
         #adding the facets to the graph
-        if len(aux_bis) == 2: #add the link between two cell dofs       
-            #adding edge
+        if not bnd: #add the link between two cell dofs       
             G.add_edge(aux_bis[0],aux_bis[1], num=num_global_ddl_facet[0] // problem.d, dof_CR=num_global_ddl_facet, barycentre=bary)
             
-        elif len(aux_bis) == 1: #add the link between a cell dof and a boundary facet
+        elif bnd: #add the link between a cell dof and a boundary facet
             #number of the dof is total number of cells + num of the facet
             G.add_node(problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // problem.d)
             G.add_edge(aux_bis[0], problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // problem.d, num=num_global_ddl_facet[0] // problem.d, dof_CR=num_global_ddl_facet, barycentre=bary)
