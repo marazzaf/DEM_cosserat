@@ -136,7 +136,6 @@ def facet_interpolation(problem):
                 pass
             else:
                 coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
-                print(coord_bary)
                 if max(abs(coord_bary)) < 10.:
                     chosen_coord_bary = coord_bary
                     for l in dof_num:
@@ -166,24 +165,29 @@ def DEM_to_CR_matrix(problem):
     #Computing the facet reconstructions
     simplex_num,simplex_num_phi,simplex_coord = facet_interpolation(problem)
 
-    sys.exit()
-
     #Storing the facet reconstructions in a matrix
     result_matrix = sp.dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
     for f in facets(problem.mesh):
         num_global_facet = f.index()
-        num_global_ddl = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([num_global_facet], dtype="uintp"))
-        simplexe_f = simplex_num.get(num_global_facet)
-        simplexe_phi = simplex_num_phi.get(num_global_facet)
-        simplexe_c = simplex_coord.get(num_global_facet)
+        num_global_ddl = dofmap_U_CR.entity_dofs(problem.mesh, problem.dim - 1, array([num_global_facet], dtype="uintp"))
+        num_global_ddl_phi = dofmap_PHI_CR.entity_dofs(problem.mesh, problem.dim - 1, array([num_global_facet], dtype="uintp"))
+        
+        simplex_f = simplex_num.get(num_global_facet)
+        simplex_phi = simplex_num_phi.get(num_global_facet)
+        simplex_c = simplex_coord.get(num_global_facet)
+
+        print(simplex_f)
+        print(simplex_phi)
 
         #modify what is next!
-        for i,j in zip(simplexe_f,simplexe_c):
-            result_matrix[num_global_ddl[0],i[0]] = j
-            if problem.d >= 2:
-                result_matrix[num_global_ddl[1],i[1]] = j
+        for i,j,k in zip(simplex_f,simplex_c,simplex_phi):
+            result_matrix[num_global_ddl[0],i[0]] = j #Disp x
+            result_matrix[num_global_ddl[1],i[1]] = j #Disp y
+            result_matrix[num_global_ddl_phi[0],k[0]] = j #Rotation
             if problem.d == 3:
-                result_matrix[num_global_ddl[2],i[2]] = j
+                result_matrix[num_global_ddl[2],i[2]] = j #Disp é
+                result_matrix[num_global_ddl_phi[1],k[1]] = j #Rotation y
+                result_matrix[num_global_ddl_phi[2],k[2]] = j #Rotation z
         
     return result_matrix.tocsr()
 
