@@ -34,6 +34,9 @@ def connectivity_graph(problem):
         for c in cells(f):
             aux_bis.append(c.index())
 
+        #The number of the facet is not correct any longer!
+        #Change it back to the one given by FENICS ???
+
         #Get the num of the dofs in global DEM vector
         num_global_ddl_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR #Add CR dof phi !
         #Get the position of the barycentre

@@ -143,15 +143,21 @@ def facet_interpolation(problem):
                         coord_num_phi.append(problem.Graph.node[l]['dof_phi'])
 
                     break #search is finished when we get a simplex that works
-
+        print(num_facet)
         #Tests if search was fruitful
         try:
             assert len(chosen_coord_bary) > 0 #otherwise no coordinates have been computed
+            assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
         except AssertionError:
             raise ConvexError('Not possible to find a non-degenerate simplex for the facet reconstruction.\n')
         res_num[num_facet] = coord_num
         res_num_phi[num_facet] = coord_num_phi
         res_coord[num_facet] = chosen_coord_bary
+        if num_facet == 1:
+            print(coord_num)
+            print(coord_num_phi)
+            print(chosen_coord_bary)
+            sys.exit()
                                 
     return res_num,res_num_phi,res_coord
 
@@ -169,6 +175,7 @@ def DEM_to_CR_matrix(problem):
     result_matrix = sp.dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
     for f in facets(problem.mesh):
         num_global_facet = f.index()
+        print('num facet: %i' % num_global_facet)
         num_global_ddl = dofmap_U_CR.entity_dofs(problem.mesh, problem.dim - 1, array([num_global_facet], dtype="uintp"))
         num_global_ddl_phi = dofmap_PHI_CR.entity_dofs(problem.mesh, problem.dim - 1, array([num_global_facet], dtype="uintp"))
         
@@ -178,6 +185,7 @@ def DEM_to_CR_matrix(problem):
 
         print(simplex_f)
         print(simplex_phi)
+        print(simplex_c)
 
         #modify what is next!
         for i,j,k in zip(simplex_f,simplex_c,simplex_phi):
