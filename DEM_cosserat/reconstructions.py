@@ -7,15 +7,8 @@ from itertools import combinations
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.errors import *
 #from DEM_cosserat.DEM import DEMProblem
+import sys
 
-
-#def DEM_to_DG_matrix(problem,nb_dof_ccG_): #still useful? Not sure
-#    """Creates a csr companion matrix to get the cells values of a DEM vector."""
-#    assert isinstance(problem,DEMProblem)
-#    
-#    nb_cell_dofs = problem.DG_0.dofmap().global_dimension()
-#    return sp.eye(nb_cell_dofs, n = nb_dof_ccG_, format='csr')
-#
 #def DEM_to_DG_1_matrix(problem, nb_dof_ccG_, DEM_to_CR):
 #    assert isinstance(problem,DEMProblem)
 #    
@@ -84,6 +77,7 @@ def facet_interpolation(problem):
     #To store the results of the computations
     res_num = dict([])
     res_coord = dict([])
+    res_num_phi = dict([])
 
     #Loop over all facets of the mesh
     for c1,c2 in problem.Graph.edges():
@@ -123,6 +117,7 @@ def facet_interpolation(problem):
         #Empty sets to store result of search
         chosen_coord_bary = []
         coord_num = []
+        coord_num_phi = []
         #Search of the simplex
         for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
             
@@ -144,9 +139,10 @@ def facet_interpolation(problem):
                 print(coord_bary)
                 if max(abs(coord_bary)) < 10.:
                     chosen_coord_bary = coord_bary
-                    coord_num = []
                     for l in dof_num:
-                        coord_num.append(problem.Graph.node[l]['dof'])
+                        coord_num.append(problem.Graph.node[l]['dof_u'])
+                        coord_num_phi.append(problem.Graph.node[l]['dof_phi'])
+
                     break #search is finished when we get a simplex that works
 
         #Tests if search was fruitful
@@ -155,9 +151,10 @@ def facet_interpolation(problem):
         except AssertionError:
             raise ConvexError('Not possible to find a non-degenerate simplex for the facet reconstruction.\n')
         res_num[num_facet] = coord_num
+        res_num_phi[num_facet] = coord_num_phi
         res_coord[num_facet] = chosen_coord_bary
                                 
-    return res_num,res_coord
+    return res_num,res_num_phi,res_coord
 
 def DEM_to_CR_matrix(problem):
     #assert isinstance(problem,DEMProblem)
@@ -167,7 +164,7 @@ def DEM_to_CR_matrix(problem):
     dofmap_PHI_CR = problem.PHI_CR.dofmap()
     
     #Computing the facet reconstructions
-    convex_num,convex_coord = facet_interpolation(problem)
+    simplex_num,simplex_num_phi,simplex_coord = facet_interpolation(problem)
 
     sys.exit()
 
@@ -176,10 +173,12 @@ def DEM_to_CR_matrix(problem):
     for f in facets(problem.mesh):
         num_global_facet = f.index()
         num_global_ddl = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([num_global_facet], dtype="uintp"))
-        convexe_f = convex_num.get(num_global_facet)
-        convexe_c = convex_coord.get(num_global_facet)
+        simplexe_f = simplex_num.get(num_global_facet)
+        simplexe_phi = simplex_num_phi.get(num_global_facet)
+        simplexe_c = simplex_coord.get(num_global_facet)
 
-        for i,j in zip(convexe_f,convexe_c):
+        #modify what is next!
+        for i,j in zip(simplexe_f,simplexe_c):
             result_matrix[num_global_ddl[0],i[0]] = j
             if problem.d >= 2:
                 result_matrix[num_global_ddl[1],i[1]] = j

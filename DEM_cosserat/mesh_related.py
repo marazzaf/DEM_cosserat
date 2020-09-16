@@ -9,6 +9,7 @@ def connectivity_graph(problem):
 
     #useful in the following
     dofmap_DG = problem.U_DG.dofmap()
+    dofmap_DG_phi = problem.PHI_DG.dofmap()
     elt_DG = problem.U_DG.element()
     dofmap_CR = problem.U_CR.dofmap()
 
@@ -18,9 +19,10 @@ def connectivity_graph(problem):
         bary = elt_DG.tabulate_dof_coordinates(c)[0]
         #Get the num of the dofs in global DEM vector
         num_global_dof = dofmap_DG.entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
+        num_global_dof_phi = dofmap_DG_phi.entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
         
         #adding node to the graph
-        G.add_node(c.index(), dof=num_global_dof, barycentre=bary)
+        G.add_node(c.index(), dof_u=num_global_dof, barycentre=bary, dof_phi=num_global_dof_phi)
         
     #importing connectivity and facet dofs
     for f in facets(problem.mesh):
@@ -33,7 +35,7 @@ def connectivity_graph(problem):
             aux_bis.append(c.index())
 
         #Get the num of the dofs in global DEM vector
-        num_global_ddl_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
+        num_global_ddl_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR #Add CR dof phi !
         #Get the position of the barycentre
         if problem.dim == 2:
             bary = array([mp.x(), mp.y()])
