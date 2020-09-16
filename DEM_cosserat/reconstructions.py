@@ -143,7 +143,7 @@ def facet_interpolation(problem):
                         coord_num_phi.append(problem.Graph.node[l]['dof_phi'])
 
                     break #search is finished when we get a simplex that works
-        print(num_facet)
+                
         #Tests if search was fruitful
         try:
             assert len(chosen_coord_bary) > 0 #otherwise no coordinates have been computed
@@ -153,7 +153,7 @@ def facet_interpolation(problem):
         res_num[num_facet] = coord_num
         res_num_phi[num_facet] = coord_num_phi
         res_coord[num_facet] = chosen_coord_bary
-        if num_facet == 1:
+        if num_facet == 2:
             print(coord_num)
             print(coord_num_phi)
             print(chosen_coord_bary)

@@ -47,13 +47,21 @@ def connectivity_graph(problem):
         else:
             raise ValueError('Problem with dimension of mesh')
 
+        #To have correct numbering of facets
+        if problem.dim == 2:
+            coeff = int(problem.dim + 1)
+        elif problem.dim == 3:
+            coeff = int(2*problem.dim)
+
+        #enlever le paramètre d car on fait toujours des calculs vectoriels ???
+        
         #adding the facets to the graph
-        if not bnd: #add the link between two cell dofs       
-            G.add_edge(aux_bis[0],aux_bis[1], num=num_global_ddl_facet[0] // problem.d, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
+        if not bnd: #add the link between two cell dofs
+            G.add_edge(aux_bis[0],aux_bis[1], num=num_global_ddl_facet[0] // coeff, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
             
         elif bnd: #add the link between a cell dof and a boundary facet
             #number of the dof is total number of cells + num of the facet
-            G.add_node(problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // problem.d)
-            G.add_edge(aux_bis[0], problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // problem.d, num=num_global_ddl_facet[0] // problem.d, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
+            G.add_node(problem.nb_dof_DEM // coeff + num_global_ddl_facet[0] // coeff)
+            G.add_edge(aux_bis[0], problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // coeff, num=num_global_ddl_facet[0] // coeff, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
                 
     return G
