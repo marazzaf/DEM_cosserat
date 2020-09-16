@@ -119,11 +119,12 @@ def facet_interpolation(problem):
             for_deletion = np.where(np.absolute(neigh_pool) >= problem.nb_dof_DEM // problem.d)
             neigh_pool[for_deletion] = -1
             neigh_pool = set(neigh_pool) - {-1}
-            
-        #Finding the convex
+
+        #Empty sets to store result of search
+        chosen_coord_bary = []
+        coord_num = []
+        #Search of the simplex
         for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
-            chosen_coord_bary = []
-            coord_num = []
             
             #Dof positions to assemble matrix to compute barycentric coordinates
             list_positions = []   
@@ -135,24 +136,26 @@ def facet_interpolation(problem):
             A = A[1:,:] - A[0,:]
             b = np.array(x - list_positions[0])
             try:
-                aux_coord_bary = np.linalg.solve(A.T,b)
+                partial_coord_bary = np.linalg.solve(A.T,b)
             except np.linalg.LinAlgError: #singular matrix
                 pass
             else:
-                print(aux_coord_bary)
-                if max(max(abs(aux_coord_bary)),1.-aux_coord_bary.sum()) < 10.:
-                    chosen_coord_bary = np.append(1. - aux_coord_bary.sum(), aux_coord_bary)
+                coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
+                print(coord_bary)
+                if max(abs(coord_bary)) < 10.:
+                    chosen_coord_bary = coord_bary
                     coord_num = []
                     for l in dof_num:
-                        #assert len(G_.node[l]['dof']) > 0
                         coord_num.append(problem.Graph.node[l]['dof'])
+                    break #search is finished when we get a simplex that works
 
-            #Tests if search was fruitful
+        #Tests if search was fruitful
+        try:
             assert len(chosen_coord_bary) > 0 #otherwise no coordinates have been computed
-            #else:
-            #    raise ConvexError('Not possible to find a non-degenerate simplex for the facet reconstruction.\n')
-            res_num[num_facet] = coord_num
-            res_coord[num_facet] = chosen_coord_bary
+        except AssertionError:
+            raise ConvexError('Not possible to find a non-degenerate simplex for the facet reconstruction.\n')
+        res_num[num_facet] = coord_num
+        res_coord[num_facet] = chosen_coord_bary
                                 
     return res_num,res_coord
 
