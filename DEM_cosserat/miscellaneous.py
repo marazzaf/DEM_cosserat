@@ -23,10 +23,10 @@ def local_project(v, V, u=None):
 def DEM_interpolation(func, problem):
     """Interpolates a function or expression to return a DEM vector containg the interpolation."""
 
-    aux = local_project(func, problem.V_DG).vector().get_local()
-    aux = aux.reshape((problem.V_DG.dim() // 3, 3))
+    tot = local_project(func, problem.V_DG).vector().get_local()
+    aux = tot.reshape((problem.V_DG.dim() // 3, 3))
 
-    return aux[:,:2].flatten(),aux[:,2]
+    return aux[:,:2].flatten(),aux[:,2],tot
 
 def Dirichlet_BC(form, DEM_to_CG):
     L = assemble(form)
