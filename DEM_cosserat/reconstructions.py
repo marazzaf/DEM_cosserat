@@ -84,8 +84,8 @@ def facet_interpolation(problem):
         c1,c2 = min(c1,c2),max(c1,c2)
         facet = problem.Graph[c1][c2]
         num_facet = facet['num']
-        cell_1 = problem.Graph.node[c1]
-        cell_2 = problem.Graph.node[c2]
+        cell_1 = problem.Graph.nodes[c1]
+        cell_2 = problem.Graph.nodes[c2]
         x = facet['barycentre'] #Position of the barycentre of the facet
 
         #Defining the set of dofs in which to look for the convex for barycentric reconstruction
@@ -124,7 +124,7 @@ def facet_interpolation(problem):
             #Dof positions to assemble matrix to compute barycentric coordinates
             list_positions = []   
             for l in dof_num:
-                list_positions.append(problem.Graph.node[l]['barycentre'])
+                list_positions.append(problem.Graph.nodes[l]['barycentre'])
 
             #Computation of barycentric coordinates
             A = np.array(list_positions)
@@ -139,8 +139,8 @@ def facet_interpolation(problem):
                 if max(abs(coord_bary)) < 10.:
                     chosen_coord_bary = coord_bary
                     for l in dof_num:
-                        coord_num.append(problem.Graph.node[l]['dof_u'])
-                        coord_num_phi.append(problem.Graph.node[l]['dof_phi'])
+                        coord_num.append(problem.Graph.nodes[l]['dof_u'])
+                        coord_num_phi.append(problem.Graph.nodes[l]['dof_phi'])
 
                     break #search is finished when we get a simplex that works
                 

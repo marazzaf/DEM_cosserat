@@ -12,6 +12,7 @@ def connectivity_graph(problem):
     dofmap_DG_phi = problem.PHI_DG.dofmap()
     elt_DG = problem.U_DG.element()
     dofmap_CR = problem.U_CR.dofmap()
+    dofmap_CR_phi = problem.PHI_CR.dofmap()
 
     #importing cell dofs
     for c in cells(problem.mesh): #Importing cells
@@ -38,7 +39,10 @@ def connectivity_graph(problem):
         #Change it back to the one given by FENICS ???
 
         #Get the num of the dofs in global DEM vector
-        num_global_ddl_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR #Add CR dof phi !
+        num_global_dof_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
+        num_global_dof_facet_phi = dofmap_CR_phi.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
+
+        
         #Get the position of the barycentre
         if problem.dim == 2:
             bary = array([mp.x(), mp.y()])
@@ -53,7 +57,7 @@ def connectivity_graph(problem):
         elif problem.dim == 3:
             coeff = int(2*problem.dim)
 
-        #enlever le paramètre d car on fait toujours des calculs vectoriels ???
+        print(num_global_ddl_facet[0] // coeff)
         
         #adding the facets to the graph
         if not bnd: #add the link between two cell dofs
@@ -62,6 +66,6 @@ def connectivity_graph(problem):
         elif bnd: #add the link between a cell dof and a boundary facet
             #number of the dof is total number of cells + num of the facet
             G.add_node(problem.nb_dof_DEM // coeff + num_global_ddl_facet[0] // coeff)
-            G.add_edge(aux_bis[0], problem.nb_dof_DEM // problem.d + num_global_ddl_facet[0] // coeff, num=num_global_ddl_facet[0] // coeff, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
+            G.add_edge(aux_bis[0], problem.nb_dof_DEM // coeff + num_global_ddl_facet[0] // coeff, num=num_global_ddl_facet[0] // coeff, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
                 
     return G
