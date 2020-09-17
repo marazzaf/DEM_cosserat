@@ -84,6 +84,7 @@ def facet_interpolation(problem):
         c1,c2 = min(c1,c2),max(c1,c2)
         facet = problem.Graph[c1][c2]
         num_facet = facet['num']
+        print('\n facet num: %i' % num_facet)
         cell_1 = problem.Graph.nodes[c1]
         cell_2 = problem.Graph.nodes[c2]
         x = facet['barycentre'] #Position of the barycentre of the facet
@@ -119,12 +120,14 @@ def facet_interpolation(problem):
         coord_num = []
         coord_num_phi = []
         #Search of the simplex
+        print(len(list(combinations(neigh_pool, problem.dim+1))))
         for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
             
             #Dof positions to assemble matrix to compute barycentric coordinates
             list_positions = []   
             for l in dof_num:
                 list_positions.append(problem.Graph.nodes[l]['barycentre'])
+            print(list_positions)
 
             #Computation of barycentric coordinates
             A = np.array(list_positions)
@@ -136,6 +139,7 @@ def facet_interpolation(problem):
                 pass
             else:
                 coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
+                #print(coord_bary)
                 if max(abs(coord_bary)) < 10.:
                     chosen_coord_bary = coord_bary
                     for l in dof_num:
