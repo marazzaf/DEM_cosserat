@@ -93,24 +93,24 @@ def facet_interpolation(problem):
             #Neighbours of first cell
             path_1 = nx.neighbors(problem.Graph, c1)
             path_1 = np.array(list(path_1))
-            for_deletion = np.where(np.absolute(path_1) >= problem.nb_dof_DEM // problem.d)
+            for_deletion = np.where(np.absolute(path_1) >= problem.nb_dof_DEM)
             path_1[for_deletion] = -1
             path_1 = set(path_1) - {-1}
             #Neighbours of second cell
             path_2 = nx.neighbors(problem.Graph, c2)
             path_2 = np.array(list(path_2))
-            for_deletion = np.where(np.absolute(path_2) >= problem.nb_dof_DEM // problem.d)
+            for_deletion = np.where(np.absolute(path_2) >= problem.nb_dof_DEM)
             path_2[for_deletion] = -1
             path_2 = set(path_2) - {-1}
             neigh_pool = path_1 | path_2
             
         else: #boundary facet
-            assert c2 >= problem.nb_dof_DEM // problem.d #Check that cell_2 is a boundary node that is not useful
+            assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
 
-            neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=2)) - {num_facet + problem.nb_dof_DEM // problem.d}
+            neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=2)) - {num_facet + problem.nb_dof_DEM}
 
             neigh_pool = np.array(list(neigh_pool))
-            for_deletion = np.where(np.absolute(neigh_pool) >= problem.nb_dof_DEM // problem.d)
+            for_deletion = np.where(np.absolute(neigh_pool) >= problem.nb_dof_DEM)
             neigh_pool[for_deletion] = -1
             neigh_pool = set(neigh_pool) - {-1}
 
@@ -153,11 +153,6 @@ def facet_interpolation(problem):
         res_num[num_facet] = coord_num
         res_num_phi[num_facet] = coord_num_phi
         res_coord[num_facet] = chosen_coord_bary
-        if num_facet == 2:
-            print(coord_num)
-            print(coord_num_phi)
-            print(chosen_coord_bary)
-            sys.exit()
                                 
     return res_num,res_num_phi,res_coord
 
@@ -173,26 +168,21 @@ def DEM_to_CR_matrix(problem):
 
     #Storing the facet reconstructions in a matrix
     result_matrix = sp.dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
-    for f in facets(problem.mesh):
-        num_global_facet = f.index()
-        print('num facet: %i' % num_global_facet)
-        num_global_ddl = dofmap_U_CR.entity_dofs(problem.mesh, problem.dim - 1, array([num_global_facet], dtype="uintp"))
-        num_global_ddl_phi = dofmap_PHI_CR.entity_dofs(problem.mesh, problem.dim - 1, array([num_global_facet], dtype="uintp"))
+    for c1,c2 in problem.Graph.edges():
+        num_global_facet = problem.Graph[c1][c2]['num']
+        num_global_ddl = problem.Graph[c1][c2]['dof_CR_u']
+        num_global_ddl_phi = problem.Graph[c1][c2]['dof_CR_phi']
         
         simplex_f = simplex_num.get(num_global_facet)
         simplex_phi = simplex_num_phi.get(num_global_facet)
         simplex_c = simplex_coord.get(num_global_facet)
 
-        print(simplex_f)
-        print(simplex_phi)
-        print(simplex_c)
-
-        #modify what is next!
+        #Filling the reconstruction matrix
         for i,j,k in zip(simplex_f,simplex_c,simplex_phi):
             result_matrix[num_global_ddl[0],i[0]] = j #Disp x
             result_matrix[num_global_ddl[1],i[1]] = j #Disp y
             result_matrix[num_global_ddl_phi[0],k[0]] = j #Rotation
-            if problem.d == 3:
+            if problem.dim == 3:
                 result_matrix[num_global_ddl[2],i[2]] = j #Disp é
                 result_matrix[num_global_ddl_phi[1],k[1]] = j #Rotation y
                 result_matrix[num_global_ddl_phi[2],k[2]] = j #Rotation z

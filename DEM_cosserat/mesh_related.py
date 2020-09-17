@@ -3,7 +3,20 @@ from dolfin import *
 from numpy import array
 import networkx as nx
 
-#Adapt that to use the graph to store information
+##Still necessary
+#def facet_neighborhood(mesh_):
+#    """Returns a dictionnary containing as key the index of the facets and as values the list of indices of the cells (or cell) containing the facet. """
+#    indices = dict([])
+#
+#    for f in facets(mesh_):
+#        voisins_num = []
+#        for c in cells(f):
+#            voisins_num.append(c.index())
+#
+#        indices[f.index()] = voisins_num
+#    return indices
+
+#Use the graph to store information
 def connectivity_graph(problem):
     G = nx.Graph()
 
@@ -50,22 +63,14 @@ def connectivity_graph(problem):
             bary = array([mp.x(), mp.y(), mp.z()])
         else:
             raise ValueError('Problem with dimension of mesh')
-
-        #To have correct numbering of facets
-        if problem.dim == 2:
-            coeff = int(problem.dim + 1)
-        elif problem.dim == 3:
-            coeff = int(2*problem.dim)
-
-        print(num_global_ddl_facet[0] // coeff)
         
         #adding the facets to the graph
         if not bnd: #add the link between two cell dofs
-            G.add_edge(aux_bis[0],aux_bis[1], num=num_global_ddl_facet[0] // coeff, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
+            G.add_edge(aux_bis[0],aux_bis[1], num=f.index(), dof_CR_u=num_global_dof_facet, barycentre=bary, dof_CR_phi=num_global_dof_facet_phi, bnd=bnd)
             
         elif bnd: #add the link between a cell dof and a boundary facet
             #number of the dof is total number of cells + num of the facet
-            G.add_node(problem.nb_dof_DEM // coeff + num_global_ddl_facet[0] // coeff)
-            G.add_edge(aux_bis[0], problem.nb_dof_DEM // coeff + num_global_ddl_facet[0] // coeff, num=num_global_ddl_facet[0] // coeff, dof_CR=num_global_ddl_facet, barycentre=bary, bnd=bnd)
+            G.add_node(problem.nb_dof_DEM + f.index())
+            G.add_edge(aux_bis[0], problem.nb_dof_DEM + f.index(), num=f.index(), dof_CR_u=num_global_dof_facet, dof_CR_phi=num_global_dof_facet_phi, barycentre=bary, bnd=bnd)
                 
     return G

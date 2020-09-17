@@ -14,6 +14,7 @@ class DEMProblem:
     def __init__(self, mesh):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
+        #self.facet_nei = facet_neighborhood(self.mesh)
 
         #Rotation is a scalar in 3d and a vector in 3d
         U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
