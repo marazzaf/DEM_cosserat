@@ -85,25 +85,33 @@ def facet_interpolation(problem):
         facet = problem.Graph[c1][c2]
         num_facet = facet['num']
         print('\n facet num: %i' % num_facet)
-        cell_1 = problem.Graph.nodes[c1]
-        cell_2 = problem.Graph.nodes[c2]
         x = facet['barycentre'] #Position of the barycentre of the facet
 
         #Defining the set of dofs in which to look for the convex for barycentric reconstruction
         if not facet['bnd']: #inner facet
-            #Neighbours of first cell
-            path_1 = nx.neighbors(problem.Graph, c1)
+            #Computing the neighbours
+            if problem.dim == 2:
+                path_1 = nx.neighbors(problem.Graph, c1)
+                path_2 = nx.neighbors(problem.Graph, c2)
+            elif problem.dim == 3:
+                path_1 = nx.single_source_shortest_path(problem.Graph, c1, cutoff=2)
+                path_2 = nx.single_source_shortest_path(problem.Graph, c2, cutoff=2)
+            #Removing bnd neighbours of first cell
             path_1 = np.array(list(path_1))
-            for_deletion = np.where(np.absolute(path_1) >= problem.nb_dof_DEM)
+            #print(path_1)
+            for_deletion = np.where(path_1 >= problem.nb_dof_DEM)
             path_1[for_deletion] = -1
             path_1 = set(path_1) - {-1}
-            #Neighbours of second cell
-            path_2 = nx.neighbors(problem.Graph, c2)
+            #Removing bnd neighbours of second cell
             path_2 = np.array(list(path_2))
-            for_deletion = np.where(np.absolute(path_2) >= problem.nb_dof_DEM)
+            #print(path_2)
+            for_deletion = np.where(path_2 >= problem.nb_dof_DEM)
             path_2[for_deletion] = -1
             path_2 = set(path_2) - {-1}
+
+            #Final set of neighbours to choose reconstruction from
             neigh_pool = path_1 | path_2
+            print(neigh_pool)
             
         else: #boundary facet
             assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
@@ -111,7 +119,7 @@ def facet_interpolation(problem):
             neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=2)) - {num_facet + problem.nb_dof_DEM}
 
             neigh_pool = np.array(list(neigh_pool))
-            for_deletion = np.where(np.absolute(neigh_pool) >= problem.nb_dof_DEM)
+            for_deletion = np.where(neigh_pool >= problem.nb_dof_DEM)
             neigh_pool[for_deletion] = -1
             neigh_pool = set(neigh_pool) - {-1}
 
@@ -120,7 +128,7 @@ def facet_interpolation(problem):
         coord_num = []
         coord_num_phi = []
         #Search of the simplex
-        print(len(list(combinations(neigh_pool, problem.dim+1))))
+        #print(len(list(combinations(neigh_pool, problem.dim+1))))
         for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
             
             #Dof positions to assemble matrix to compute barycentric coordinates
@@ -149,11 +157,9 @@ def facet_interpolation(problem):
                     break #search is finished when we get a simplex that works
                 
         #Tests if search was fruitful
-        try:
-            assert len(chosen_coord_bary) > 0 #otherwise no coordinates have been computed
-            assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
-        except AssertionError:
-            raise ConvexError('Not possible to find a non-degenerate simplex for the facet reconstruction.\n')
+        assert len(chosen_coord_bary) > 0 #otherwise no coordinates have been computed
+        assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
+
         res_num[num_facet] = coord_num
         res_num_phi[num_facet] = coord_num_phi
         res_coord[num_facet] = chosen_coord_bary
