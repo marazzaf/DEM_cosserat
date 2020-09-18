@@ -84,7 +84,6 @@ def facet_interpolation(problem):
         c1,c2 = min(c1,c2),max(c1,c2)
         facet = problem.Graph[c1][c2]
         num_facet = facet['num']
-        print('\n facet num: %i' % num_facet)
         x = facet['barycentre'] #Position of the barycentre of the facet
 
         #Defining the set of dofs in which to look for the convex for barycentric reconstruction
@@ -98,20 +97,17 @@ def facet_interpolation(problem):
                 path_2 = nx.single_source_shortest_path(problem.Graph, c2, cutoff=2)
             #Removing bnd neighbours of first cell
             path_1 = np.array(list(path_1))
-            #print(path_1)
             for_deletion = np.where(path_1 >= problem.nb_dof_DEM)
             path_1[for_deletion] = -1
             path_1 = set(path_1) - {-1}
             #Removing bnd neighbours of second cell
             path_2 = np.array(list(path_2))
-            #print(path_2)
             for_deletion = np.where(path_2 >= problem.nb_dof_DEM)
             path_2[for_deletion] = -1
             path_2 = set(path_2) - {-1}
 
             #Final set of neighbours to choose reconstruction from
             neigh_pool = path_1 | path_2
-            print(neigh_pool)
             
         else: #boundary facet
             assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
@@ -127,15 +123,14 @@ def facet_interpolation(problem):
         chosen_coord_bary = []
         coord_num = []
         coord_num_phi = []
+        
         #Search of the simplex
-        #print(len(list(combinations(neigh_pool, problem.dim+1))))
         for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
             
             #Dof positions to assemble matrix to compute barycentric coordinates
             list_positions = []   
             for l in dof_num:
                 list_positions.append(problem.Graph.nodes[l]['barycentre'])
-            print(list_positions)
 
             #Computation of barycentric coordinates
             A = np.array(list_positions)
@@ -147,7 +142,6 @@ def facet_interpolation(problem):
                 pass
             else:
                 coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
-                #print(coord_bary)
                 if max(abs(coord_bary)) < 10.:
                     chosen_coord_bary = coord_bary
                     for l in dof_num:

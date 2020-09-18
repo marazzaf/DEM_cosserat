@@ -17,12 +17,10 @@ def test_reconstruction(mesh):
 
     #Testing P1 consistency and that's all
     x = SpatialCoordinate(mesh) #for disp
-    #rot = x[0]
     if dim == 2:
         func = as_vector((x[0],x[1],x[0]))
     elif dim == 3:
-        func = as_vector((x,x))
-        print(func.dim())
+        func = as_vector((x[0],x[1],x[2],x[0],x[1],x[2]))
     u,phi,tot = DEM_interpolation(func, problem)
     assert abs(max(u) - L) < h
     assert abs(min(u) + L) < h
@@ -41,6 +39,9 @@ def test_reconstruction(mesh):
     if dim == 2:
         W = TensorFunctionSpace(mesh, 'DG', 0)
         W_PHI = VectorFunctionSpace(mesh, 'DG', 0)
+    elif dim == 3:
+        W = TensorFunctionSpace(mesh, 'DG', 0)
+        W_PHI = W
     gradient_u = local_project(grad(test_CR_u), W)
     gradient_u_vec = gradient_u.vector().get_local()
     gradient_u_vec  = gradient_u_vec.reshape((problem.U_DG.dim() // dim,dim,dim))
@@ -52,26 +53,32 @@ def test_reconstruction(mesh):
         gradient_phi_vec = gradient_phi_vec.reshape((problem.PHI_DG.dim() // dim,dim,dim))
 
     #Tests on disp
-    assert round(min(gradient_u_vec[:,0,0]),14) == 1. and round(max(gradient_u_vec[:,0,0]),14) == 1.
-    assert round(min(gradient_u_vec[:,0,1]),14) == 0. and round(max(gradient_u_vec[:,0,1]),14) == 0.
-    assert round(min(gradient_u_vec[:,1,0]),14) == 0. and round(max(gradient_u_vec[:,1,0]),14) == 0.
-    assert round(min(gradient_u_vec[:,1,1]),14) == 1. and round(max(gradient_u_vec[:,1,1]),14) == 1.
+    assert round(min(gradient_u_vec[:,0,0]),13) == 1. and round(max(gradient_u_vec[:,0,0]),13) == 1.
+    assert round(min(gradient_u_vec[:,0,1]),13) == 0. and round(max(gradient_u_vec[:,0,1]),13) == 0.
+    assert round(min(gradient_u_vec[:,1,0]),13) == 0. and round(max(gradient_u_vec[:,1,0]),13) == 0.
+    assert round(min(gradient_u_vec[:,1,1]),13) == 1. and round(max(gradient_u_vec[:,1,1]),13) == 1.
     #More tests for 3d functions
     if dim == 3:
-        assert round(min(gradient_u_vec[:,0,2]),14) == 0. and round(max(gradient_u_vec[:,0,2]),14) == 0.
-        assert round(min(gradient_u_vec[:,2,0]),14) == 0. and round(max(gradient_u_vec[:,2,0]),14) == 0.
-        assert round(min(gradient_u_vec[:,1,2]),14) == 0. and round(max(gradient_u_vec[:,1,2]),14) == 0.
-        assert round(min(gradient_u_vec[:,2,1]),14) == 0. and round(max(gradient_u_vec[:,2,1]),14) == 0.
-        assert round(min(gradient_u_vec[:,2,2]),14) == 1. and round(max(gradient_u_vec[:,2,2]),14) == 1.
+        assert round(min(gradient_u_vec[:,0,2]),13) == 0. and round(max(gradient_u_vec[:,0,2]),13) == 0.
+        assert round(min(gradient_u_vec[:,2,0]),13) == 0. and round(max(gradient_u_vec[:,2,0]),13) == 0.
+        assert round(min(gradient_u_vec[:,1,2]),13) == 0. and round(max(gradient_u_vec[:,1,2]),13) == 0.
+        assert round(min(gradient_u_vec[:,2,1]),13) == 0. and round(max(gradient_u_vec[:,2,1]),13) == 0.
+        assert round(min(gradient_u_vec[:,2,2]),13) == 1. and round(max(gradient_u_vec[:,2,2]),13) == 1.
 
     #Test on gradient of rotations
     if dim == 2:
-        assert round(min(gradient_phi_vec[:,0]),14) == 1. and round(max(gradient_phi_vec[:,0]),14) == 1.
-        assert round(min(gradient_phi_vec[:,1]),14) == 0. and round(max(gradient_phi_vec[:,1]),14) == 0.
+        assert round(min(gradient_phi_vec[:,0]),13) == 1. and round(max(gradient_phi_vec[:,0]),13) == 1.
+        assert round(min(gradient_phi_vec[:,1]),13) == 0. and round(max(gradient_phi_vec[:,1]),13) == 0.
     elif dim == 3:
-        assert round(min(gradient_phi_vec[:,0,0]),14) == 1. and round(max(gradient_phi_vec[:,0,0]),14) == 1.
-        #assert round(min(gradient_phi_vec[:,1,1]),14) == 1. and round(max(gradient_phi_vec[:,0,0]),14) == 1.
-        #assert round(min(gradient_phi_vec[:,2,2]),14) == 1. and round(max(gradient_phi_vec[:,0,0]),14) == 1.
+        assert round(min(gradient_phi_vec[:,0,0]),13) == 1. and round(max(gradient_phi_vec[:,0,0]),13) == 1.
+        assert round(min(gradient_phi_vec[:,1,1]),13) == 1. and round(max(gradient_phi_vec[:,1,1]),13) == 1.
+        assert round(min(gradient_phi_vec[:,2,2]),13) == 1. and round(max(gradient_phi_vec[:,2,2]),13) == 1.
+        assert round(min(gradient_phi_vec[:,0,1]),13) == 0. and round(max(gradient_phi_vec[:,0,1]),13) == 0.
+        assert round(min(gradient_phi_vec[:,1,0]),13) == 0. and round(max(gradient_phi_vec[:,1,0]),13) == 0.
+        assert round(min(gradient_phi_vec[:,0,2]),13) == 0. and round(max(gradient_phi_vec[:,0,2]),13) == 0.
+        assert round(min(gradient_phi_vec[:,2,0]),13) == 0. and round(max(gradient_phi_vec[:,2,0]),13) == 0.
+        assert round(min(gradient_phi_vec[:,2,1]),13) == 0. and round(max(gradient_phi_vec[:,2,1]),13) == 0.
+        assert round(min(gradient_phi_vec[:,1,2]),13) == 0. and round(max(gradient_phi_vec[:,1,2]),13) == 0.
         
 
     #Outputfile
