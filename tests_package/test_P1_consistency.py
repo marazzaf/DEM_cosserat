@@ -1,11 +1,7 @@
 # coding: utf-8
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import DEM_interpolation,local_project
-import pytest
-
-#import pytest #for unit tests
-eps = 2e-15 #constant to compare floats. Possible to find a Python constant with that value ?
-eps_2 = 1e-12 #constant to compare gradients to zero
+import pytest #for unit tests
 
 #Size of mesh and number of elements
 L = 0.5
@@ -13,6 +9,7 @@ nb_elt = 3
 
 @pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed"), BoxMesh(Point(-L, -L, -L), Point(L, L, L), nb_elt, nb_elt, nb_elt)])
 def test_reconstruction(mesh):
+    h = mesh.hmax()
     dim = mesh.geometric_dimension()
 
     #DEM problem creation with reconstruction matrices
@@ -20,75 +17,66 @@ def test_reconstruction(mesh):
 
     #Testing P1 consistency and that's all
     x = SpatialCoordinate(mesh) #for disp
-    #rot = x[0]
-    func = as_vector((x[0],x[1],x[0]))
-    u,phi = DEM_interpolation(func, problem)
-    print(u.shape)
-    print(phi.shape)
-    #assert abs(max(u) - L) < eps
-    assert round(max(u), 13) == L
-    assert abs(min(u) + L) < eps
-    assert abs(min(phi) + L) < eps
-    assert abs(max(phi) - L) < eps
-
-    #Functional Spaces
-    U_DG = VectorFunctionSpace(mesh, 'DG', 0) #Pour délacement dans cellules
-    U_DG_1 = VectorFunctionSpace(mesh, 'DG', 1)
-    U_CR = VectorFunctionSpace(mesh, 'CR', 1) #Pour interpollation dans les faces
-    W = TensorFunctionSpace(mesh, 'DG', 0)
+    if dim == 2:
+        func = as_vector((x[0],x[1],x[0]))
+    elif dim == 3:
+        func = as_vector((x[0],x[1],x[2],x[0],x[1],x[2]))
+    u,phi,tot = DEM_interpolation(func, problem)
+    assert abs(max(u) - L) < h
+    assert abs(min(u) + L) < h
+    assert abs(min(phi) + L) < h
+    assert abs(max(phi) - L) < h
 
     #CR interpolation
-    test_CR = Function(U_CR)
-    reco_CR = problem.DEM_to_CR * u
+    test_CR = Function(problem.V_CR)
+    reco_CR = problem.DEM_to_CR * tot
     test_CR.vector().set_local(reco_CR)
-    assert abs(max(reco_CR) - L) < eps
-    assert abs(min(reco_CR) + L) < eps
+    assert round(max(reco_CR), 15) == L
+    assert round(min(reco_CR), 15) == -L
 
-    #Test on gradient
-    gradient = local_project(grad(test_CR), W)
-    gradient_vec = gradient.vector().get_local()
-    gradient_vec  = gradient_vec.reshape((U_DG.dim() // d,d,dim))
-    assert abs(min(gradient_vec[:,0,0]) - 1.) < eps_2 and abs(max(gradient_vec[:,0,0]) - 1.) < eps_2
-    assert abs(min(gradient_vec[:,0,1])) < eps_2 and abs(max(gradient_vec[:,0,1])) < eps_2
-    assert abs(min(gradient_vec[:,1,0])) < eps_2 and abs(max(gradient_vec[:,1,0])) < eps_2
-    assert abs(min(gradient_vec[:,1,1]) - 1.) < eps_2 and abs(max(gradient_vec[:,1,1]) - 1.) < eps_2
+    #Test on gradient on displacements
+    test_CR_u,test_CR_phi = test_CR.split()
+    if dim == 2:
+        W = TensorFunctionSpace(mesh, 'DG', 0)
+        W_PHI = VectorFunctionSpace(mesh, 'DG', 0)
+    elif dim == 3:
+        W = TensorFunctionSpace(mesh, 'DG', 0)
+        W_PHI = W
+    gradient_u = local_project(grad(test_CR_u), W)
+    gradient_u_vec = gradient_u.vector().get_local()
+    gradient_u_vec  = gradient_u_vec.reshape((problem.U_DG.dim() // dim,dim,dim))
+    gradient_phi = local_project(grad(test_CR_phi), W_PHI)
+    gradient_phi_vec = gradient_phi.vector().get_local()
+    if dim == 2:
+        gradient_phi_vec  = gradient_phi_vec.reshape((problem.PHI_DG.dim(),dim))
+    elif dim == 3:
+        gradient_phi_vec = gradient_phi_vec.reshape((problem.PHI_DG.dim() // dim,dim,dim))
+
+    #Tests on disp
+    assert round(min(gradient_u_vec[:,0,0]),13) == 1. and round(max(gradient_u_vec[:,0,0]),13) == 1.
+    assert round(min(gradient_u_vec[:,0,1]),13) == 0. and round(max(gradient_u_vec[:,0,1]),13) == 0.
+    assert round(min(gradient_u_vec[:,1,0]),13) == 0. and round(max(gradient_u_vec[:,1,0]),13) == 0.
+    assert round(min(gradient_u_vec[:,1,1]),13) == 1. and round(max(gradient_u_vec[:,1,1]),13) == 1.
     #More tests for 3d functions
-    if d == 3:
-        assert abs(min(gradient_vec[:,0,2])) < eps_2 and abs(max(gradient_vec[:,0,2])) < eps_2
-        assert abs(min(gradient_vec[:,2,0])) < eps_2 and abs(max(gradient_vec[:,2,0])) < eps_2
-        assert abs(min(gradient_vec[:,1,2])) < eps_2 and abs(max(gradient_vec[:,1,2])) < eps_2
-        assert abs(min(gradient_vec[:,2,1])) < eps_2 and abs(max(gradient_vec[:,2,1])) < eps_2
-        assert abs(min(gradient_vec[:,2,2]) - 1.) < eps_2 and abs(max(gradient_vec[:,2,2]) - 1.) < eps_2
+    if dim == 3:
+        assert round(min(gradient_u_vec[:,0,2]),13) == 0. and round(max(gradient_u_vec[:,0,2]),13) == 0.
+        assert round(min(gradient_u_vec[:,2,0]),13) == 0. and round(max(gradient_u_vec[:,2,0]),13) == 0.
+        assert round(min(gradient_u_vec[:,1,2]),13) == 0. and round(max(gradient_u_vec[:,1,2]),13) == 0.
+        assert round(min(gradient_u_vec[:,2,1]),13) == 0. and round(max(gradient_u_vec[:,2,1]),13) == 0.
+        assert round(min(gradient_u_vec[:,2,2]),13) == 1. and round(max(gradient_u_vec[:,2,2]),13) == 1.
+
+    #Test on gradient of rotations
+    if dim == 2:
+        assert round(min(gradient_phi_vec[:,0]),13) == 1. and round(max(gradient_phi_vec[:,0]),13) == 1.
+        assert round(min(gradient_phi_vec[:,1]),13) == 0. and round(max(gradient_phi_vec[:,1]),13) == 0.
+    elif dim == 3:
+        assert round(min(gradient_phi_vec[:,0,0]),13) == 1. and round(max(gradient_phi_vec[:,0,0]),13) == 1.
+        assert round(min(gradient_phi_vec[:,1,1]),13) == 1. and round(max(gradient_phi_vec[:,1,1]),13) == 1.
+        assert round(min(gradient_phi_vec[:,2,2]),13) == 1. and round(max(gradient_phi_vec[:,2,2]),13) == 1.
+        assert round(min(gradient_phi_vec[:,0,1]),13) == 0. and round(max(gradient_phi_vec[:,0,1]),13) == 0.
+        assert round(min(gradient_phi_vec[:,1,0]),13) == 0. and round(max(gradient_phi_vec[:,1,0]),13) == 0.
+        assert round(min(gradient_phi_vec[:,0,2]),13) == 0. and round(max(gradient_phi_vec[:,0,2]),13) == 0.
+        assert round(min(gradient_phi_vec[:,2,0]),13) == 0. and round(max(gradient_phi_vec[:,2,0]),13) == 0.
+        assert round(min(gradient_phi_vec[:,2,1]),13) == 0. and round(max(gradient_phi_vec[:,2,1]),13) == 0.
+        assert round(min(gradient_phi_vec[:,1,2]),13) == 0. and round(max(gradient_phi_vec[:,1,2]),13) == 0.
         
-
-    #Outputfile
-    #file = File('P1_consistency.pvd')
-    #file.write(test_CR)
-    #file.write(gradient)
-
-    #P1-discontinuous reconstruction
-    test_DG_1 = Function(U_DG_1)
-    test_DG_1.vector().set_local(problem.DEM_to_DG_1 * u)
-    assert abs(max(test_DG_1.vector().get_local()) - L) < eps
-    assert abs(min(test_DG_1.vector().get_local()) + L) < eps
-
-    #Test on gradient
-    gradient_DG = local_project(grad(test_DG_1), W)
-    gradient_vec = gradient_DG.vector().get_local()
-    gradient_vec  = gradient_vec.reshape((U_DG.dim() // d,d,dim))
-    assert abs(min(gradient_vec[:,0,0]) - 1.) < eps_2 and abs(max(gradient_vec[:,0,0]) - 1.) < eps_2
-    assert abs(min(gradient_vec[:,0,1])) < eps_2 and abs(max(gradient_vec[:,0,1])) < eps_2
-    assert abs(min(gradient_vec[:,1,0])) < eps_2 and abs(max(gradient_vec[:,1,0])) < eps_2
-    assert abs(min(gradient_vec[:,1,1]) - 1.) < eps_2 and abs(max(gradient_vec[:,1,1]) - 1.) < eps_2
-    #More tests for 3d functions
-    if d == 3:
-        assert abs(min(gradient_vec[:,0,2])) < eps_2 and abs(max(gradient_vec[:,0,2])) < eps_2
-        assert abs(min(gradient_vec[:,2,0])) < eps_2 and abs(max(gradient_vec[:,2,0])) < eps_2
-        assert abs(min(gradient_vec[:,1,2])) < eps_2 and abs(max(gradient_vec[:,1,2])) < eps_2
-        assert abs(min(gradient_vec[:,2,1])) < eps_2 and abs(max(gradient_vec[:,2,1])) < eps_2
-        assert abs(min(gradient_vec[:,2,2]) - 1.) < eps_2 and abs(max(gradient_vec[:,2,2]) - 1.) < eps_2
-
-
-    #Outputfile
-    #file.write(test_DG_1)
-    #file.write(gradient_DG)
