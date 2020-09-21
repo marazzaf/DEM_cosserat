@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
+from DEM_cosserat.miscellaneous import *
 
 # Parameters
 d = 2 #2d problem
@@ -124,10 +125,12 @@ D = D_Matrix(G, nu, l, N)
 # Variational problem
 elasticity_matrix = elastic_bilinear_form(problem, D, strain, stress)
 
-sys.exit()
-
 #rhs
-L = inner(t, v)*ds(1)
+L = assemble_boundary_load(problem, 1, t)
+
+#Imposing weakly the BC!
+
+sys.exit()
 
 U_h = Function(V)
 problem = LinearVariationalProblem(a, L, U_h, bc)

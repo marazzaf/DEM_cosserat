@@ -38,6 +38,22 @@ def assemble_volume_load(load, problem):
     L = assemble(form)
     return problem.DEM_to_DG.T * L
 
+def assemble_boundary_load(problem, domain=None, bnd_stress=None, bnd_torque=None):
+    v,eta = TestFunctions(problem.V_CR)
+    if bnd_stress is None:
+        bnd_stress = Constant(['0'] * problem.dim)
+    if bnd_torque is None:
+        if problem.dim == 3:
+            bnd_torque = Constant(['0'] * problem.dim)
+        elif problem.dim == 2:
+            bnd_torque = Constant(0.)
+    if domain is None:
+        form = inner(bnd_stress, v) * ds + inner(bnd_torque, eta) * ds
+    else:
+        form = (inner(bnd_torque, eta) + inner(bnd_stress, v)) * ds(domain)
+    L = assemble(form)
+    return problem.DEM_to_CR.T * L
+
 
 def schur_matrices(A_BC):
     nb_ddl_ccG = A_BC.shape[0]
