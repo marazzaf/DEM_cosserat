@@ -61,8 +61,6 @@ def nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with t
         imposed_value = BC[1]
         components = BC[0]
         for i,j in enumerate(components):
-            print(imposed_value[i])
-            print(j)
             form = imposed_value[i] * u[j] * ds(domain)
             L += assemble(form).get_local()
 

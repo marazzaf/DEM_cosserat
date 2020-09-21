@@ -114,10 +114,10 @@ top_boundary.mark(boundary_parts, 1)
 ds = Measure('ds')(subdomain_data=boundary_parts)
 
 u_0 = Constant(0.0)
-left_U_1 = DirichletBC(problem.U_CR.sub(0), u_0, left_boundary)
-bot_U_2 = DirichletBC(problem.U_CR.sub(1), u_0, bot_boundary)
-left_S = DirichletBC(problem.PHI_CR, u_0, left_boundary)
-bot_S = DirichletBC(problem.PHI_CR, u_0, bot_boundary)
+#left_U_1 = DirichletBC(problem.U_CR.sub(0), u_0, left_boundary)
+#bot_U_2 = DirichletBC(problem.U_CR.sub(1), u_0, bot_boundary)
+#left_S = DirichletBC(problem.PHI_CR, u_0, left_boundary)
+#bot_S = DirichletBC(problem.PHI_CR, u_0, bot_boundary)
 
 bc = [left_U_1, bot_U_2, left_S, bot_S]
 bc_1 = [[0], [u_0], 3]
@@ -136,13 +136,6 @@ elasticity_matrix = elastic_bilinear_form(problem, D, strain, stress)
 L = assemble_boundary_load(problem, 1, t)
 
 #Imposing weakly the BC!
-print(left_U_1.function_space().component())
-print(bot_U_2.function_space().component())
-print(left_U_1.get_boundary_values())
-print(left_U_1.markers())
-print(left_U_1.user_sub_domain())
-print(left_U_1.value())
-print(u_0)
 rhs = nitsche_penalty(problem, bc_bis)
 
 sys.exit()
