@@ -1,8 +1,6 @@
 # coding: utf-8
 from dolfin import *
-import numpy as np
-from numpy.linalg import norm
-from scipy.sparse import dok_matrix
+from scipy.sparse import csr_matrix
 import ufl
 
 def local_project(v, V, u=None):
@@ -52,7 +50,7 @@ def assemble_boundary_load(problem, domain=None, bnd_stress=None, bnd_torque=Non
     return problem.DEM_to_CR.T * L
 
 
-def nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must contain lists with three parameters: list of components, function (list of components), num_domain
+def rhs_nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must contain lists with three parameters: list of components, function (list of components), num_domain
     #For rhs penalty term computation
     vol = CellVolume(problem.mesh)
     hF = FacetArea(problem.mesh)
@@ -68,7 +66,8 @@ def nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must c
     stress = as_tensor([[stress[0],stress[2]],[stress[3],stress[1]]])
     #Que faire en 3d pour le couple stress ?
     
-    L = np.zeros(problem.V_CR.dim())
+    #L = np.zeros(problem.V_CR.dim())
+    list_L = []
     for BC in list_Dirichlet_BC:
         assert len(BC) == 3    
         domain = BC[2]
@@ -76,7 +75,8 @@ def nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must c
         components = BC[0]
         for i,j in enumerate(components):
             form_pen = problem.penalty * hF / vol * imposed_value[i] * u[j] * ds(domain)
-            L += assemble(form_pen).get_local()
+            #L += assemble(form_pen).get_local()
+            list_L.append(form_pen)
             if j < problem.dim: #bnd stress
                 form_aux = imposed_value[i] * dot(stress,n)[j]  * ds(domain)
             elif j > problem.dim: #bnd couple stress
@@ -84,6 +84,39 @@ def nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must c
                     form_aux = imposed_value[i] * dot(couple_stress,n)[j]  * ds(domain)
                 elif problem.dim == 2:
                     form_aux = imposed_value[i] * dot(couple_stress,n)  * ds(domain)
-            L += assemble(form_aux).get_local()
-            
+            #L += assemble(form_aux).get_local()
+            list_L.append(form_aux)
+    L = sum(l for l in list_L)
+    L = assemble(L).get_local()
+    
     return problem.DEM_to_CR.T * L
+
+def lhs_nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
+    #For lhs penalty term computation
+    vol = CellVolume(problem.mesh)
+    hF = FacetArea(problem.mesh)
+
+    #For the rest
+    u = TestFunction(problem.V_CR)
+    v = TrialFunction(problem.V_CR)
+    
+    list_L = []
+    #L = csr_matrix((problem.nb_dof_CR,problem.nb_dof_CR))
+    for BC in list_Dirichlet_BC:
+        assert len(BC) == 3    
+        domain = BC[2]
+        components = BC[0]
+        for i in components:
+            form = problem.penalty * hF / vol * v[i] * u[i] * ds(domain)
+            list_L.append(form)
+            #aux = assemble(form)
+            #row,col,val = as_backend_type(aux).mat().getValuesCSR()
+            #L += csr_matrix((val, col, row))
+
+    #Assemble Matrix
+    L = sum(l for l in list_L)
+    L = assemble(L)
+    row,col,val = as_backend_type(L).mat().getValuesCSR()
+    L = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
+
+    return problem.DEM_to_CR.T * L * problem.DEM_to_CR

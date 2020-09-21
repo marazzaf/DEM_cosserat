@@ -112,12 +112,6 @@ top_boundary.mark(boundary_parts, 1)
 ds = Measure('ds')(subdomain_data=boundary_parts)
 
 u_0 = Constant(0.0)
-#left_U_1 = DirichletBC(problem.U_CR.sub(0), u_0, left_boundary)
-#bot_U_2 = DirichletBC(problem.U_CR.sub(1), u_0, bot_boundary)
-#left_S = DirichletBC(problem.PHI_CR, u_0, left_boundary)
-#bot_S = DirichletBC(problem.PHI_CR, u_0, bot_boundary)
-#bc = [left_U_1, bot_U_2, left_S, bot_S]
-
 bc_1 = [[0], [u_0], 3]
 bc_2 = [[1], [u_0], 2]
 bc_3 = [[2], [u_0], 3]
@@ -128,15 +122,21 @@ bc_bis = [bc_1, bc_2, bc_3, bc_4]
 D = D_Matrix(G, nu, l, N)
 
 # Variational problem
-elasticity_matrix = elastic_bilinear_form(problem, D, strain, stress)
+A = elastic_bilinear_form(problem, D, strain, stress)
 
 #rhs
 L = assemble_boundary_load(problem, 1, t)
 
 #Imposing weakly the BC!
-rhs = nitsche_penalty(problem, bc_bis, D, strain, stress)
+rhs = rhs_nitsche_penalty(problem, bc_bis, D, strain, stress)
+
+#Nitsche penalty bilinear form
+A += lhs_nitsche_penalty(problem, bc_bis)
 
 sys.exit()
+
+#Penalty matrix
+A += truc
 
 U_h = Function(V)
 problem = LinearVariationalProblem(a, L, U_h, bc)
