@@ -3,6 +3,7 @@ from dolfin import *
 import numpy as np
 from numpy.linalg import norm
 from scipy.sparse import dok_matrix
+import ufl
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -28,10 +29,6 @@ def DEM_interpolation(func, problem):
 
     return aux[:,:2].flatten(),aux[:,2],tot
 
-def Dirichlet_BC(form, DEM_to_CG):
-    L = assemble(form)
-    return DEM_to_CG.T * L.get_local()
-
 def assemble_volume_load(load, problem):
     v = TestFunction(problem.DG_0)
     form = inner(load, v) * dx
@@ -55,32 +52,29 @@ def assemble_boundary_load(problem, domain=None, bnd_stress=None, bnd_torque=Non
     return problem.DEM_to_CR.T * L
 
 
-def schur_matrices(A_BC):
-    nb_ddl_ccG = A_BC.shape[0]
-    l = A_BC.nonzero()[0]
-    aux = set(l) #contains number of Dirichlet dof
-    nb_ddl_Dirichlet = len(aux)
-    aux_bis = set(range(nb_ddl_ccG))
-    aux_bis = aux_bis.difference(aux) #contains number of vertex non Dirichlet dof
-    sorted(aux_bis) #sort the set
+def nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function, num_domain
+    L = ufl.form.Form
+    for BC in list_Dirichlet_BC:
+        assert len(BC) == 3
+        v,eta = TestFunctions(problem.V_CR)
+        domain = BC[2]
+        imposed_value = BC[1]
+        components = BC[0]
+        if len(components) == problem.dim:
+            if 0 in components:
+                L += inner(imposed_value, v) * ds(domain)
+            elif 2 in components:
+                L += inner(imposed_value, eta) * ds(domain)
+            else:
+                ValueError
+        else:
+            for i in components:
+                if 0 <= i < problem.dim:
+                    L += imposed_value * v[i] * ds(domain)
+                elif problem.dim <= i < 2 * problem.dim:
+                    L += imposed_value * eta[i-problem.dim] * ds(domain)
+                else:
+                    ValueError
 
-    #Get non Dirichlet values
-    mat_not_D = dok_matrix((nb_ddl_ccG - nb_ddl_Dirichlet, nb_ddl_ccG))
-    for (i,j) in zip(range(mat_not_D.shape[0]),aux_bis):
-        mat_not_D[i,j] = 1.
-
-    #Get Dirichlet boundary conditions
-    mat_D = dok_matrix((nb_ddl_Dirichlet, nb_ddl_ccG))
-    for (i,j) in zip(range(mat_D.shape[0]),aux):
-        mat_D[i,j] = 1.
-    return mat_not_D.tocsr(), mat_D.tocsr()
-
-def schur_complement(L, u_BC, B, problem):
-    L_not_D = problem.mat_not_D * L
-    u_BC_interpolate = interpolate(u_BC, problem.CG).vector().get_local()
-    u_BC_interpolate = problem.mat_D * problem.DEM_to_CG.T * u_BC_interpolate
-    L_not_D = L_not_D - B * u_BC_interpolate
-    return L_not_D,u_BC_interpolate
-
-def complete_solution(u_reduced, u_BC, problem):
-    return problem.mat_not_D.T * u_reduced + problem.mat_D.T * u_BC
+    L = assemble(L)
+    return problem.DEM_to_CR.T * L

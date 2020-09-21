@@ -6,15 +6,12 @@ import numpy as np
 from DEM_cosserat.errors import *
 from DEM_cosserat.reconstructions import DEM_to_CR_matrix
 from DEM_cosserat.mesh_related import *
-from DEM_cosserat.miscellaneous import Dirichlet_BC,schur_matrices
-import sys
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
     def __init__(self, mesh):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
-        #self.facet_nei = facet_neighborhood(self.mesh)
 
         #Rotation is a scalar in 3d and a vector in 3d
         U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
@@ -61,20 +58,6 @@ class DEMProblem:
         self.DEM_to_CR = DEM_to_CR_matrix(self)
 
         #Dirichlet conditions
-
-   #def for_dirichlet(self, A, boundary_dirichlet=None):
-   #    hF = FacetArea(self.mesh)
-   #    v_CG = TestFunction(self.CG)
-   #    if boundary_dirichlet == None: #dependence on self.d ???
-   #        form_dirichlet = inner(v_CG('+'),as_vector((1.,1.))) / hF * ds
-   #    else:
-   #        form_dirichlet = inner(v_CG('+'),as_vector((1.,1.))) / hF * ds(boundary_dirichlet)
-   #    A_BC = Dirichlet_BC(form_dirichlet, self.DEM_to_CG)
-   #    self.mat_not_D,self.mat_D = schur_matrices(A_BC)
-   #    #A_D = mat_D * A * mat_D.T
-   #    A_not_D = self.mat_not_D * A * self.mat_not_D.T
-   #    B = self.mat_not_D * A * self.mat_D.T
-   #    return A_not_D,B
 
 
 def elastic_bilinear_form(problem, D, strain, stress):
