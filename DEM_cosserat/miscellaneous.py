@@ -77,9 +77,9 @@ def nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must c
         for i,j in enumerate(components):
             form_pen = problem.penalty * hF / vol * imposed_value[i] * u[j] * ds(domain)
             L += assemble(form_pen).get_local()
-            if i < problem.dim: #bnd stress
+            if j < problem.dim: #bnd stress
                 form_aux = imposed_value[i] * dot(stress,n)[j]  * ds(domain)
-            elif i > problem.dim: #bnd couple stress
+            elif j > problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_aux = imposed_value[i] * dot(couple_stress,n)[j]  * ds(domain)
                 elif problem.dim == 2:
