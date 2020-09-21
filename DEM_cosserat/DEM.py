@@ -9,9 +9,10 @@ from DEM_cosserat.mesh_related import *
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh):
+    def __init__(self, mesh, penalty):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
+        self.penalty = penalty
 
         #Rotation is a scalar in 3d and a vector in 3d
         U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)

@@ -52,16 +52,38 @@ def assemble_boundary_load(problem, domain=None, bnd_stress=None, bnd_torque=Non
     return problem.DEM_to_CR.T * L
 
 
-def nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
+def nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must contain lists with three parameters: list of components, function (list of components), num_domain
+    #For rhs penalty term computation
+    vol = CellVolume(problem.mesh)
+    hF = FacetArea(problem.mesh)
+    
+    #For consistency term
+    n = FacetNormal(problem.mesh)
+
+    #For the rest
+    u = TestFunction(problem.V_CR)
+    v,eta = TestFunctions(problem.V_CR)
+    strains = strain(v,eta)
+    stress,couple_stress = stress(D,strains)
+    stress = as_tensor([[stress[0],stress[2]],[stress[3],stress[1]]])
+    #Que faire en 3d pour le couple stress ?
+    
     L = np.zeros(problem.V_CR.dim())
     for BC in list_Dirichlet_BC:
-        assert len(BC) == 3
-        u = TestFunction(problem.V_CR)
+        assert len(BC) == 3    
         domain = BC[2]
         imposed_value = BC[1]
         components = BC[0]
         for i,j in enumerate(components):
-            form = imposed_value[i] * u[j] * ds(domain)
-            L += assemble(form).get_local()
-
+            form_pen = problem.penalty * hF / vol * imposed_value[i] * u[j] * ds(domain)
+            L += assemble(form_pen).get_local()
+            if i < problem.dim: #bnd stress
+                form_aux = imposed_value[i] * dot(stress,n)[j]  * ds(domain)
+            elif i > problem.dim: #bnd couple stress
+                if problem.dim == 3:
+                    form_aux = imposed_value[i] * dot(couple_stress,n)[j]  * ds(domain)
+                elif problem.dim == 2:
+                    form_aux = imposed_value[i] * dot(couple_stress,n)  * ds(domain)
+            L += assemble(form_aux).get_local()
+            
     return problem.DEM_to_CR.T * L
