@@ -52,29 +52,18 @@ def assemble_boundary_load(problem, domain=None, bnd_stress=None, bnd_torque=Non
     return problem.DEM_to_CR.T * L
 
 
-def nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function, num_domain
-    L = ufl.form.Form
+def nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
+    L = np.zeros(problem.V_CR.dim())
     for BC in list_Dirichlet_BC:
         assert len(BC) == 3
-        v,eta = TestFunctions(problem.V_CR)
+        u = TestFunction(problem.V_CR)
         domain = BC[2]
         imposed_value = BC[1]
         components = BC[0]
-        if len(components) == problem.dim:
-            if 0 in components:
-                L += inner(imposed_value, v) * ds(domain)
-            elif 2 in components:
-                L += inner(imposed_value, eta) * ds(domain)
-            else:
-                ValueError
-        else:
-            for i in components:
-                if 0 <= i < problem.dim:
-                    L += imposed_value * v[i] * ds(domain)
-                elif problem.dim <= i < 2 * problem.dim:
-                    L += imposed_value * eta[i-problem.dim] * ds(domain)
-                else:
-                    ValueError
+        for i,j in enumerate(components):
+            print(imposed_value[i])
+            print(j)
+            form = imposed_value[i] * u[j] * ds(domain)
+            L += assemble(form).get_local()
 
-    L = assemble(L)
     return problem.DEM_to_CR.T * L

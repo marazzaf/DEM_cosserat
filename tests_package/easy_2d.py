@@ -120,10 +120,10 @@ left_S = DirichletBC(problem.PHI_CR, u_0, left_boundary)
 bot_S = DirichletBC(problem.PHI_CR, u_0, bot_boundary)
 
 bc = [left_U_1, bot_U_2, left_S, bot_S]
-bc_1 = [[0], u_0, 3]
-bc_2 = [[1], u_0, 2]
-bc_3 = [[2], u_0, 2]
-bc_4 = [[2], u_0, 2]
+bc_1 = [[0], [u_0], 3]
+bc_2 = [[1], [u_0], 2]
+bc_3 = [[2], [u_0], 3]
+bc_4 = [[2], [u_0], 2]
 bc_bis = [bc_1, bc_2, bc_3, bc_4]
 
 #compliance tensor
@@ -143,7 +143,7 @@ print(left_U_1.markers())
 print(left_U_1.user_sub_domain())
 print(left_U_1.value())
 print(u_0)
-rhs = nitsche_penalty(problem, bc)
+rhs = nitsche_penalty(problem, bc_bis)
 
 sys.exit()
 
