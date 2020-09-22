@@ -23,11 +23,16 @@ def DEM_interpolation(func, problem):
     """Interpolates a function or expression to return a DEM vector containg the interpolation."""
 
     tot = local_project(func, problem.V_DG).vector().get_local()
-    aux = tot.reshape((problem.V_DG.dim() // 3, 3))
+    if problem.dim == 2:
+        aux = tot.reshape((problem.V_DG.dim() // 3, 3))
+        return aux[:,:2].flatten(),aux[:,2],tot
+    elif problem.dim == 3:
+        aux = tot.reshape((problem.V_DG.dim() // 6, 6))
+        return aux[:,:3].flatten(),aux[:,3:].flatten(),tot
+    else:
+        ValueError('Problem with dimension')
 
-    return aux[:,:2].flatten(),aux[:,2],tot
-
-def assemble_volume_load(load, problem):
+def assemble_volume_load(load, problem): #to be modified to include couple volume load
     v = TestFunction(problem.DG_0)
     form = inner(load, v) * dx
     L = assemble(form)
@@ -120,3 +125,14 @@ def lhs_nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists wi
     L = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
 
     return problem.DEM_to_CR.T * L * problem.DEM_to_CR
+
+def gradient_matrix(problem):
+    vol = CellVolume(problem.mesh)
+
+    #variational form gradient
+    u_CR,phi_CR = TrialFunctions(problem.V_CR)
+    Dv_DG,Dphi_DG = TestFunctions(problem.W)
+    a = inner(grad(u_CR), Dv_DG) / vol * dx + inner(grad(phi_CR), Dphi_DG) / vol * dx
+    A = assemble(a)
+    row,col,val = as_backend_type(A).mat().getValuesCSR()
+    return csr_matrix((val, col, row))

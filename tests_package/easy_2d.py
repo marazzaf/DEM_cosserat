@@ -133,10 +133,12 @@ rhs = rhs_nitsche_penalty(problem, bc_bis, D, strain, stress)
 #Nitsche penalty bilinear form
 A += lhs_nitsche_penalty(problem, bc_bis)
 
+#Penalty matrix
+A += inner_penalty(problem)
+
 sys.exit()
 
-#Penalty matrix
-A += truc
+
 
 U_h = Function(V)
 problem = LinearVariationalProblem(a, L, U_h, bc)
