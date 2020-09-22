@@ -84,6 +84,7 @@ def inner_penalty(problem):
     helpp.vector().set_local(np.ones_like(helpp.vector().get_local()))
     a_aux = problem.penalty * (2.*hF('+'))/ (vol('+') + vol('-')) * inner(helpp('+'), testt('+')) * dS
     mat = assemble(a_aux).get_local()
+    mat[mat < 0] = 0 #Putting real zero
 
     #creating jump matrix
     mat_jump_1 = dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM))
@@ -109,8 +110,8 @@ def inner_penalty(problem):
                 pen_diff = coeff_pen*diff
                 tens_dof_position = dofmap_tens_DG_0.cell_dofs(num_cell)
                 for num,dof_CR in enumerate(num_global_dof):
-                    for i in range(len(num_global_dof)):
-                        mat_jump_2[dof_CR,tens_dof_position[num*len(num_global_dof) + i]] = sign*pen_diff[i]
+                    for i in range(problem.dim):
+                        mat_jump_2[dof_CR,tens_dof_position[num*problem.dim + i]] = sign*pen_diff[i]
             
     mat_jump = mat_jump_1.tocsr() + mat_jump_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
     return mat_jump.T * mat_jump
