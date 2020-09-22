@@ -79,7 +79,7 @@ def rhs_nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List mu
         imposed_value = BC[1]
         components = BC[0]
         for i,j in enumerate(components):
-            form_pen = problem.penalty * hF / vol * imposed_value[i] * u[j] * ds(domain)
+            form_pen = problem.penalty_u * hF / vol * imposed_value[i] * u[j] * ds(domain) #use other penalty too?
             #L += assemble(form_pen).get_local()
             list_L.append(form_pen)
             if j < problem.dim: #bnd stress
@@ -112,7 +112,7 @@ def lhs_nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists wi
         domain = BC[2]
         components = BC[0]
         for i in components:
-            form = problem.penalty * hF / vol * v[i] * u[i] * ds(domain)
+            form = problem.penalty_u * hF / vol * v[i] * u[i] * ds(domain)
             list_L.append(form)
             #aux = assemble(form)
             #row,col,val = as_backend_type(aux).mat().getValuesCSR()

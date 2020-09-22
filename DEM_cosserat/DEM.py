@@ -10,10 +10,11 @@ from DEM_cosserat.miscellaneous import gradient_matrix
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh, penalty):
+    def __init__(self, mesh, penalty_u, penalty_phi):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
-        self.penalty = penalty
+        self.penalty_u = penalty_u
+        self.penalty_phi = penalty_phi
 
         #Rotation is a scalar in 3d and a vector in 3d
         U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
@@ -79,10 +80,13 @@ def inner_penalty(problem):
     #assembling penalty factor
     vol = CellVolume(problem.mesh)
     hF = FacetArea(problem.mesh)
-    testt = TestFunction(problem.V_CR)
-    helpp = Function(problem.V_CR)
-    helpp.vector().set_local(np.ones_like(helpp.vector().get_local()))
-    a_aux = problem.penalty * (2.*hF('+'))/ (vol('+') + vol('-')) * inner(helpp('+'), testt('+')) * dS
+    test_u,test_phi = TestFunctions(problem.V_CR)
+    help_tot = Function(problem.V_CR)
+    help_u,help_phi = help_tot.split()
+    help_u.vector().set_local(np.ones_like(help_u.vector().get_local()))
+    help_phi.vector().set_local(np.ones_like(help_phi.vector().get_local()))
+    a_aux = problem.penalty_u * (2.*hF('+'))/ (vol('+') + vol('-')) * inner(help_u('+'), test_u('+')) * dS
+    a_aux += problem.penalty_phi * (2.*hF('+'))/ (vol('+') + vol('-')) * inner(help_phi('+'), test_phi('+')) * dS
     mat = assemble(a_aux).get_local()
     mat[mat < 0] = 0 #Putting real zero
 

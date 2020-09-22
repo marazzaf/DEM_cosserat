@@ -80,7 +80,7 @@ mesh = generate_mesh(geometry, h)
 hm = mesh.hmax()
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G)
+problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term?
 
 # Boundary conditions
 class BotBoundary(SubDomain):
