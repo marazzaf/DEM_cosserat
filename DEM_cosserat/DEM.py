@@ -99,23 +99,30 @@ def inner_penalty(problem):
         num_global_dof_u = facet['dof_CR_u']
         num_global_dof_phi = facet['dof_CR_phi']
         num_global_dof = np.append(num_global_dof_u, num_global_dof_phi)
-        coeff_pen = np.sqrt(mat[num_global_dof_u][0])
+        coeff_pen = np.sqrt(mat[num_global_dof])
+        coeff_pen_u = np.sqrt(mat[num_global_dof][0])
+        coeff_pen_phi = np.sqrt(mat[num_global_dof][-1])
         pos_bary_facet = facet['barycentre']
         
         if not facet['bnd']: #Internal facet
             #filling-out the DG 0 part of the jump
-            mat_jump_1[num_global_dof,len(num_global_dof) * c1 : (c1+1) * len(num_global_dof)] = coeff_pen * np.eye(len(num_global_dof))
-            mat_jump_1[num_global_dof,len(num_global_dof) * c2 : (c2+1) * len(num_global_dof)] = -coeff_pen * np.eye(len(num_global_dof))
+            mat_jump_1[num_global_dof,len(num_global_dof) * c1 : (c1+1) * len(num_global_dof)] = np.diag(coeff_pen) # * np.eye(len(num_global_dof))
+            mat_jump_1[num_global_dof,len(num_global_dof) * c2 : (c2+1) * len(num_global_dof)] = -np.diag(coeff_pen) #* np.eye(len(num_global_dof))
 
             for num_cell,sign in zip([c1, c2],[1., -1.]):
                 #filling-out the DG 1 part of the jump...
                 pos_bary_cell = problem.Graph.node[num_cell]['barycentre']
                 diff = pos_bary_facet - pos_bary_cell
-                pen_diff = coeff_pen*diff
+                pen_diff_u = coeff_pen_u*diff
+                pen_diff_phi = coeff_pen_phi*diff
                 tens_dof_position = dofmap_tens_DG_0.cell_dofs(num_cell)
                 for num,dof_CR in enumerate(num_global_dof):
                     for i in range(problem.dim):
-                        mat_jump_2[dof_CR,tens_dof_position[num*problem.dim + i]] = sign*pen_diff[i]
+                        if num < problem.dim:
+                            mat_jump_2[dof_CR,tens_dof_position[num*problem.dim + i]] = sign*pen_diff_u[i]
+                        else:
+                            mat_jump_2[dof_CR,tens_dof_position[num*problem.dim + i]] = sign*pen_diff_phi[i]
+
             
     mat_jump = mat_jump_1.tocsr() + mat_jump_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
     return mat_jump.T * mat_jump
