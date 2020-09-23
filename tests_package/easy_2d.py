@@ -6,9 +6,9 @@ import numpy as np
 from mshr import Rectangle, Circle, generate_mesh
 import matplotlib.pyplot as plt
 import sys
-sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
+from scipy.sparse.linalg import spsolve
 
 # Parameters
 d = 2 #2d problem
@@ -109,7 +109,7 @@ left_boundary.mark(boundary_parts, 3)
 top_boundary = TopBoundary()
 top_boundary.mark(boundary_parts, 1)
 
-ds = Measure('ds')(subdomain_data=boundary_parts)
+#ds = Measure('ds')(subdomain_data=boundary_parts)
 
 u_0 = Constant(0.0)
 bc_1 = [[0], [u_0], 3]
@@ -125,10 +125,10 @@ D = D_Matrix(G, nu, l, N)
 A = elastic_bilinear_form(problem, D, strain, stress)
 
 #rhs
-L = assemble_boundary_load(problem, 1, t)
+rhs = assemble_boundary_load(problem, 1, boundary_parts, t)
 
 #Imposing weakly the BC!
-rhs = rhs_nitsche_penalty(problem, bc_bis, D, strain, stress)
+rhs += rhs_nitsche_penalty(problem, bc_bis, D, strain, stress)
 
 #Nitsche penalty bilinear form
 A += lhs_nitsche_penalty(problem, bc_bis)
@@ -136,15 +136,17 @@ A += lhs_nitsche_penalty(problem, bc_bis)
 #Penalty matrix
 A += inner_penalty(problem)
 
+#Solving linear problem
+v = spsolve(A,rhs)
+v_h = Function(problem.V_DG)
+v_h.vector().set_local(v)
+u_h, psi_h = v_h.split()
+
+plot(u_h)
+plt.show()
+plot(psi_h)
+plt.show()
 sys.exit()
-
-
-
-U_h = Function(V)
-problem = LinearVariationalProblem(a, L, U_h, bc)
-solver = LinearVariationalSolver(problem)
-solver.solve()
-u_h, psi_h = U_h.split()
 
 # Stress
 epsilon = strain(u_h, psi_h)

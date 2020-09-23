@@ -38,7 +38,7 @@ def assemble_volume_load(load, problem): #to be modified to include couple volum
     L = assemble(form)
     return problem.DEM_to_DG.T * L
 
-def assemble_boundary_load(problem, domain=None, bnd_stress=None, bnd_torque=None):
+def assemble_boundary_load(problem, domain=None, subdomain_data=None, bnd_stress=None, bnd_torque=None):
     v,eta = TestFunctions(problem.V_CR)
     if bnd_stress is None:
         bnd_stress = Constant(['0'] * problem.dim)
@@ -50,9 +50,10 @@ def assemble_boundary_load(problem, domain=None, bnd_stress=None, bnd_torque=Non
     if domain is None:
         form = inner(bnd_stress, v) * ds + inner(bnd_torque, eta) * ds
     else:
+        ds = Measure('ds')(subdomain_data=subdomain_data)
         form = (inner(bnd_torque, eta) + inner(bnd_stress, v)) * ds(domain)
     L = assemble(form)
-    return problem.DEM_to_CR.T * L
+    return problem.DEM_to_CR.T * L.get_local()
 
 
 def rhs_nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must contain lists with three parameters: list of components, function (list of components), num_domain
