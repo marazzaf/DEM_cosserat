@@ -161,6 +161,14 @@ for hx in h :
     solver.solve()
     u_h, psi_h = U_h.split()
 
+    #plot(u_h)
+    #plt.savefig('ref_u_15.pdf')
+    #plt.show()
+    #plot(psi_h)
+    #plt.savefig('ref_phi_15.pdf')
+    #plt.show()
+    #sys.exit()
+
     # Stress
     epsilon = strain(u_h, psi_h)
     sigma = D*epsilon

@@ -143,8 +143,10 @@ v_h.vector().set_local(v)
 u_h, psi_h = v_h.split()
 
 plot(u_h)
+plt.savefig('u_15.pdf')
 plt.show()
 plot(psi_h)
+plt.savefig('phi_15.pdf')
 plt.show()
 sys.exit()
 

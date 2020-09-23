@@ -10,7 +10,7 @@ from DEM_cosserat.miscellaneous import gradient_matrix
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh, penalty_u, penalty_phi):
+    def __init__(self, mesh, penalty_u=1., penalty_phi=1.):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
         self.penalty_u = penalty_u
