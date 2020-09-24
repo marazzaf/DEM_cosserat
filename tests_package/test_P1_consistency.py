@@ -80,3 +80,4 @@ def test_reconstruction(mesh):
         assert round(min(gradient_phi_vec[:,2,1]),13) == 0. and round(max(gradient_phi_vec[:,2,1]),13) == 0.
         assert round(min(gradient_phi_vec[:,1,2]),13) == 0. and round(max(gradient_phi_vec[:,1,2]),13) == 0.
         
+#Add tests for DG1 reconstrucion P1 consistency

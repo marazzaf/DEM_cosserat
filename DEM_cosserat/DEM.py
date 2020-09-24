@@ -140,12 +140,9 @@ def inner_penalty_bis(problem):
     h_avg = (vol('+') + vol('-')) / (2.*hF('+'))
 
     #Writing penalty bilinear form
-    U = TrialFunction(problem.V_DG1)
-    V = TrialFunction(problem.V_DG1)
-    pen = Constant((problem.penalty_u,problem.penalty_u,problem.penalty_phi))
-    J = jump(U)
-    aux = as_vector((pen[0]*J[0],pen[1]*J[1],pen[1]*J[1]))
-    a_pen = inner(aux, jump(V)) / h_avg * dS
+    u,phi = TrialFunctions(problem.V_DG1)
+    v,psi = TestFunctions(problem.V_DG1)
+    a_pen = problem.penalty_u / h_avg * inner(jump(u), jump(v)) * dS + problem.penalty_phi / h_avg * inner(jump(phi), jump(psi)) * dS
 
     #Assembling matrix
     A = assemble(a_pen)
