@@ -5,8 +5,7 @@ import numpy as np
 import networkx as nx
 from itertools import combinations
 from DEM_cosserat.mesh_related import *
-from DEM_cosserat.errors import *
-#from DEM_cosserat.DEM import DEMProblem
+
 import sys
 
 #def DEM_to_DG_1_matrix(problem, nb_dof_ccG_, DEM_to_CR):

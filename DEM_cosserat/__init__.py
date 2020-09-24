@@ -22,4 +22,4 @@ __date__    = "Friday September 4th 2020"
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.reconstructions import *
 from DEM_cosserat.miscellaneous import *
-from DEM_cosserat.errors import *
+from DEM_cosserat.DEM import *

@@ -3,7 +3,6 @@
 from dolfin import *
 from scipy.sparse import csr_matrix,dok_matrix
 import numpy as np
-from DEM_cosserat.errors import *
 from DEM_cosserat.reconstructions import DEM_to_CR_matrix
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.miscellaneous import gradient_matrix
@@ -80,13 +79,10 @@ def inner_penalty(problem):
     #assembling penalty factor
     vol = CellVolume(problem.mesh)
     hF = FacetArea(problem.mesh)
-    test_u,test_phi = TestFunctions(problem.V_CR)
-    help_tot = Function(problem.V_CR)
-    help_u,help_phi = help_tot.split()
-    help_u.vector().set_local(np.ones_like(help_u.vector().get_local()))
-    help_phi.vector().set_local(np.ones_like(help_phi.vector().get_local()))
-    a_aux = problem.penalty_u * (2.*hF('+'))/ (vol('+') + vol('-')) * inner(help_u('+'), test_u('+')) * dS
-    a_aux += problem.penalty_phi * (2.*hF('+'))/ (vol('+') + vol('-')) * inner(help_phi('+'), test_phi('+')) * dS
+    V = TestFunction(problem.V_CR)
+    pen = Constant((problem.penalty_u,problem.penalty_u,problem.penalty_phi))
+    U = interpolate(pen, problem.V_CR)
+    a_aux = (2.*hF('+'))/ (vol('+') + vol('-')) * inner(U('+'), V('+')) * dS
     mat = assemble(a_aux).get_local()
     mat[mat < 0] = 0 #Putting real zero
 
@@ -111,7 +107,7 @@ def inner_penalty(problem):
 
             for num_cell,sign in zip([c1, c2],[1., -1.]):
                 #filling-out the DG 1 part of the jump...
-                pos_bary_cell = problem.Graph.node[num_cell]['barycentre']
+                pos_bary_cell = problem.Graph.nodes[num_cell]['barycentre']
                 diff = pos_bary_facet - pos_bary_cell
                 pen_diff_u = coeff_pen_u*diff
                 pen_diff_phi = coeff_pen_phi*diff

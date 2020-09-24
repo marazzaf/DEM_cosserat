@@ -6,6 +6,7 @@ import numpy as np
 from mshr import Rectangle, Circle, generate_mesh
 import matplotlib.pyplot as plt
 import sys
+sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
 from scipy.sparse.linalg import spsolve
