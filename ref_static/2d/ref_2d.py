@@ -94,8 +94,7 @@ def stress(Tuple):
 for hx in h :
     
     # Mesh
-    geometry = Rectangle(Point(0,0),Point(plate, plate)) - \
-               Circle(Point(0,0), R, hx)
+    geometry = Rectangle(Point(0,0),Point(plate, plate))-Circle(Point(0,0), R, hx)
     mesh = generate_mesh(geometry, hx)
     hm = mesh.hmax()
     
@@ -161,6 +160,9 @@ for hx in h :
     solver.solve()
     u_h, psi_h = U_h.split()
 
+    plot(mesh)
+    plt.show()
+    sys.exit()
     #plot(u_h)
     #plt.savefig('ref_u_15.pdf')
     #plt.show()

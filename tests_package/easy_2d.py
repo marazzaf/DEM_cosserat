@@ -75,9 +75,9 @@ def stress(D,strains):
     return sigma, mu
     
 # Mesh
-geometry = Rectangle(Point(0,0),Point(plate, plate)) - Circle(Point(0,0), R, h)
-mesh = generate_mesh(geometry, h)
-hm = mesh.hmax()
+mesh = Mesh()
+with XDMFFile("hole_plate.xdmf") as infile:
+    infile.read(mesh)
 
 #Creating the DEM problem
 problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term?
@@ -142,11 +142,17 @@ v_h = Function(problem.V_DG)
 v_h.vector().set_local(v)
 u_h, psi_h = v_h.split()
 
-plot(u_h)
-plt.savefig('u_15.pdf')
+fig = plot(u_h[0])
+plt.savefig('u_x_15.pdf')
+plt.colorbar(fig)
 plt.show()
-plot(psi_h)
+fig = plot(u_h[1])
+plt.savefig('u_x_15.pdf')
+plt.colorbar(fig)
+plt.show()
+fig = plot(psi_h)
 plt.savefig('phi_15.pdf')
+plt.colorbar(fig)
 plt.show()
 sys.exit()
 
