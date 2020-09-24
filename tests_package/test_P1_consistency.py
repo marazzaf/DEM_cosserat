@@ -1,7 +1,10 @@
 # coding: utf-8
+import sys
+sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import DEM_interpolation,local_project
 import pytest #for unit tests
+import matplotlib.pyplot as plt
 
 #Size of mesh and number of elements
 L = 0.5
@@ -31,6 +34,9 @@ def test_reconstruction(mesh):
     test_CR = Function(problem.V_CR)
     reco_CR = problem.DEM_to_CR * tot
     test_CR.vector().set_local(reco_CR)
+    plot(test_CR[1])
+    plt.show()
+    sys.exit()
     assert round(max(reco_CR), 15) == L
     assert round(min(reco_CR), 15) == -L
 
@@ -79,5 +85,14 @@ def test_reconstruction(mesh):
         assert round(min(gradient_phi_vec[:,2,0]),13) == 0. and round(max(gradient_phi_vec[:,2,0]),13) == 0.
         assert round(min(gradient_phi_vec[:,2,1]),13) == 0. and round(max(gradient_phi_vec[:,2,1]),13) == 0.
         assert round(min(gradient_phi_vec[:,1,2]),13) == 0. and round(max(gradient_phi_vec[:,1,2]),13) == 0.
-        
-#Add tests for DG1 reconstrucion P1 consistency
+
+
+    #test DG1 reconstruction
+    test_DG1 = Function(problem.V_DG1)
+    reco_DG1 = problem.DEM_to_DG1 * tot
+    test_DG1.vector().set_local(reco_CR)
+    plot(test_DG1[1])
+    plt.show()
+    assert round(max(reco_DG1), 15) == L
+    assert round(min(reco_DG1), 15) == -L
+    
