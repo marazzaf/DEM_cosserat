@@ -8,31 +8,46 @@ from DEM_cosserat.mesh_related import *
 import sys
 
 def DEM_to_DG1_matrix(problem):
+    matrice_resultat_1 = sp.dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
+    matrice_resultat_2 = sp.dok_matrix((problem.nb_dof_DG1,problem.nb_dof_grad)) #Empty matrix
+
+    if problem.dim == 2:
+        nb_dof_cell = int(3)
+    elif problem.dim == 3:
+        nb_dof_cell = int(6)
+    else:
+        ValueError
+
+    #Useful in the following
     dofmap_DG_0 = problem.V_DG.dofmap()
     dofmap_DG_1 = problem.V_DG1.dofmap()
     dofmap_tens_DG_0 = problem.W.dofmap()
-    elt_0 = problem.V_DG.element()
+    #dofmap_tens_DG_0_u = problem.WW.dofmap()
+    #dofmap_tens_DG_0_phi = problem.PHI_W.dofmap()
     elt_1 = problem.V_DG1.element()
-    matrice_resultat_1 = sp.dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
-    matrice_resultat_2 = sp.dok_matrix((problem.nb_dof_DG1,problem.nb_dof_grad)) #Empty matrix
-    
+
     for c in cells(problem.mesh):
         index_cell = c.index()
-        dof_position = dofmap_DG_1.cell_dofs(index_cell)
+        dof_position = sorted(dofmap_DG_1.cell_dofs(index_cell))
 
-        #filling-in the matrix to have the constant cell value
-        DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
+        #filling out the matrix to have the constant cell value
+        DG_0_dofs = sorted(dofmap_DG_0.cell_dofs(index_cell))
         for dof in dof_position:
-            matrice_resultat_1[dof, DG_0_dofs[dof % problem.dim]] = 1.
+            matrice_resultat_1[dof, DG_0_dofs[dof % nb_dof_cell]] = 1.
 
         #filling-in part to add the gradient term
-        position_barycentre = elt_0.tabulate_dof_coordinates(c)[0]
+        position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
         pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
-        tens_dof_position = dofmap_tens_DG_0.cell_dofs(index_cell)
+        tens_dof_position = sorted(dofmap_tens_DG_0.cell_dofs(index_cell))
+        print(tens_dof_position)
+        #tens_dof_position_u = sorted(dofmap_tens_DG_0_u.cell_dofs(index_cell))
+        #tens_dof_position_phi = sorted(dofmap_tens_DG_0_u.cell_dofs(index_cell))
         for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
+            print(dof,pos)
             diff = pos - position_barycentre
             for i in range(problem.dim):
-                matrice_resultat_2[dof, tens_dof_position[(dof % problem.dim)*problem.dim + i]] = diff[i]
+                print((dof % nb_dof_cell)*problem.dim + i)
+                matrice_resultat_2[dof, tens_dof_position[(dof % nb_dof_cell)*problem.dim + i]] = diff[i]
         
     return matrice_resultat_1.tocsr() +  matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
