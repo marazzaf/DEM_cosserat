@@ -1,5 +1,5 @@
 # coding: utf-8
-import scipy.sparse as sp
+from scipy.sparse import dok_matrix
 from dolfin import *
 import numpy as np
 import networkx as nx
@@ -8,8 +8,8 @@ from DEM_cosserat.mesh_related import *
 import sys
 
 def DEM_to_DG1_matrix(problem):
-    matrice_resultat_1 = sp.dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
-    matrice_resultat_2 = sp.dok_matrix((problem.nb_dof_DG1,problem.nb_dof_grad)) #Empty matrix
+    matrice_resultat_1 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
+    matrice_resultat_2 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_grad)) #Empty matrix
 
     if problem.dim == 2:
         nb_dof_cell = int(3)
@@ -24,23 +24,23 @@ def DEM_to_DG1_matrix(problem):
 
     for c in cells(problem.mesh):
         index_cell = c.index()
-        dof_position = sorted(dofmap_DG_1.cell_dofs(index_cell))
+        dof_position = dofmap_DG_1.cell_dofs(index_cell)
 
         #filling out the matrix to have the constant cell value
-        DG_0_dofs = sorted(dofmap_DG_0.cell_dofs(index_cell))
+        DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
         for dof in dof_position:
             matrice_resultat_1[dof, DG_0_dofs[dof % nb_dof_cell]] = 1.
             
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
         pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
-        tens_dof_position = sorted(dofmap_tens_DG_0.cell_dofs(index_cell))
+        tens_dof_position = dofmap_tens_DG_0.cell_dofs(index_cell)
         for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
             diff = pos - position_barycentre
             for i in range(problem.dim):
                 matrice_resultat_2[dof, tens_dof_position[(dof % nb_dof_cell)*problem.dim + i]] = diff[i]
         
-    return matrice_resultat_1.tocsr() +  matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
+    return matrice_resultat_1.tocsr() + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):
     """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
@@ -143,7 +143,7 @@ def DEM_to_CR_matrix(problem):
     simplex_num,simplex_num_phi,simplex_coord = facet_interpolation(problem)
 
     #Storing the facet reconstructions in a matrix
-    result_matrix = sp.dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
+    result_matrix = dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
     for c1,c2 in problem.Graph.edges():
         num_global_facet = problem.Graph[c1][c2]['num']
         num_global_ddl = problem.Graph[c1][c2]['dof_CR_u']
@@ -159,7 +159,7 @@ def DEM_to_CR_matrix(problem):
             result_matrix[num_global_ddl[1],i[1]] = j #Disp y
             result_matrix[num_global_ddl_phi[0],k[0]] = j #Rotation
             if problem.dim == 3:
-                result_matrix[num_global_ddl[2],i[2]] = j #Disp é
+                result_matrix[num_global_ddl[2],i[2]] = j #Disp z
                 result_matrix[num_global_ddl_phi[1],k[1]] = j #Rotation y
                 result_matrix[num_global_ddl_phi[2],k[2]] = j #Rotation z
         

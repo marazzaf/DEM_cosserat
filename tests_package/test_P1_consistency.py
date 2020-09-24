@@ -34,9 +34,6 @@ def test_reconstruction(mesh):
     test_CR = Function(problem.V_CR)
     reco_CR = problem.DEM_to_CR * tot
     test_CR.vector().set_local(reco_CR)
-    plot(test_CR[1])
-    plt.show()
-    sys.exit()
     assert round(max(reco_CR), 15) == L
     assert round(min(reco_CR), 15) == -L
 
@@ -90,9 +87,7 @@ def test_reconstruction(mesh):
     #test DG1 reconstruction
     test_DG1 = Function(problem.V_DG1)
     reco_DG1 = problem.DEM_to_DG1 * tot
-    test_DG1.vector().set_local(reco_CR)
-    plot(test_DG1[1])
-    plt.show()
-    assert round(max(reco_DG1), 15) == L
-    assert round(min(reco_DG1), 15) == -L
+    test_DG1.vector().set_local(reco_DG1)
+    assert round(max(reco_DG1), 14) == L
+    assert round(min(reco_DG1), 14) == -L
     
