@@ -8,66 +8,66 @@ from DEM_cosserat.mesh_related import *
 
 import sys
 
-#def DEM_to_DG_1_matrix(problem, nb_dof_ccG_, DEM_to_CR):
-#    assert isinstance(problem,DEMProblem)
-#    
-#    EDG_0 = problem.DG_0
-#    EDG_1 = problem.DG_1
-#    tens_DG_0 = problem.W
-#        
-#    dofmap_DG_0 = EDG_0.dofmap()
-#    dofmap_DG_1 = EDG_1.dofmap()
-#    dofmap_tens_DG_0 = tens_DG_0.dofmap()
-#    elt_0 = EDG_0.element()
-#    elt_1 = EDG_1.element()
-#    nb_total_dof_DG_1 = dofmap_DG_1.global_dimension()
-#    nb_dof_grad = dofmap_tens_DG_0.global_dimension()
-#    matrice_resultat_1 = sp.dok_matrix((nb_total_dof_DG_1,nb_dof_ccG_)) #Empty matrix
-#    matrice_resultat_2 = sp.dok_matrix((nb_total_dof_DG_1,nb_dof_grad)) #Empty matrix
-#    
-#    for c in cells(problem.mesh):
-#        index_cell = c.index()
-#        dof_position = dofmap_DG_1.cell_dofs(index_cell)
-#
-#        #filling-in the matrix to have the constant cell value
-#        DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
-#        for dof in dof_position:
-#            matrice_resultat_1[dof, DG_0_dofs[dof % problem.d]] = 1.
-#
-#        #filling-in part to add the gradient term
-#        position_barycentre = elt_0.tabulate_dof_coordinates(c)[0]
-#        pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
-#        tens_dof_position = dofmap_tens_DG_0.cell_dofs(index_cell)
-#        for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
-#            diff = pos - position_barycentre
-#            for i in range(problem.dim):
-#                matrice_resultat_2[dof, tens_dof_position[(dof % problem.d)*problem.d + i]] = diff[i]
-#        
-#    return matrice_resultat_1.tocsr() +  matrice_resultat_2.tocsr() * problem.mat_grad * DEM_to_CR
+def DEM_to_DG_1_matrix(problem, nb_dof_ccG_, DEM_to_CR):
+    assert isinstance(problem,DEMProblem)
+    
+    EDG_0 = problem.DG_0
+    EDG_1 = problem.DG_1
+    tens_DG_0 = problem.W
+        
+    dofmap_DG_0 = EDG_0.dofmap()
+    dofmap_DG_1 = EDG_1.dofmap()
+    dofmap_tens_DG_0 = tens_DG_0.dofmap()
+    elt_0 = EDG_0.element()
+    elt_1 = EDG_1.element()
+    nb_total_dof_DG_1 = dofmap_DG_1.global_dimension()
+    nb_dof_grad = dofmap_tens_DG_0.global_dimension()
+    matrice_resultat_1 = sp.dok_matrix((nb_total_dof_DG_1,nb_dof_ccG_)) #Empty matrix
+    matrice_resultat_2 = sp.dok_matrix((nb_total_dof_DG_1,nb_dof_grad)) #Empty matrix
+    
+    for c in cells(problem.mesh):
+        index_cell = c.index()
+        dof_position = dofmap_DG_1.cell_dofs(index_cell)
 
-#def gradient_matrix(problem):
-#    """Creates a matrix computing the cell-wise gradient from the facet values stored in a Crouzeix-raviart FE vector."""
-#    vol = CellVolume(problem.mesh)
-#
-#    #variational form gradient
-#    u_CR = TrialFunction(problem.U_CR)
-#    Dv_DG = TestFunction(problem.W)
-#    a = inner(grad(u_CR), Dv_DG) / vol * dx
-#    A = assemble(a)
-#    row,col,val = as_backend_type(A).mat().getValuesCSR()
-#    result = sp.csr_matrix((val, col, row))
-#
-#    if problem.dim == 3:
-#        return result,result
-#    elif problem.dim == 2:
-#        u_CR = TrialFunction(problem.PHI_CR)
-#        Dv_DG = TestFunction(problem.PHI_W)
-#        a = inner(grad(u_CR), Dv_DG) / vol * dx
-#        A = assemble(a)
-#        row,col,val = as_backend_type(A).mat().getValuesCSR()
-#        return result,sp.csr_matrix((val, col, row))
-#    else:
-#        raise ValueError('Wrong dimension')
+        #filling-in the matrix to have the constant cell value
+        DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
+        for dof in dof_position:
+            matrice_resultat_1[dof, DG_0_dofs[dof % problem.d]] = 1.
+
+        #filling-in part to add the gradient term
+        position_barycentre = elt_0.tabulate_dof_coordinates(c)[0]
+        pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
+        tens_dof_position = dofmap_tens_DG_0.cell_dofs(index_cell)
+        for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
+            diff = pos - position_barycentre
+            for i in range(problem.dim):
+                matrice_resultat_2[dof, tens_dof_position[(dof % problem.d)*problem.d + i]] = diff[i]
+        
+    return matrice_resultat_1.tocsr() +  matrice_resultat_2.tocsr() * problem.mat_grad * DEM_to_CR
+
+def gradient_matrix(problem):
+    """Creates a matrix computing the cell-wise gradient from the facet values stored in a Crouzeix-raviart FE vector."""
+    vol = CellVolume(problem.mesh)
+
+    #variational form gradient
+    u_CR = TrialFunction(problem.U_CR)
+    Dv_DG = TestFunction(problem.W)
+    a = inner(grad(u_CR), Dv_DG) / vol * dx
+    A = assemble(a)
+    row,col,val = as_backend_type(A).mat().getValuesCSR()
+    result = sp.csr_matrix((val, col, row))
+
+    if problem.dim == 3:
+        return result,result
+    elif problem.dim == 2:
+        u_CR = TrialFunction(problem.PHI_CR)
+        Dv_DG = TestFunction(problem.PHI_W)
+        a = inner(grad(u_CR), Dv_DG) / vol * dx
+        A = assemble(a)
+        row,col,val = as_backend_type(A).mat().getValuesCSR()
+        return result,sp.csr_matrix((val, col, row))
+    else:
+        raise ValueError('Wrong dimension')
 
 def facet_interpolation(problem):
     """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
@@ -192,12 +192,3 @@ def DEM_to_CR_matrix(problem):
         
     return result_matrix.tocsr()
 
-#def compute_all_reconstruction_matrices(problem):
-#    """Computes all the required reconstruction matrices."""
-#
-#    #calling functions to construct the matrices
-#    DEM_to_DG = DEM_to_DG_matrix(problem, problem.nb_dof_DEM)
-#    DEM_to_CR = DEM_to_CR_matrix(problem, problem.nb_dof_DEM, problem.facet_num, problem.vertex_associe_face, problem.num_ddl_vertex, problem.pos_ddl_vertex)
-#    DEM_to_DG_1 = DEM_to_DG_1_matrix(problem, problem.nb_dof_DEM, DEM_to_CR)
-#
-#    return DEM_to_DG, DEM_to_CG, DEM_to_CR, DEM_to_DG_1

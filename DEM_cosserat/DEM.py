@@ -17,14 +17,17 @@ class DEMProblem:
 
         #Rotation is a scalar in 3d and a vector in 3d
         U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
+        U_DG1 = VectorElement('DG', self.mesh.ufl_cell(), 1)
         U_CR = VectorElement('CR', self.mesh.ufl_cell(), 1)
         WW = TensorElement('DG', self.mesh.ufl_cell(), 0)
         if self.dim == 2:
             PHI_DG = FiniteElement('DG', self.mesh.ufl_cell(), 0)
+            PHI_DG1 = FiniteElement('DG', self.mesh.ufl_cell(), 1)
             PHI_CR = FiniteElement('CR', self.mesh.ufl_cell(), 1)
             PHI_W = VectorElement('DG', self.mesh.ufl_cell(), 0)
         elif self.dim == 3:
             PHI_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
+            PHI_DG1 = VectorElement('DG', self.mesh.ufl_cell(), 1)
             PHI_CR = VectorElement('CR', self.mesh.ufl_cell(), 1)
             PHI_W = TensorElement('DG', self.mesh.ufl_cell(), 0)
         else:
@@ -38,13 +41,15 @@ class DEMProblem:
         self.V_CR = FunctionSpace(self.mesh, MixedElement(U_CR,PHI_CR))
         self.U_CR,self.PHI_CR = self.V_CR.split()
         self.nb_dof_CR = self.V_CR.dofmap().global_dimension()
+        
         #Spaces for gradients (strains and stresses)
         self.W = FunctionSpace(self.mesh, MixedElement(WW,PHI_W))
         self.WW,self.PHI_W = self.W.split()
         self.nb_dof_grad = self.W.dofmap().global_dimension()
 
-        ##what to do with these ?
-        #self.DG_1 = VectorFunctionSpace(self.mesh, 'DG', 1)
+        #Spaces for penalties
+        self.V_DG1 = FunctionSpace(self.mesh, MixedElement(U_DG1,PHI_DG1))
+        self.U_DG1,self.PHI_DG1 = self.V_DG1.split()
         
         #Creating the graph associated with the mesh
         self.Graph = connectivity_graph(self)
@@ -53,7 +58,7 @@ class DEMProblem:
         self.mat_grad = gradient_matrix(self)
 
         #DEM reconstructions
-        #self.DEM_to_DG_1 = compute_all_reconstruction_matrices(self)
+        self.DEM_to_DG_1 = DEM_to_DG1_matrix(self)
         self.DEM_to_CR = DEM_to_CR_matrix(self)
 
 
@@ -79,10 +84,11 @@ def inner_penalty(problem):
     #assembling penalty factor
     vol = CellVolume(problem.mesh)
     hF = FacetArea(problem.mesh)
+    h_avg = (vol('+') + vol('-')) / (2.*hF('+'))
     V = TestFunction(problem.V_CR)
     pen = Constant((problem.penalty_u,problem.penalty_u,problem.penalty_phi))
     U = interpolate(pen, problem.V_CR)
-    a_aux = (2.*hF('+'))/ (vol('+') + vol('-')) * inner(U('+'), V('+')) * dS
+    a_aux = inner(U('+'), V('+')) / h_avg * dS
     mat = assemble(a_aux).get_local()
     mat[mat < 0] = 0 #Putting real zero
 
@@ -122,3 +128,27 @@ def inner_penalty(problem):
             
     mat_jump = mat_jump_1.tocsr() + mat_jump_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
     return mat_jump.T * mat_jump
+
+def inner_penalty_bis(problem):
+    """Creates the penalty matrix on inner facets to stabilize the DEM."""
+    dofmap_tens_DG_0 = problem.W.dofmap()
+
+    #assembling penalty factor
+    vol = CellVolume(problem.mesh)
+    hF = FacetArea(problem.mesh)
+    h_avg = (vol('+') + vol('-')) / (2.*hF('+'))
+
+    #Writing penalty bilinear form
+    U = TrialFunction(problem.V_DG1)
+    V = TrialFunction(problem.V_DG1)
+    pen = Constant((problem.penalty_u,problem.penalty_u,problem.penalty_phi))
+    J = jump(U)
+    aux = as_vector((pen[0]*J[0],pen[1]*J)[1],pen[1]*J[1]))
+    a_pen = inner(aux, jump(V)) / h_avg * dS
+
+    #Assembling matrix
+    A = assemble(a_pen)
+    row,col,val = as_backend_type(A).mat().getValuesCSR()
+    A = csr_matrix((val, col, row))
+
+    return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1

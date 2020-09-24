@@ -135,7 +135,8 @@ rhs += rhs_nitsche_penalty(problem, bc_bis, D, strain, stress)
 A += lhs_nitsche_penalty(problem, bc_bis)
 
 #Penalty matrix
-A += inner_penalty(problem)
+#A += inner_penalty(problem)
+A += inner_penalty_bis(problem)
 
 #Solving linear problem
 v = spsolve(A,rhs)
