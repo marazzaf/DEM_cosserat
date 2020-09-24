@@ -3,7 +3,7 @@
 from dolfin import *
 from scipy.sparse import csr_matrix,dok_matrix
 import numpy as np
-from DEM_cosserat.reconstructions import DEM_to_CR_matrix
+from DEM_cosserat.reconstructions import DEM_to_CR_matrix,DEM_to_DG1_matrix
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.miscellaneous import gradient_matrix
 
@@ -50,6 +50,7 @@ class DEMProblem:
         #Spaces for penalties
         self.V_DG1 = FunctionSpace(self.mesh, MixedElement(U_DG1,PHI_DG1))
         self.U_DG1,self.PHI_DG1 = self.V_DG1.split()
+        self.nb_dof_DG1 = self.V_DG1.dofmap().global_dimension()
         
         #Creating the graph associated with the mesh
         self.Graph = connectivity_graph(self)
@@ -58,8 +59,8 @@ class DEMProblem:
         self.mat_grad = gradient_matrix(self)
 
         #DEM reconstructions
-        self.DEM_to_DG_1 = DEM_to_DG1_matrix(self)
         self.DEM_to_CR = DEM_to_CR_matrix(self)
+        self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
 
 def elastic_bilinear_form(problem, D, strain, stress):
@@ -143,7 +144,7 @@ def inner_penalty_bis(problem):
     V = TrialFunction(problem.V_DG1)
     pen = Constant((problem.penalty_u,problem.penalty_u,problem.penalty_phi))
     J = jump(U)
-    aux = as_vector((pen[0]*J[0],pen[1]*J)[1],pen[1]*J[1]))
+    aux = as_vector((pen[0]*J[0],pen[1]*J[1],pen[1]*J[1]))
     a_pen = inner(aux, jump(V)) / h_avg * dS
 
     #Assembling matrix
