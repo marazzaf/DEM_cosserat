@@ -3,7 +3,7 @@
 from dolfin import *
 from scipy.sparse import csr_matrix,dok_matrix
 import numpy as np
-from DEM_cosserat.reconstructions import DEM_to_CR_matrix,DEM_to_DG1_matrix
+from DEM_cosserat.reconstructions import *
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.miscellaneous import gradient_matrix
 

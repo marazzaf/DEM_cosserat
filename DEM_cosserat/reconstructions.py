@@ -1,11 +1,25 @@
 # coding: utf-8
-from scipy.sparse import dok_matrix
+from scipy.sparse import dok_matrix,csr_matrix
 from dolfin import *
 import numpy as np
 import networkx as nx
 from itertools import combinations
 from DEM_cosserat.mesh_related import *
 import sys
+
+def DEM_to_DG1_matrix_bis(problem):
+    vol = CellVolume(problem.mesh)
+
+    u = TrialFunction(problem.V_DG)
+    v = TestFunction(problem.V_DG1)
+    a = inner(u,v) / vol * dx
+
+    A = assemble(a)
+    row,col,val = as_backend_type(A).mat().getValuesCSR()
+    A = csr_matrix((val, col, row))
+
+    aux = (problem.dim+1.)*A
+    return aux
 
 def DEM_to_DG1_matrix(problem):
     matrice_resultat_1 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
