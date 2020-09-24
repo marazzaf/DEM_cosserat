@@ -7,28 +7,9 @@ from itertools import combinations
 from DEM_cosserat.mesh_related import *
 import sys
 
-def DEM_to_DG1_matrix_bis(problem):
-    vol = CellVolume(problem.mesh)
-
-    u = TrialFunction(problem.V_DG)
-    v = TestFunction(problem.V_DG1)
-    a = inner(u,v) / vol * dx
-
-    A = assemble(a)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    A = csr_matrix((val, col, row))
-
-    aux = (problem.dim+1.)*A
-    return aux
-
 def DEM_to_DG1_matrix(problem):
     matrice_resultat_1 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
     matrice_resultat_2 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_grad)) #Empty matrix
-
-    if problem.dim == 2:
-        nb_dof_cell = int(3)
-    elif problem.dim == 3:
-        nb_dof_cell = int(6)
 
     #Useful in the following
     dofmap_DG_0 = problem.V_DG.dofmap()
@@ -43,7 +24,7 @@ def DEM_to_DG1_matrix(problem):
         #filling out the matrix to have the constant cell value
         DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
         for dof in dof_position:
-            matrice_resultat_1[dof, DG_0_dofs[dof % nb_dof_cell]] = 1.
+            matrice_resultat_1[dof, DG_0_dofs[dof % problem.d]] = 1.
             
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
@@ -52,8 +33,11 @@ def DEM_to_DG1_matrix(problem):
         for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
             diff = pos - position_barycentre
             for i in range(problem.dim):
-                matrice_resultat_2[dof, tens_dof_position[(dof % nb_dof_cell)*problem.dim + i]] = diff[i]
-        
+                #print(dof,(dof % problem.d) * problem.dim + i)
+                #print(dof,tens_dof_position[(dof % problem.d) * problem.dim + i])
+                matrice_resultat_2[dof, tens_dof_position[(dof % problem.d) * problem.dim + i]] = diff[i]
+                #matrice_resultat_2[dof, (dof % problem.d) * problem.dim + i] = diff[i]
+        #sys.exit()
     return matrice_resultat_1.tocsr() + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):

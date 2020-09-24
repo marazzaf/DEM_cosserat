@@ -37,6 +37,10 @@ class DEMProblem:
         self.U_DG,self.PHI_DG = self.V_DG.split()
         self.nb_dof_DEM = self.V_DG.dofmap().global_dimension()
 
+        #Dimension of Approximation space
+        u = Function(self.V_DG)
+        self.d = len(u)
+
         #Spaces for facet interpolations
         self.V_CR = FunctionSpace(self.mesh, MixedElement(U_CR,PHI_CR))
         self.U_CR,self.PHI_CR = self.V_CR.split()
