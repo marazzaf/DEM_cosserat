@@ -19,7 +19,10 @@ def DEM_to_DG1_matrix(problem):
 
     for c in cells(problem.mesh):
         index_cell = c.index()
+        print(index_cell)
         dof_position = sorted(dofmap_DG_1.cell_dofs(index_cell))
+        #print(dof_position)
+        #sys.exit()
         #dof_position = dofmap_DG_1.cell_dofs(index_cell)
 
         #filling out the matrix to have the constant cell value
@@ -31,13 +34,15 @@ def DEM_to_DG1_matrix(problem):
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
         pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
         tens_dof_position = sorted(dofmap_tens_DG_0.cell_dofs(index_cell))
+        #print(tens_dof_position)
+        #sys.exit()
         for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
             diff = pos - position_barycentre
-            #print(dof,pos)
             for i in range(problem.dim):
-                #print(dof,(dof % problem.d) * problem.dim + i)
-                #print(dof,pos,tens_dof_position[(dof % problem.d) * problem.dim + i])
-                matrice_resultat_2[dof, tens_dof_position[(dof % problem.d) * problem.dim + i]] = diff[i]
+                print(dof,((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i)
+                #print(dof,pos,tens_dof_position[(dof // problem.d) * problem.dim + i])
+                #matrice_resultat_2[dof, tens_dof_position[(dof % problem.d) * problem.dim + i]] = diff[i]
+                matrice_resultat_2[dof, tens_dof_position[((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i]] = diff[i]
         #sys.exit()
     return matrice_resultat_1.tocsr() + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
