@@ -17,9 +17,9 @@ def DEM_to_DG1_matrix(problem):
     dofmap_tens_DG_0 = problem.W.dofmap()
     elt_1 = problem.V_DG1.element()
 
+    count = 0
     for c in cells(problem.mesh):
         index_cell = c.index()
-        print(index_cell)
         dof_position = sorted(dofmap_DG_1.cell_dofs(index_cell))
         #print(dof_position)
         #sys.exit()
@@ -33,17 +33,22 @@ def DEM_to_DG1_matrix(problem):
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
         pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
+        #print(problem.U_DG1.element().tabulate_dof_coordinates(c))
+        print(problem.PHI_DG1.element().tabulate_dof_coordinates(c))
         tens_dof_position = sorted(dofmap_tens_DG_0.cell_dofs(index_cell))
         #print(tens_dof_position)
         #sys.exit()
+        count += 1
         for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
+            #print(dof,pos)
             diff = pos - position_barycentre
             for i in range(problem.dim):
-                print(dof,((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i)
+                #print(((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i)
                 #print(dof,pos,tens_dof_position[(dof // problem.d) * problem.dim + i])
                 #matrice_resultat_2[dof, tens_dof_position[(dof % problem.d) * problem.dim + i]] = diff[i]
                 matrice_resultat_2[dof, tens_dof_position[((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i]] = diff[i]
-        #sys.exit()
+        if count == 10:
+            sys.exit()
     return matrice_resultat_1.tocsr() + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):

@@ -85,7 +85,7 @@ def test_reconstruction(mesh):
 
 
     #test DG1 reconstruction
-    func = Constant(['1.'] * problem.d )
+    #func = Constant(['1.'] * problem.d )
     #func = as_vector((x[0],0,0))
     u,phi,tot = DEM_interpolation(func, problem)
     test_DG1 = Function(problem.V_DG1)
