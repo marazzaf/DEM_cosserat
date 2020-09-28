@@ -5,7 +5,9 @@ import numpy as np
 import networkx as nx
 from itertools import combinations
 from DEM_cosserat.mesh_related import *
+from DEM_cosserat.miscellaneous import local_project
 import sys
+import matplotlib.pyplot as plt
 
 def DEM_to_DG1_matrix(problem):
     matrice_resultat_1 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
@@ -33,8 +35,6 @@ def DEM_to_DG1_matrix(problem):
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
         pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
-        #print(problem.U_DG1.element().tabulate_dof_coordinates(c))
-        print(problem.PHI_DG1.element().tabulate_dof_coordinates(c))
         tens_dof_position = sorted(dofmap_tens_DG_0.cell_dofs(index_cell))
         #print(tens_dof_position)
         #sys.exit()
@@ -47,9 +47,8 @@ def DEM_to_DG1_matrix(problem):
                 #print(dof,pos,tens_dof_position[(dof // problem.d) * problem.dim + i])
                 #matrice_resultat_2[dof, tens_dof_position[(dof % problem.d) * problem.dim + i]] = diff[i]
                 matrice_resultat_2[dof, tens_dof_position[((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i]] = diff[i]
-        if count == 10:
-            sys.exit()
     return matrice_resultat_1.tocsr() + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
+    #return matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):
     """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
@@ -173,4 +172,54 @@ def DEM_to_CR_matrix(problem):
                 result_matrix[num_global_ddl_phi[2],k[2]] = j #Rotation z
         
     return result_matrix.tocsr()
+
+def DEM_to_DG1_matrix_bis(problem):
+    #Constant part of DG1
+    vol = CellVolume(problem.mesh)
+    test_DG0 = TrialFunction(problem.V_DG)
+    trial_DG1 = TestFunction(problem.V_DG1)
+    mat = problem.d * inner(test_DG0, trial_DG1) / vol * dx
+    Mat = assemble(mat)
+    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+    Mat = csr_matrix((val, col, row))
+    #print(Mat.shape)
+    #sys.exit()
+
+    #Test if matrix ok
+    u = np.ones(Mat.shape[1])
+    v = Mat * u
+    #print(max(v))
+    #print(min(v))
+
+    #Varying part of DG1
+    test_DG1,test_phi_DG1 = TestFunctions(problem.V_DG1)
+    trial_W,trial_phi_W = TrialFunctions(problem.W)
+    mat = inner(trial_W, grad(test_DG1)) / vol * dx + inner(trial_phi_W, grad(test_phi_DG1)) / vol * dx
+    #mat = inner(dot(trial_W, truc), test_DG1) / vol * dx
+    Mat = assemble(mat)
+    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+    Mat = csr_matrix((val, col, row))
+    Mat.eliminate_zeros()
+    print(Mat.shape)
+
+    #test if matrix ok
+    x = SpatialCoordinate(problem.mesh)
+    aux_x = as_vector((x[0],x[1],0))
+    #pos_bary_cell = local_project(aux_x, problem.V_DG)
+    #pos_bary_cell,truc = pos_bary_cell.split()
+    #truc = aux_x - pos_bary_cell
+    aux = as_tensor((1,0,0,0,0,0))
+    func = local_project(aux, problem.W).vector().get_local()
+    #print(func.shape)
+    res = Mat * func
+    res_func = Function(problem.V_DG1)
+    res_func.vector().set_local(res)
+    img = plot(res_func[0])
+    plt.colorbar(img)
+    plt.show()
+    #print(res.shape)
+    #ref = local_project(aux_x, problem.V_DG1).vector().get_local()
+    ##print(ref.shape)
+    #print(res-ref)
+    sys.exit()
 

@@ -83,6 +83,20 @@ def test_reconstruction(mesh):
         assert round(min(gradient_phi_vec[:,2,1]),13) == 0. and round(max(gradient_phi_vec[:,2,1]),13) == 0.
         assert round(min(gradient_phi_vec[:,1,2]),13) == 0. and round(max(gradient_phi_vec[:,1,2]),13) == 0.
 
+    ###test
+    ##func_DG0 = local_project(func,problem.V_DG)
+    ##func_DG1 = local_project(func_DG0, problem.V_DG1)
+    ##print(func_DG1.vector().get_local())
+    #vol = CellVolume(problem.mesh)
+    #test_DG1 = TrialFunction(problem.V_DG1)
+    #trial_DG0 = TestFunction(problem.V_DG)
+    #mat = problem.d * inner(trial_DG0, test_DG1) / vol * dx
+    #Mat = assemble(mat)
+    #row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+    #Mat = csr_matrix((val, col, row))
+    #print(Mat)
+    #sys.exit()
+    
 
     #test DG1 reconstruction
     #func = Constant(['1.'] * problem.d )
@@ -91,17 +105,19 @@ def test_reconstruction(mesh):
     test_DG1 = Function(problem.V_DG1)
     reco_DG1 = problem.DEM_to_DG1 * tot
     test_DG1.vector().set_local(reco_DG1)
-    assert round(max(reco_DG1), 14) == 1
-    assert round(min(reco_DG1), 14) == 1
-    #assert round(max(reco_DG1), 14) == L
-    #assert round(min(reco_DG1), 14) == -L
+    #assert round(max(reco_DG1), 14) == 1
+    #assert round(min(reco_DG1), 14) == 1
+    print(reco_DG1[reco_DG1 > L])
+    print(reco_DG1[reco_DG1 < -L])
+    assert round(max(reco_DG1), 14) == L
+    assert round(min(reco_DG1), 14) == -L
 
     #Test on gradient on displacements
     test_DG1_u,test_DG1_phi = test_DG1.split()
     gradient_u = local_project(grad(test_DG1_u), W)
     gradient_u_vec = gradient_u.vector().get_local()
-    #print(gradient_u_vec)
-    #sys.exit()
+    print(gradient_u_vec)
+    sys.exit()
     gradient_u_vec  = gradient_u_vec.reshape((problem.U_DG.dim() // dim,dim,dim))
     gradient_phi = local_project(grad(test_DG1_phi), W_PHI)
     gradient_phi_vec = gradient_phi.vector().get_local()
