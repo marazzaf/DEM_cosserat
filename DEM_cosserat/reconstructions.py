@@ -19,10 +19,9 @@ def DEM_to_DG1_matrix(problem):
     dofmap_tens_DG_0 = problem.W.dofmap()
     elt_1 = problem.V_DG1.element()
 
-    count = 0
     for c in cells(problem.mesh):
         index_cell = c.index()
-        dof_position = sorted(dofmap_DG_1.cell_dofs(index_cell))
+        dof_position = dofmap_DG_1.cell_dofs(index_cell)
         #print(dof_position)
         #sys.exit()
         #dof_position = dofmap_DG_1.cell_dofs(index_cell)
@@ -35,18 +34,25 @@ def DEM_to_DG1_matrix(problem):
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
         pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
-        tens_dof_position = sorted(dofmap_tens_DG_0.cell_dofs(index_cell))
+        tens_dof_position = dofmap_tens_DG_0.cell_dofs(index_cell)
         #print(tens_dof_position)
         #sys.exit()
-        count += 1
         for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
             #print(dof,pos)
             diff = pos - position_barycentre
-            for i in range(problem.dim):
+            if dof % 9 < 3:
+                List = [1,2]
+            elif 2 < dof % 9 < 6:
+                List = [0,3]
+            elif 5 < dof % 9:
+                List = [4,5]
+            for i,j in zip(List,range(problem.dim)):
+                #print(i)
+                #print(tens_dof_position[i])
+                matrice_resultat_2[dof, tens_dof_position[i]] = diff[j]
                 #print(((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i)
-                #print(dof,pos,tens_dof_position[(dof // problem.d) * problem.dim + i])
-                #matrice_resultat_2[dof, tens_dof_position[(dof % problem.d) * problem.dim + i]] = diff[i]
-                matrice_resultat_2[dof, tens_dof_position[((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i]] = diff[i]
+                #matrice_resultat_2[dof, tens_dof_position[((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i]] = diff[j]
+        #sys.exit()
     return matrice_resultat_1.tocsr() + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
     #return matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
@@ -204,11 +210,11 @@ def DEM_to_DG1_matrix_bis(problem):
 
     #Other test
     x = SpatialCoordinate(problem.mesh)
-    test = as_vector((x[0],1,1))
+    test = as_vector((1,1,x[1]))
     func = local_project(test, problem.V_DG1)
     grad_func = Mat.T * func.vector().get_local()
     grad_func = grad_func.reshape((len(grad_func) // 6, 6))
-    print(grad_func[:,1])
+    print(grad_func[:,5])
     sys.exit()
 
     #test if matrix ok

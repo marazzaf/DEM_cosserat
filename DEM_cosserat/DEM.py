@@ -64,7 +64,7 @@ class DEMProblem:
 
         #DEM reconstructions
         self.DEM_to_CR = DEM_to_CR_matrix(self)
-        self.DEM_to_DG1 = DEM_to_DG1_matrix_bis(self)
+        self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
 
 def elastic_bilinear_form(problem, D, strain, stress):
