@@ -33,8 +33,7 @@ def DEM_to_DG1_matrix(problem):
         dof_position = dofmap_DG_1.cell_dofs(index_cell)
         #print(dof_position)
         #sys.exit()
-        #dof_position = dofmap_DG_1.cell_dofs(index_cell)
-
+        
         ##filling out the matrix to have the constant cell value
         #DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
         #for dof in dof_position:
@@ -50,9 +49,11 @@ def DEM_to_DG1_matrix(problem):
             #print(dof,pos)
             diff = pos - position_barycentre
             if dof % 9 < 3:
-                List = [1,2]
+                #List = [1,2]
+                List = [0,1]
             elif 2 < dof % 9 < 6:
-                List = [0,3]
+                List = [2,3]
+                #List = [0,3]
             elif 5 < dof % 9:
                 List = [4,5]
             for i,j in zip(List,range(problem.dim)):
