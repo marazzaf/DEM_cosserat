@@ -100,16 +100,18 @@ def test_reconstruction(mesh):
 
     #test DG1 reconstruction
     #func = Constant(['1.'] * problem.d )
-    func = as_vector((x[1],0,0))
+    func = as_vector((x[0],0,0))
     u,phi,tot = DEM_interpolation(func, problem)
     test_DG1 = Function(problem.V_DG1)
     reco_DG1 = problem.DEM_to_DG1 * tot
     test_DG1.vector().set_local(reco_DG1)
-    img = plot(test_DG1[0])
-    plt.colorbar(img)
-    plt.show()
+    #img = plot(test_DG1[2])
+    #plt.colorbar(img)
+    #plt.show()
     #assert round(max(reco_DG1), 14) == 1
     #assert round(min(reco_DG1), 14) == 1
+    #print(reco_DG1[reco_DG1 > 1])
+    #print(reco_DG1[reco_DG1 < 1])
     print(reco_DG1[reco_DG1 > L])
     print(reco_DG1[reco_DG1 < -L])
     assert round(max(reco_DG1), 14) == L
