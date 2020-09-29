@@ -10,8 +10,17 @@ import sys
 import matplotlib.pyplot as plt
 
 def DEM_to_DG1_matrix(problem):
-    matrice_resultat_1 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
+    #matrice_resultat_1 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
     matrice_resultat_2 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_grad)) #Empty matrix
+
+    #P0 part of DG1
+    vol = CellVolume(problem.mesh)
+    test_DG0 = TrialFunction(problem.V_DG)
+    trial_DG1 = TestFunction(problem.V_DG1)
+    mat = problem.d * inner(test_DG0, trial_DG1) / vol * dx
+    Mat = assemble(mat)
+    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+    matrice_resultat_1 = csr_matrix((val, col, row))
 
     #Useful in the following
     dofmap_DG_0 = problem.V_DG.dofmap()
@@ -26,10 +35,10 @@ def DEM_to_DG1_matrix(problem):
         #sys.exit()
         #dof_position = dofmap_DG_1.cell_dofs(index_cell)
 
-        #filling out the matrix to have the constant cell value
-        DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
-        for dof in dof_position:
-            matrice_resultat_1[dof, DG_0_dofs[dof % problem.d]] = 1.
+        ##filling out the matrix to have the constant cell value
+        #DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
+        #for dof in dof_position:
+        #    matrice_resultat_1[dof, DG_0_dofs[dof % problem.d]] = 1.
             
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
@@ -47,13 +56,13 @@ def DEM_to_DG1_matrix(problem):
             elif 5 < dof % 9:
                 List = [4,5]
             for i,j in zip(List,range(problem.dim)):
-                #print(i)
-                #print(tens_dof_position[i])
+                #print(i,tens_dof_position[i])
                 matrice_resultat_2[dof, tens_dof_position[i]] = diff[j]
                 #print(((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i)
                 #matrice_resultat_2[dof, tens_dof_position[((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i]] = diff[j]
         #sys.exit()
-    return matrice_resultat_1.tocsr() + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
+    #sys.exit()
+    return matrice_resultat_1 + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
     #return matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):
