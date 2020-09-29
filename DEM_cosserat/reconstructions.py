@@ -202,21 +202,33 @@ def DEM_to_DG1_matrix_bis(problem):
     Mat.eliminate_zeros()
     print(Mat.shape)
 
-    #test if matrix ok
+    #Other test
     x = SpatialCoordinate(problem.mesh)
-    aux_x = as_vector((x[0],x[1],0))
+    test = as_vector((x[0],1,1))
+    func = local_project(test, problem.V_DG1)
+    grad_func = Mat.T * func.vector().get_local()
+    grad_func = grad_func.reshape((len(grad_func) // 6, 6))
+    print(grad_func[:,1])
+    sys.exit()
+
+    #test if matrix ok
+    #aux_x = as_vector((1+x[0],1+x[1]),0))
     #pos_bary_cell = local_project(aux_x, problem.V_DG)
     #pos_bary_cell,truc = pos_bary_cell.split()
     #truc = aux_x - pos_bary_cell
-    aux = as_tensor((1,0,0,0,0,0))
+    aux = as_tensor((0,0,0,0,0,1))
+    #W = TensorFunctionSpace(problem.mesh, 'DG', 0)
     func = local_project(aux, problem.W).vector().get_local()
     #print(func.shape)
     res = Mat * func
+    print(res.shape)
     res_func = Function(problem.V_DG1)
     res_func.vector().set_local(res)
-    img = plot(res_func[0])
-    plt.colorbar(img)
-    plt.show()
+    #img = plot(res_func[0])
+    #plt.colorbar(img)
+    #plt.show()
+    res = res.reshape((len(res) // 3, 3))
+    print(res[-20:,:])
     #print(res.shape)
     #ref = local_project(aux_x, problem.V_DG1).vector().get_local()
     ##print(ref.shape)
