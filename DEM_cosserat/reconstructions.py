@@ -10,14 +10,13 @@ import sys
 import matplotlib.pyplot as plt
 
 def DEM_to_DG1_matrix(problem):
-    #matrice_resultat_1 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_DEM)) #Empty matrix
     matrice_resultat_2 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_grad)) #Empty matrix
 
     #P0 part of DG1
     vol = CellVolume(problem.mesh)
     test_DG0 = TrialFunction(problem.V_DG)
     trial_DG1 = TestFunction(problem.V_DG1)
-    mat = problem.d * inner(test_DG0, trial_DG1) / vol * dx
+    mat = (problem.dim+1) * inner(test_DG0, trial_DG1) / vol * dx
     Mat = assemble(mat)
     row,col,val = as_backend_type(Mat).mat().getValuesCSR()
     matrice_resultat_1 = csr_matrix((val, col, row))
@@ -32,39 +31,40 @@ def DEM_to_DG1_matrix(problem):
         index_cell = c.index()
         dof_position = dofmap_DG_1.cell_dofs(index_cell)
         #print(dof_position)
-        #sys.exit()
-        
-        ##filling out the matrix to have the constant cell value
-        #DG_0_dofs = dofmap_DG_0.cell_dofs(index_cell)
-        #for dof in dof_position:
-        #    matrice_resultat_1[dof, DG_0_dofs[dof % problem.d]] = 1.
             
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
         pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
         tens_dof_position = dofmap_tens_DG_0.cell_dofs(index_cell)
         #print(tens_dof_position)
-        #sys.exit()
         for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
-            #print(dof,pos)
             diff = pos - position_barycentre
-            if dof % 9 < 3:
-                #List = [1,2]
-                List = [0,1]
-            elif 2 < dof % 9 < 6:
-                List = [2,3]
-                #List = [0,3]
-            elif 5 < dof % 9:
-                List = [4,5]
+            if problem.dim == 2:
+                if dof % 9 < 3:
+                    List = [0,1]
+                elif 2 < dof % 9 < 6:
+                    List = [2,3]
+                elif 5 < dof % 9:
+                    List = [4,5]
+            elif problem.dim == 3:
+                if dof % 24 < 4:
+                    List = [0,1,2]
+                elif 3 < dof % 24 < 8:
+                    List = [3,4,5]
+                elif 7 < dof % 24 < 12:
+                    List = [6,7,8]
+                elif 11 < dof % 24 < 16:
+                    List = [9,10,11]
+                elif 15 < dof % 24 < 20:
+                    List = [12,13,14]
+                elif 19 < dof % 24:
+                    List = [15,16,17]
+                    
             for i,j in zip(List,range(problem.dim)):
-                #print(i,tens_dof_position[i])
                 matrice_resultat_2[dof, tens_dof_position[i]] = diff[j]
-                #print(((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i)
-                #matrice_resultat_2[dof, tens_dof_position[((dof // problem.d) * problem.dim) % (problem.d*problem.dim) + i]] = diff[j]
         #sys.exit()
-    #sys.exit()
+
     return matrice_resultat_1 + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
-    #return matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):
     """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
