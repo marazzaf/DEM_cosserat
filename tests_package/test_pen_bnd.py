@@ -16,7 +16,7 @@ d = 2 #2d problem
 nu = 0.3 # Poisson's ratio
 l = 0.2 # intrinsic length scale
 N = 0.8 # coupling parameter
-G = 1000
+G = 100
 
 #Parameters for D_Matrix
 a = 2*(1-nu)/(1-2*nu)
@@ -25,10 +25,10 @@ c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
 
 def D_Matrix(G, nu, l, N):
-    return as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
+    return G * as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
 
 def strain(v, eta):
-    gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
+    gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
     kappa = grad(eta)
     return gamma, kappa
 
@@ -87,7 +87,7 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
-assert abs(np.linalg.norm(u_h(0,L))) < abs(np.linalg.norm(u_h(0,0))) / 10
+#assert abs(np.linalg.norm(u_h(0,L))) < abs(np.linalg.norm(u_h(0,0))) / 10
 #assert abs(np.linalg.norm(phi_h(0,L))) < abs(np.linalg.norm(phi_h(0,0))) / 100
 print(u_h(0,L),phi_h(0,L))
 print(u_h(0,0),phi_h(0,0))
