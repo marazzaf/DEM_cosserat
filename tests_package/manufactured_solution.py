@@ -51,10 +51,12 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 #ds = Measure('ds')(subdomain_data=boundary_parts)
 
 x = SpatialCoordinate(problem.mesh)
-u_1 = Expression('0.5*(x[0]*x[0]+x[1]*x[1])', degree=2)
-#u_0 = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])','0'), degree=2)
-phi = Constant(0)
-bc = [[[0,1,2], [u_1,u_1,phi]]]
+#u_1 = Expression('0.5*(x[0]*x[0]+x[1]*x[1])', degree=2)
+#phi = Constant(0)
+#bc = [[[0,1,2], [u_1,u_1,phi]]]
+u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])','0'), degree=2)
+
+
 
 #compliance tensor
 D = D_Matrix(G, nu, l, N)
@@ -72,8 +74,21 @@ rhs = assemble_volume_load(t, problem)
 #
 ##Nitsche penalty bilinear form
 #A += lhs_nitsche_penalty(problem, bc)
-consistency = inner(dot(avg(sigma(du,alpha)),n('+')), jump(v))*dS + inner(jump(sigma(du,alpha),n), avg(v))*dS + inner(dot(sigma(du,alpha),n), v)*ds(2)
-pen_bnd = eta/h * inner(du,v) * (ds(2) + ds(1))  - eta/h * inner(u_R,v) * ds(2) - inner(dot(sigma(du,alpha),n),u_R) * ds(2)
+u,phi = TrialFunctions(problem.V_DG1)
+v,psi = TestFunctions(problem.V_DG1)
+vol = CellVolume(problem.mesh)
+hF = FacetArea(problem.mesh)
+n = FacetNormal(problem.mesh)
+h = vol / hF
+strains = strain(v,psi)
+stresses = stres(D,strains)
+bilinear = inner(dot(stress(D,alpha),n), v)*ds(2) + problem.pen_u/h * inner(u,v) * ds #Modify !
+Mat = assemble(bilinear)
+row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+Mat = csr_matrix((val, col, row))
+A += problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
+linear =  problem.pen_u/h * inner(u_D,v) * ds + inner(dot(sigma(u,alpha),n),u_D) * ds #Modify !
+rhs += problem.DEM_to_DG1.T * assemble(linear).get_local()
 
 
 #Penalty matrix
