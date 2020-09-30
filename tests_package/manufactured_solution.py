@@ -28,7 +28,7 @@ def D_Matrix(G, nu, l, N):
     return as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
 
 def strain(v, eta):
-    gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
+    gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
     kappa = grad(eta)
     return gamma, kappa
 
