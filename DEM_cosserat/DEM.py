@@ -90,58 +90,6 @@ def inner_penalty(problem):
     vol = CellVolume(problem.mesh)
     hF = FacetArea(problem.mesh)
     h_avg = (vol('+') + vol('-')) / (2.*hF('+'))
-    V = TestFunction(problem.V_CR)
-    pen = Constant((problem.penalty_u,problem.penalty_u,problem.penalty_phi))
-    U = interpolate(pen, problem.V_CR)
-    a_aux = inner(U('+'), V('+')) / h_avg * dS
-    mat = assemble(a_aux).get_local()
-    mat[mat < 0] = 0 #Putting real zero
-
-    #creating jump matrix
-    mat_jump_1 = dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM))
-    mat_jump_2 = dok_matrix((problem.nb_dof_CR,problem.nb_dof_grad))
-    for c1,c2 in problem.Graph.edges():
-        facet = problem.Graph[c1][c2]
-        num_global_face = facet['num']
-        num_global_dof_u = facet['dof_CR_u']
-        num_global_dof_phi = facet['dof_CR_phi']
-        num_global_dof = np.append(num_global_dof_u, num_global_dof_phi)
-        coeff_pen = np.sqrt(mat[num_global_dof])
-        coeff_pen_u = np.sqrt(mat[num_global_dof][0])
-        coeff_pen_phi = np.sqrt(mat[num_global_dof][-1])
-        pos_bary_facet = facet['barycentre']
-        
-        if not facet['bnd']: #Internal facet
-            #filling-out the DG 0 part of the jump
-            mat_jump_1[num_global_dof,len(num_global_dof) * c1 : (c1+1) * len(num_global_dof)] = np.diag(coeff_pen) # * np.eye(len(num_global_dof))
-            mat_jump_1[num_global_dof,len(num_global_dof) * c2 : (c2+1) * len(num_global_dof)] = -np.diag(coeff_pen) #* np.eye(len(num_global_dof))
-
-            for num_cell,sign in zip([c1, c2],[1., -1.]):
-                #filling-out the DG 1 part of the jump...
-                pos_bary_cell = problem.Graph.nodes[num_cell]['barycentre']
-                diff = pos_bary_facet - pos_bary_cell
-                pen_diff_u = coeff_pen_u*diff
-                pen_diff_phi = coeff_pen_phi*diff
-                tens_dof_position = dofmap_tens_DG_0.cell_dofs(num_cell)
-                for num,dof_CR in enumerate(num_global_dof):
-                    for i in range(problem.dim):
-                        if num < problem.dim:
-                            mat_jump_2[dof_CR,tens_dof_position[num*problem.dim + i]] = sign*pen_diff_u[i]
-                        else:
-                            mat_jump_2[dof_CR,tens_dof_position[num*problem.dim + i]] = sign*pen_diff_phi[i]
-
-            
-    mat_jump = mat_jump_1.tocsr() + mat_jump_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
-    return mat_jump.T * mat_jump
-
-def inner_penalty_bis(problem):
-    """Creates the penalty matrix on inner facets to stabilize the DEM."""
-    dofmap_tens_DG_0 = problem.W.dofmap()
-
-    #assembling penalty factor
-    vol = CellVolume(problem.mesh)
-    hF = FacetArea(problem.mesh)
-    h_avg = (vol('+') + vol('-')) / (2.*hF('+'))
 
     #Writing penalty bilinear form
     u,phi = TrialFunctions(problem.V_DG1)
@@ -154,3 +102,23 @@ def inner_penalty_bis(problem):
     A = csr_matrix((val, col, row))
 
     return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
+
+
+#Add possibility to impose only some components of the vector...
+def lhs_nitsche_penalty(problem):
+    u,phi = TrialFunctions(problem.V_DG1)
+    v,psi = TestFunctions(problem.V_DG1)
+    vol = CellVolume(problem.mesh)
+    hF = FacetArea(problem.mesh)
+    n = FacetNormal(problem.mesh)
+    h = vol / hF
+    strains = strain(u,phi)
+    stress,couple_stress = stresses(D,strains)
+    if problem.dim == 2:
+        stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
+    #Bilinear
+    bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), psi)*ds + inner(dot(stress,n), v) * ds
+    Mat = assemble(bilinear)
+    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+    Mat = csr_matrix((val, col, row))
+    return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1

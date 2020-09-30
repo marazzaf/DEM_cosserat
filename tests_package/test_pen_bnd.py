@@ -55,14 +55,13 @@ D = D_Matrix(G, nu, l, N)
 A = elastic_bilinear_form(problem, D, strain, stresses)
 
 #Penalty matrix
-A += inner_penalty_bis(problem)
+A += inner_penalty(problem)
 
 #rhs
 t = Constant((-(a+c),-(a+c),0))
 rhs = assemble_volume_load(t, problem)
 
 ##Nitsche penalty bilinear form
-#A += lhs_nitsche_penalty(problem, bc)
 u,phi = TrialFunctions(problem.V_DG1)
 v,psi = TestFunctions(problem.V_DG1)
 vol = CellVolume(problem.mesh)
