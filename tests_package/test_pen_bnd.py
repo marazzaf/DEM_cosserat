@@ -16,7 +16,7 @@ d = 2 #2d problem
 nu = 0.3 # Poisson's ratio
 l = 0.2 # intrinsic length scale
 N = 0.8 # coupling parameter
-G = 1
+G = 1000
 
 #Parameters for D_Matrix
 a = 2*(1-nu)/(1-2*nu)
@@ -48,15 +48,6 @@ problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term?
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
-#ds = Measure('ds')(subdomain_data=boundary_parts)
-
-x = SpatialCoordinate(problem.mesh)
-#u_1 = Expression('0.5*(x[0]*x[0]+x[1]*x[1])', degree=2)
-#phi = Constant(0)
-#bc = [[[0,1,2], [u_1,u_1,phi]]]
-u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degree=2)
-phi_D = Constant(0.)
-
 #compliance tensor
 D = D_Matrix(G, nu, l, N)
 
@@ -64,16 +55,12 @@ D = D_Matrix(G, nu, l, N)
 A = elastic_bilinear_form(problem, D, strain, stresses)
 
 #Penalty matrix
-#A += inner_penalty(problem)
 A += inner_penalty_bis(problem)
 
 #rhs
 t = Constant((-(a+c),-(a+c),0))
 rhs = assemble_volume_load(t, problem)
 
-##Imposing weakly the BC!
-#rhs += rhs_nitsche_penalty(problem, bc, D, strain, stresses)
-#
 ##Nitsche penalty bilinear form
 #A += lhs_nitsche_penalty(problem, bc)
 u,phi = TrialFunctions(problem.V_DG1)
@@ -90,14 +77,9 @@ bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner
 Mat = assemble(bilinear)
 row,col,val = as_backend_type(Mat).mat().getValuesCSR()
 Mat = csr_matrix((val, col, row))
+#print(Mat.nonzero())
+#sys.exit()
 A += problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
-#Linear
-strains = strain(v,psi)
-stress,couple_stress = stresses(D,strains)
-stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
-linear =  problem.penalty_u/h * inner(u_D,v) * ds + inner(dot(stress,n),u_D) * ds
-#rhs += problem.DEM_to_DG1.T * assemble(linear).get_local()
-#rhs = problem.DEM_to_DG1.T * assemble(linear).get_local()
 
 #Solving linear problem
 v = spsolve(A,rhs)
@@ -105,62 +87,18 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
+assert abs(np.linalg.norm(u_h(0,L))) < abs(np.linalg.norm(u_h(0,0))) / 10
+#assert abs(np.linalg.norm(phi_h(0,L))) < abs(np.linalg.norm(phi_h(0,0))) / 100
 print(u_h(0,L),phi_h(0,L))
-sys.exit()
+print(u_h(0,0),phi_h(0,0))
 
-#fig = plot(u_h[0])
-#plt.colorbar(fig)
-#plt.savefig('u_x_15.pdf')
-#plt.show()
-#fig = plot(u_h[1])
-#plt.colorbar(fig)
-#plt.savefig('u_y_15.pdf')
-#plt.show()
-#sys.exit()
 
-#U = VectorFunctionSpace(problem.mesh, 'DG', 1)
-#u = interpolate(u_D, U)[1]
-#fig = plot(u)
-#plt.colorbar(fig)
-#plt.savefig('ref_u_y_15.pdf')
-#plt.show()
-#sys.exit()
-
+fig = plot(u_h[0])
+plt.colorbar(fig)
+plt.savefig('u_x_15.pdf')
+plt.show()
 fig = plot(u_h[1])
 plt.colorbar(fig)
 plt.savefig('u_y_15.pdf')
 plt.show()
-fig = plot(psi_h)
-plt.colorbar(fig)
-plt.savefig('phi_15.pdf')
-plt.show()
 sys.exit()
-
-# Stress
-epsilon = strain(u_h, psi_h)
-sigma = D*epsilon
-sigma_yy = project(sigma[1])
-#Other version
-#epsilon = strain_bis(u_h, psi_h)
-#sigma = stress(epsilon)[0]
-#sigma_yy = project(sigma[1])
-
-error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-
-elements_size.append(hm)
-SCF_0.append(sigma_yy(10.0, 1e-6))
-errors.append(error)
-        
-print("Analytical SCF: %.5e" % SCF)
-print(elements_size)
-print(errors)
-print(SCF_0)
-
-
-file = File("sigma.pvd")
-file << sigma_yy
-
-plt.plot(elements_size, errors, "-*", linewidth=2)
-plt.xlabel("elements size")
-plt.ylabel("error")
-plt.show()
