@@ -25,7 +25,7 @@ c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
 
 def D_Matrix(G, nu, l, N):
-    return G * as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
+    return G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]])
 
 def strain(v, eta):
     gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
@@ -40,11 +40,11 @@ def stresses(D,strains):
     
 # Mesh
 L = 0.5
-nb_elt = 3
+nb_elt = 5
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term?
+problem = DEMProblem(mesh, 2*G, 2*G) #sure about second penalty term? #2*G*l
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
@@ -71,9 +71,9 @@ n = FacetNormal(problem.mesh)
 h = vol / hF
 strains = strain(u,phi)
 stress,couple_stress = stresses(D,strains)
-stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
+stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
 #Bilinear
-bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(stress,n), v)*ds + inner(dot(couple_stress,n), psi)*ds
+bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), psi)*ds + inner(dot(stress,n), v) * ds
 Mat = assemble(bilinear)
 row,col,val = as_backend_type(Mat).mat().getValuesCSR()
 Mat = csr_matrix((val, col, row))
