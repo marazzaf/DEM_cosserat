@@ -91,100 +91,103 @@ def stress(Tuple):
     return sigma,mu
     
 
-for hx in h :
+#for hx in h :
     
-    # Mesh
-    geometry = Rectangle(Point(0,0),Point(plate, plate))-Circle(Point(0,0), R, hx)
-    mesh = generate_mesh(geometry, hx)
-    hm = mesh.hmax()
-    
-    U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
-    S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
-    V = FunctionSpace(mesh, MixedElement(U,S))
-    U,S = V.split()
-    U_1, U_2 = U.sub(0), U.sub(1)
-    
-    # Boundary conditions
-    class BotBoundary(SubDomain):
-        def inside(self, x, on_boundary):
-            tol = 1e-6
-            return on_boundary and abs(x[1]) < tol
-        
-    class LeftBoundary(SubDomain):
-        def inside(self, x, on_boundary):
-            tol = 1e-6
-            return on_boundary and abs(x[0]) < tol
+    ## Mesh
+    #geometry = Rectangle(Point(0,0),Point(plate, plate))-Circle(Point(0,0), R, hx)
+    #mesh = generate_mesh(geometry, hx)
+mesh = Mesh()
+with XDMFFile("hole_plate.xdmf") as infile:
+    infile.read(mesh)
+hm = mesh.hmax()
 
-    class TopBoundary(SubDomain):
-        def inside(self,x,on_boundary):
+U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
+S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
+V = FunctionSpace(mesh, MixedElement(U,S))
+U,S = V.split()
+U_1, U_2 = U.sub(0), U.sub(1)
+
+# Boundary conditions
+class BotBoundary(SubDomain):
+    def inside(self, x, on_boundary):
+        tol = 1e-6
+        return on_boundary and abs(x[1]) < tol
+
+class LeftBoundary(SubDomain):
+    def inside(self, x, on_boundary):
+        tol = 1e-6
+        return on_boundary and abs(x[0]) < tol
+
+class TopBoundary(SubDomain):
+    def inside(self,x,on_boundary):
             tol = 1e-6
             return on_boundary and abs(x[1] - plate) < tol
 
-    t = Constant((0.0, T))
-    boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-    boundary_parts.set_all(0)
-        
-    bot_boundary = BotBoundary()
-    left_boundary = LeftBoundary()
-    top_boundary = TopBoundary()
-    top_boundary.mark(boundary_parts, 1)
-        
-    ds = Measure('ds')(subdomain_data=boundary_parts) #Measure("ds")
+t = Constant((0.0, T))
+boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+boundary_parts.set_all(0)
 
-    u_0 = Constant(0.0)
-    left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
-    bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
-    left_S = DirichletBC(S, u_0, left_boundary)
-    bot_S = DirichletBC(S, u_0, bot_boundary)
+bot_boundary = BotBoundary()
+left_boundary = LeftBoundary()
+top_boundary = TopBoundary()
+top_boundary.mark(boundary_parts, 1)
 
-    bc = [left_U_1, bot_U_2, left_S, bot_S]
+ds = Measure('ds')(subdomain_data=boundary_parts) #Measure("ds")
 
-    # Variational problem
-    u, psi = TrialFunctions(V)
-    v, eta = TestFunctions(V)
+u_0 = Constant(0.0)
+left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
+bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
+left_S = DirichletBC(S, u_0, left_boundary)
+bot_S = DirichletBC(S, u_0, bot_boundary)
 
-    D = D_Matrix(G, nu, l, N)
+bc = [left_U_1, bot_U_2, left_S, bot_S]
 
-    ##test forme varia... Fonctionne!
-    #truc = strain_bis(v,eta)
-    #ttruc = strain_bis(u, psi)
-    #ttruc = stress(ttruc)
-    #a = (inner(truc[0],ttruc[0]) + inner(truc[1],ttruc[1])) * dx
+# Variational problem
+u, psi = TrialFunctions(V)
+v, eta = TestFunctions(V)
+
+D = D_Matrix(G, nu, l, N)
     
-    a = inner(strain(v, eta), D*strain(u, psi))*dx
-    L = inner(t, v)*ds(1)
+a = inner(strain(v, eta), D*strain(u, psi))*dx
+L = inner(t, v)*ds(1)
 
-    U_h = Function(V)
-    problem = LinearVariationalProblem(a, L, U_h, bc)
-    solver = LinearVariationalSolver(problem)
-    solver.solve()
-    u_h, psi_h = U_h.split()
+U_h = Function(V)
+problem = LinearVariationalProblem(a, L, U_h, bc)
+solver = LinearVariationalSolver(problem)
+solver.solve()
+u_h, psi_h = U_h.split()
 
-    plot(mesh)
-    plt.show()
-    sys.exit()
-    #plot(u_h)
-    #plt.savefig('ref_u_15.pdf')
-    #plt.show()
-    #plot(psi_h)
-    #plt.savefig('ref_phi_15.pdf')
-    #plt.show()
-    #sys.exit()
+#plot(mesh)
+#plt.show()
+#sys.exit()
+img = plot(u_h[0])
+plt.colorbar(img)
+plt.savefig('ref_u_x_15.pdf')
+plt.show()
+img = plot(u_h[1])
+plt.colorbar(img)
+plt.savefig('ref_u_y_15.pdf')
+plt.show()
+img = plot(psi_h)
+plt.colorbar(img)
+plt.savefig('ref_phi_15.pdf')
+plt.show()
+sys.exit()
 
-    # Stress
-    epsilon = strain(u_h, psi_h)
-    sigma = D*epsilon
-    sigma_yy = project(sigma[1])
-    #Other version
-    #epsilon = strain_bis(u_h, psi_h)
-    #sigma = stress(epsilon)[0]
-    #sigma_yy = project(sigma[1])
+# Stress
+epsilon = strain(u_h, psi_h)
+sigma = D*epsilon
+sigma_yy = project(sigma[1])
+#Other version
+#epsilon = strain_bis(u_h, psi_h)
+#sigma = stress(epsilon)[0]
+#sigma_yy = project(sigma[1])
 
-    error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
+error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
 
-    elements_size.append(hm)
-    SCF_0.append(sigma_yy(10.0, 1e-6))
-    errors.append(error)
+elements_size.append(hm)
+SCF_0.append(sigma_yy(10.0, 1e-6))
+errors.append(error)
         
 print("Analytical SCF: %.5e" % SCF)
 print(elements_size)
@@ -195,7 +198,7 @@ print(SCF_0)
 file = File("sigma.pvd")
 file << sigma_yy
 
-plt.plot(elements_size, errors, "-*", linewidth=2)
-plt.xlabel("elements size")
-plt.ylabel("error")
-plt.show()
+#plt.plot(elements_size, errors, "-*", linewidth=2)
+#plt.xlabel("elements size")
+#plt.ylabel("error")
+#plt.show()
