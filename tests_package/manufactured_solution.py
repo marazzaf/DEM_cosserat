@@ -32,7 +32,7 @@ def strain(v, eta):
     kappa = grad(eta)
     return gamma, kappa
 
-def stress(D,strains):
+def stresses(D,strains):
     gamma,kappa = strains
     sigma = dot(D, gamma)
     mu = 4*G*l*l * kappa
@@ -54,7 +54,8 @@ x = SpatialCoordinate(problem.mesh)
 #u_1 = Expression('0.5*(x[0]*x[0]+x[1]*x[1])', degree=2)
 #phi = Constant(0)
 #bc = [[[0,1,2], [u_1,u_1,phi]]]
-u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])','0'), degree=2)
+u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degree=2)
+phi_D = Constant(0.)
 
 
 
@@ -62,7 +63,7 @@ u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])','0'), 
 D = D_Matrix(G, nu, l, N)
 
 # Variational problem
-A = elastic_bilinear_form(problem, D, strain, stress)
+A = elastic_bilinear_form(problem, D, strain, stresses)
 
 #rhs
 
@@ -70,7 +71,7 @@ t = Constant((-(a+c),-(a+c),0))
 rhs = assemble_volume_load(t, problem)
 
 ##Imposing weakly the BC!
-#rhs += rhs_nitsche_penalty(problem, bc, D, strain, stress)
+#rhs += rhs_nitsche_penalty(problem, bc, D, strain, stresses)
 #
 ##Nitsche penalty bilinear form
 #A += lhs_nitsche_penalty(problem, bc)
@@ -80,15 +81,22 @@ vol = CellVolume(problem.mesh)
 hF = FacetArea(problem.mesh)
 n = FacetNormal(problem.mesh)
 h = vol / hF
-strains = strain(v,psi)
-stresses = stres(D,strains)
-bilinear = inner(dot(stress(D,alpha),n), v)*ds(2) + problem.pen_u/h * inner(u,v) * ds #Modify !
+strains = strain(u,phi)
+stress,couple_stress = stresses(D,strains)
+stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
+#Bilinear
+bilinear = problem.penalty_u/h * inner(u,v) * ds + inner(dot(stress,n), v)*ds
 Mat = assemble(bilinear)
 row,col,val = as_backend_type(Mat).mat().getValuesCSR()
 Mat = csr_matrix((val, col, row))
 A += problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
-linear =  problem.pen_u/h * inner(u_D,v) * ds + inner(dot(sigma(u,alpha),n),u_D) * ds #Modify !
-rhs += problem.DEM_to_DG1.T * assemble(linear).get_local()
+#Linear
+strains = strain(v,psi)
+stress,couple_stress = stresses(D,strains)
+stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
+linear =  problem.penalty_u/h * inner(u_D,v) * ds + inner(dot(stress,n),u_D) * ds
+#rhs += problem.DEM_to_DG1.T * assemble(linear).get_local()
+rhs = problem.DEM_to_DG1.T * assemble(linear).get_local()
 
 
 #Penalty matrix
@@ -101,16 +109,16 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, psi_h = v_h.split()
 
-fig = plot(u_h[0])
+fig = plot(u_h[1])
 plt.colorbar(fig)
-plt.savefig('u_x_15.pdf')
+plt.savefig('u_y_15.pdf')
 plt.show()
 
-U = FunctionSpace(problem.mesh, 'DG', 1)
-u = interpolate(u_1, U)
+U = VectorFunctionSpace(problem.mesh, 'DG', 1)
+u = interpolate(u_D, U)[1]
 fig = plot(u)
 plt.colorbar(fig)
-plt.savefig('ref_u_x_15.pdf')
+plt.savefig('ref_u_y_15.pdf')
 plt.show()
 sys.exit()
 
