@@ -67,11 +67,14 @@ A = elastic_bilinear_form(problem, D, strain, stress)
 t = Constant((-(a+c),-(a+c),0))
 rhs = assemble_volume_load(t, problem)
 
-#Imposing weakly the BC!
-rhs += rhs_nitsche_penalty(problem, bc, D, strain, stress)
+##Imposing weakly the BC!
+#rhs += rhs_nitsche_penalty(problem, bc, D, strain, stress)
+#
+##Nitsche penalty bilinear form
+#A += lhs_nitsche_penalty(problem, bc)
+consistency = inner(dot(avg(sigma(du,alpha)),n('+')), jump(v))*dS + inner(jump(sigma(du,alpha),n), avg(v))*dS + inner(dot(sigma(du,alpha),n), v)*ds(2)
+pen_bnd = eta/h * inner(du,v) * (ds(2) + ds(1))  - eta/h * inner(u_R,v) * ds(2) - inner(dot(sigma(du,alpha),n),u_R) * ds(2)
 
-#Nitsche penalty bilinear form
-A += lhs_nitsche_penalty(problem, bc)
 
 #Penalty matrix
 #A += inner_penalty(problem)
@@ -79,14 +82,23 @@ A += inner_penalty_bis(problem)
 
 #Solving linear problem
 v = spsolve(A,rhs)
-v_h = Function(problem.V_DG)
-v_h.vector().set_local(v)
+v_h = Function(problem.V_DG1)
+v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, psi_h = v_h.split()
 
 fig = plot(u_h[0])
 plt.colorbar(fig)
 plt.savefig('u_x_15.pdf')
 plt.show()
+
+U = FunctionSpace(problem.mesh, 'DG', 1)
+u = interpolate(u_1, U)
+fig = plot(u)
+plt.colorbar(fig)
+plt.savefig('ref_u_x_15.pdf')
+plt.show()
+sys.exit()
+
 fig = plot(u_h[1])
 plt.colorbar(fig)
 plt.savefig('u_y_15.pdf')

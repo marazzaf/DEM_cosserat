@@ -87,10 +87,7 @@ def rhs_nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List mu
             form_pen = problem.penalty_u * hF / vol * imposed_value[i] * u[j] * dds #use other penalty too?
             list_L.append(form_pen)
             if j < problem.dim: #bnd stress
-                #if len(BC) == 3:
                 form_aux = imposed_value[i] * dot(stress,n)[j] * dds
-                #else:
-                #    form_aux = imposed_value[i] * dot(stress,n)[j] * ds
             elif j > problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_aux = imposed_value[i] * dot(couple_stress,n)[j]  * dds
