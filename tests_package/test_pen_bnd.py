@@ -44,7 +44,7 @@ nb_elt = 5
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G, 2*G) #sure about second penalty term? #2*G*l
+problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term? #2*G*l
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
