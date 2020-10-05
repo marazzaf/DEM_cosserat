@@ -66,6 +66,9 @@ class DEMProblem:
         self.DEM_to_CR = DEM_to_CR_matrix(self)
         self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
+    #Importing useful functions
+    from DEM_cosserat.miscellaneous import assemble_volume_load
+
 
 def elastic_bilinear_form(problem, strain, stress):
     u_CR,psi_CR = TrialFunctions(problem.V_CR)

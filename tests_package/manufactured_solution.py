@@ -40,7 +40,7 @@ def stresses(D,strains):
     
 # Mesh
 L = 0.5
-nb_elt = 3
+nb_elt = 15
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -51,9 +51,6 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 #ds = Measure('ds')(subdomain_data=boundary_parts)
 
 x = SpatialCoordinate(problem.mesh)
-#u_1 = Expression('0.5*(x[0]*x[0]+x[1]*x[1])', degree=2)
-#phi = Constant(0)
-#bc = [[[0,1,2], [u_1,u_1,phi]]]
 u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degree=2)
 phi_D = Constant(0.)
 
@@ -68,10 +65,12 @@ A += inner_penalty(problem)
 
 #rhs
 t = Constant((-(a+c),-(a+c),0))
-rhs = assemble_volume_load(t, problem)
+#t = Constant((0,0,0))
+rhs = problem.assemble_volume_load(t)
 
 #Listing Dirichlet BC
-bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
+#bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
+bc = [[0,Constant(0)], [1, Constant(0)], [2, Constant(0)]]
 
 #Nitsche penalty rhs
 rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
@@ -79,41 +78,43 @@ rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
 #Nitsche penalty bilinear form
 A += lhs_nitsche_penalty(problem, bc)
 
-
 #Solving linear problem
 v = spsolve(A,rhs)
 v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
-print(u_h(0,L),phi_h(0,L))
-sys.exit()
-
-#fig = plot(u_h[0])
-#plt.colorbar(fig)
-#plt.savefig('u_x_15.pdf')
-#plt.show()
-#fig = plot(u_h[1])
-#plt.colorbar(fig)
-#plt.savefig('u_y_15.pdf')
-#plt.show()
-#sys.exit()
-
+#print(u_h(0,L),phi_h(0,L))
 #U = VectorFunctionSpace(problem.mesh, 'DG', 1)
-#u = interpolate(u_D, U)[1]
-#fig = plot(u)
-#plt.colorbar(fig)
-#plt.savefig('ref_u_y_15.pdf')
-#plt.show()
+#u = interpolate(u_D, U)
+#print(u(0,L))
 #sys.exit()
 
+fig = plot(u_h[0])
+plt.colorbar(fig)
+plt.savefig('u_x_15.pdf')
+plt.show()
 fig = plot(u_h[1])
 plt.colorbar(fig)
 plt.savefig('u_y_15.pdf')
 plt.show()
-fig = plot(psi_h)
+fig = plot(phi_h)
 plt.colorbar(fig)
 plt.savefig('phi_15.pdf')
+plt.show()
+sys.exit()
+
+U = VectorFunctionSpace(problem.mesh, 'DG', 1)
+u = interpolate(u_D, U)[1]
+fig = plot(u)
+plt.colorbar(fig)
+plt.savefig('ref_u_y_15.pdf')
+plt.show()
+sys.exit()
+
+fig = plot(u_h[1])
+plt.colorbar(fig)
+plt.savefig('u_y_15.pdf')
 plt.show()
 sys.exit()
 

@@ -32,8 +32,8 @@ def DEM_interpolation(func, problem):
     else:
         ValueError('Problem with dimension')
 
-def assemble_volume_load(load, problem): #to be modified to include couple volume load
-    v = TestFunction(problem.V_DG)
+def assemble_volume_load(self, load):
+    v = TestFunction(self.V_DG)
     form = inner(load, v) * dx
     return assemble(form).get_local()
 
@@ -86,63 +86,25 @@ def rhs_nitsche_penalty(problem, strain, stress, list_Dirichlet_BC): #List must 
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
             form_pen = problem.penalty_u / h * imposed_value * v[component] * dds
-            form_pen += imposed_value * dot(stress,n)[component] * dds
+            #form_pen += imposed_value * dot(stress,n)[component] * dds
         elif component >= problem.dim: #bnd couple stress
             if problem.dim == 3:
                 form_pen = problem.penalty_phi / h * imposed_value * psi[component-problem.dim] * dds
-                form_pen += imposed_value * dot(couple_stress,n)[component-problem.dim] * dds
+                #form_pen += imposed_value * dot(couple_stress,n)[component-problem.dim] * dds
             elif problem.dim == 2:
                 form_pen = problem.penalty_phi / h * imposed_value * psi * dds
-                form_pen += imposed_value * dot(couple_stress,n) * dds
+                #form_pen += imposed_value * dot(couple_stress,n) * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = assemble(L).get_local()
     
     return problem.DEM_to_CR.T * L
 
-#def lhs_nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
-#    #For lhs penalty term computation
-#    vol = CellVolume(problem.mesh)
-#    hF = FacetArea(problem.mesh)
-#
-#    #For the rest
-#    u = TestFunction(problem.V_CR)
-#    v = TrialFunction(problem.V_CR)
-#    
-#    list_L = []
-#    #L = csr_matrix((problem.nb_dof_CR,problem.nb_dof_CR))
-#    for BC in list_Dirichlet_BC:
-#        assert len(BC) == 2 or len(BC) == 3    
-#        if len(BC) == 3:
-#            domain = BC[2]
-#            dds = Measure('ds')(domain)
-#        else:
-#            dds = Measure('ds')
-#        components = BC[0]
-#        for i in components:
-#            form = problem.penalty_u * hF / vol * v[i] * u[i] * dds
-#            list_L.append(form)
-#Assemble Matrix
-#    L = sum(l for l in list_L)
-#    L = assemble(L)
-#    row,col,val = as_backend_type(L).mat().getValuesCSR()
-#    L = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
-#    
-#
-#    return problem.DEM_to_CR.T * L * problem.DEM_to_CR
-
-#Add possibility to impose only some components of the vector...
 def lhs_nitsche_penalty(problem, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     u,phi = TrialFunctions(problem.V_DG1)
     v,psi = TestFunctions(problem.V_DG1)
     n = FacetNormal(problem.mesh)
     h = CellDiameter(problem.mesh)
-    #strains = strain(u,phi)
-    #stress,couple_stress = stresses(problem.D,strains)
-    #if problem.dim == 3:
-    #    stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
-    #elif problem.dim == 2:
-    #    stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
 
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
@@ -163,12 +125,10 @@ def lhs_nitsche_penalty(problem, list_Dirichlet_BC=None): #List must contain lis
                 #form_pen += u[component]  * dot(stress,n)[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
-                    form_pen = problem.penalty_phi / h * phi[component] * psi[component-problem.dim] * dds
-                    #form_pen += imposed_value * dot(couple_stress,n)[component-problem.dim] * dds
+                    form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds
                 elif problem.dim == 2:
                     form_pen = problem.penalty_phi / h * phi * psi * dds
-                    #form_pen += imposed_value * dot(couple_stress,n) * dds
-            #Stroring new term
+            #Storing new term
             list_lhs.append(form_pen)
                 
         #Summing all contributions        
