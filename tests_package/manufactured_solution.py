@@ -61,7 +61,7 @@ phi_D = Constant(0.)
 problem.D = D_Matrix(G, nu, l, N)
 
 # Variational problem
-A = elastic_bilinear_form(problem, D, strain, stresses)
+A = elastic_bilinear_form(problem, strain, stresses)
 
 #Penalty matrix
 A += inner_penalty(problem)
@@ -71,10 +71,10 @@ t = Constant((-(a+c),-(a+c),0))
 rhs = assemble_volume_load(t, problem)
 
 #Listing Dirichlet BC
-bc = []
+bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
 
 #Nitsche penalty rhs
-#rhs += rhs_nitsche_penalty(problem, strain, stresses)
+rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
 
 ##Linear
 #strains = strain(v,psi)

@@ -55,23 +55,23 @@ def assemble_boundary_load(problem, domain=None, subdomain_data=None, bnd_stress
     return problem.DEM_to_CR.T * L.get_local()
 
 
-def rhs_nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List must contain lists with three parameters: list of components, function (list of components), num_domain
+def rhs_nitsche_penalty(problem, strain, stress, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
     #For rhs penalty term computation
-    vol = CellVolume(problem.mesh)
-    hF = FacetArea(problem.mesh)
+    h = CellDiameter(problem.mesh)
     
     #For consistency term
     n = FacetNormal(problem.mesh)
 
     #For the rest
-    u = TestFunction(problem.V_CR)
-    v,eta = TestFunctions(problem.V_CR)
-    strains = strain(v,eta)
-    stress,couple_stress = stress(D,strains)
-    stress = as_tensor([[stress[0],stress[2]],[stress[3],stress[1]]])
+    v,psi = TestFunctions(problem.V_CR) #Use TrialFunctions instead?
+    strains = strain(v,psi)
+    stress,couple_stress = stress(problem.D,strains)
+    if problem.dim == 3:
+        stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
+    elif problem.dim == 2:
+        stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
     #Que faire en 3d pour le couple stress ?
     
-    #L = np.zeros(problem.V_CR.dim())
     list_L = []
     for BC in list_Dirichlet_BC:
         assert len(BC) == 2 or len(BC) == 3
@@ -81,20 +81,20 @@ def rhs_nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List mu
         else:
             dds = Measure('ds')
         imposed_value = BC[1]
-        components = BC[0]
+        component = BC[0]
  
-        for i,j in enumerate(components):
-            form_pen = problem.penalty_u * hF / vol * imposed_value[i] * u[j] * dds #use other penalty too?
-            list_L.append(form_pen)
-            if j < problem.dim: #bnd stress
-                form_aux = imposed_value[i] * dot(stress,n)[j] * dds
-            elif j > problem.dim: #bnd couple stress
-                if problem.dim == 3:
-                    form_aux = imposed_value[i] * dot(couple_stress,n)[j]  * dds
-                elif problem.dim == 2:
-                    form_aux = imposed_value[i] * dot(couple_stress,n)  * dds
-            #L += assemble(form_aux).get_local()
-            list_L.append(form_aux)
+        #for i,j in enumerate(components):
+        if component < problem.dim: #bnd stress
+            form_pen = problem.penalty_u / h * imposed_value * v[component] * dds
+            form_pen += imposed_value * dot(stress,n)[component] * dds
+        elif component >= problem.dim: #bnd couple stress
+            if problem.dim == 3:
+                form_pen = problem.penalty_phi / h * imposed_value * psi[component-problem.dim] * dds
+                form_pen += imposed_value * dot(couple_stress,n)[component-problem.dim] * dds
+            elif problem.dim == 2:
+                form_pen = problem.penalty_phi / h * imposed_value * psi * dds
+                form_pen += imposed_value * dot(couple_stress,n) * dds
+        list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = assemble(L).get_local()
     
@@ -130,6 +130,30 @@ def rhs_nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List mu
 #    L = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
 #
 #    return problem.DEM_to_CR.T * L * problem.DEM_to_CR
+
+#Add possibility to impose only some components of the vector...
+def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
+    u,phi = TrialFunctions(problem.V_DG1)
+    v,psi = TestFunctions(problem.V_DG1)
+    n = FacetNormal(problem.mesh)
+    h = CellDiameter(problem.mesh)
+    strains = strain(u,phi)
+    stress,couple_stress = stresses(problem.D,strains)
+    if problem.dim == 3:
+        stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
+    elif problem.dim == 2:
+        stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
+
+    #Bilinear
+    if list_Dirichlet_BC == None:
+        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), psi)*ds + inner(dot(stress,n), v) * ds
+        Mat = assemble(bilinear)
+        row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+        Mat = csr_matrix((val, col, row))
+    elif len(list_Dirichlet_BC) >= 2:
+        components = BC[0]
+        
+    return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
 
 def gradient_matrix(problem):
     vol = CellVolume(problem.mesh)

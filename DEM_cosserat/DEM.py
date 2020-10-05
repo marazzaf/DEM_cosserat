@@ -103,30 +103,4 @@ def inner_penalty(problem):
 
     return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
 
-
-#Add possibility to impose only some components of the vector...
-def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
-    u,phi = TrialFunctions(problem.V_DG1)
-    v,psi = TestFunctions(problem.V_DG1)
-    vol = CellVolume(problem.mesh)
-    hF = FacetArea(problem.mesh)
-    n = FacetNormal(problem.mesh)
-    h = vol / hF
-    strains = strain(u,phi)
-    stress,couple_stress = stresses(problem.D,strains)
-    if problem.dim == 3:
-        stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
-    elif problem.dim == 2:
-        stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
-
-    #Bilinear
-    if list_Dirichlet_BC == None:
-        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), psi)*ds + inner(dot(stress,n), v) * ds
-        Mat = assemble(bilinear)
-        row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-        Mat = csr_matrix((val, col, row))
-    elif len(list_Dirichlet_BC) >= 2:
-        components = BC[0]
-        
-    return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
     
