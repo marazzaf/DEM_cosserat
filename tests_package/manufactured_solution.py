@@ -58,46 +58,35 @@ u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degr
 phi_D = Constant(0.)
 
 #compliance tensor
-D = D_Matrix(G, nu, l, N)
+problem.D = D_Matrix(G, nu, l, N)
 
 # Variational problem
 A = elastic_bilinear_form(problem, D, strain, stresses)
 
 #Penalty matrix
-#A += inner_penalty(problem)
-A += inner_penalty_bis(problem)
+A += inner_penalty(problem)
 
 #rhs
 t = Constant((-(a+c),-(a+c),0))
 rhs = assemble_volume_load(t, problem)
 
-##Imposing weakly the BC!
-#rhs += rhs_nitsche_penalty(problem, bc, D, strain, stresses)
-#
-##Nitsche penalty bilinear form
-#A += lhs_nitsche_penalty(problem, bc)
-u,phi = TrialFunctions(problem.V_DG1)
-v,psi = TestFunctions(problem.V_DG1)
-vol = CellVolume(problem.mesh)
-hF = FacetArea(problem.mesh)
-n = FacetNormal(problem.mesh)
-h = vol / hF
-strains = strain(u,phi)
-stress,couple_stress = stresses(D,strains)
-stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
-#Bilinear
-bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(stress,n), v)*ds + inner(dot(couple_stress,n), psi)*ds
-Mat = assemble(bilinear)
-row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-Mat = csr_matrix((val, col, row))
-A += problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
-#Linear
-strains = strain(v,psi)
-stress,couple_stress = stresses(D,strains)
-stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
-linear =  problem.penalty_u/h * inner(u_D,v) * ds + inner(dot(stress,n),u_D) * ds
+#Listing Dirichlet BC
+bc = []
+
+#Nitsche penalty rhs
+#rhs += rhs_nitsche_penalty(problem, strain, stresses)
+
+##Linear
+#strains = strain(v,psi)
+#stress,couple_stress = stresses(D,strains)
+#stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
+#linear =  problem.penalty_u/h * inner(u_D,v) * ds + inner(dot(stress,n),u_D) * ds
 #rhs += problem.DEM_to_DG1.T * assemble(linear).get_local()
 #rhs = problem.DEM_to_DG1.T * assemble(linear).get_local()
+
+##Nitsche penalty bilinear form
+A += lhs_nitsche_penalty(problem, bc)
+
 
 #Solving linear problem
 v = spsolve(A,rhs)
