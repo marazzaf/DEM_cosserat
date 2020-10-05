@@ -76,15 +76,7 @@ bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
 #Nitsche penalty rhs
 rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
 
-##Linear
-#strains = strain(v,psi)
-#stress,couple_stress = stresses(D,strains)
-#stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
-#linear =  problem.penalty_u/h * inner(u_D,v) * ds + inner(dot(stress,n),u_D) * ds
-#rhs += problem.DEM_to_DG1.T * assemble(linear).get_local()
-#rhs = problem.DEM_to_DG1.T * assemble(linear).get_local()
-
-##Nitsche penalty bilinear form
+#Nitsche penalty bilinear form
 A += lhs_nitsche_penalty(problem, bc)
 
 
