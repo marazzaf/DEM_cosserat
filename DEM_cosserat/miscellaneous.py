@@ -100,15 +100,24 @@ def rhs_nitsche_penalty(problem, strain, stress, list_Dirichlet_BC): #List must 
     
     return problem.DEM_to_CR.T * L
 
-def lhs_nitsche_penalty(problem, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
+def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     u,phi = TrialFunctions(problem.V_DG1)
     v,psi = TestFunctions(problem.V_DG1)
     n = FacetNormal(problem.mesh)
     h = CellDiameter(problem.mesh)
 
+    #For the rest
+    strains = strain(v,psi)
+    stress,couple_stress = stresses(problem.D,strains)
+    if problem.dim == 3:
+        stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
+    elif problem.dim == 2:
+        stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
+    #Que faire en 3d pour le couple stress ?
+
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
-        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), psi)*ds + inner(dot(stress,n), v) * ds
+        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), phi)*ds + inner(dot(stress,n), u) * ds
     elif len(list_Dirichlet_BC) >= 2:
         list_lhs = []
         for BC in list_Dirichlet_BC:
