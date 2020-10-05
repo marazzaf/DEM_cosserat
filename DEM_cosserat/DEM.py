@@ -67,14 +67,14 @@ class DEMProblem:
         self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
 
-def elastic_bilinear_form(problem, D, strain, stress):
+def elastic_bilinear_form(problem, strain, stress):
     u_CR,psi_CR = TrialFunctions(problem.V_CR)
     v_CR,eta_CR = TestFunctions(problem.V_CR)
 
     #Variationnal formulation
     def_test = strain(v_CR,eta_CR)
     def_trial = strain(u_CR, psi_CR)
-    stress_trial = stress(D,def_trial)
+    stress_trial = stress(problem.D,def_trial)
     a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
     
     A = assemble(a)
@@ -105,7 +105,7 @@ def inner_penalty(problem):
 
 
 #Add possibility to impose only some components of the vector...
-def lhs_nitsche_penalty(problem, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
+def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     u,phi = TrialFunctions(problem.V_DG1)
     v,psi = TestFunctions(problem.V_DG1)
     vol = CellVolume(problem.mesh)
@@ -113,14 +113,14 @@ def lhs_nitsche_penalty(problem, list_Dirichlet_BC=None): #List must contain lis
     n = FacetNormal(problem.mesh)
     h = vol / hF
     strains = strain(u,phi)
-    stress,couple_stress = stresses(D,strains)
+    stress,couple_stress = stresses(problem.D,strains)
     if problem.dim == 3:
         stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
     elif problem.dim == 2:
         stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
 
     #Bilinear
-    if list_Dirichlet_BC = None:
+    if list_Dirichlet_BC == None:
         bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), psi)*ds + inner(dot(stress,n), v) * ds
         Mat = assemble(bilinear)
         row,col,val = as_backend_type(Mat).mat().getValuesCSR()

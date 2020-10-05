@@ -100,36 +100,36 @@ def rhs_nitsche_penalty(problem, list_Dirichlet_BC, D, strain, stress): #List mu
     
     return problem.DEM_to_CR.T * L
 
-def lhs_nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
-    #For lhs penalty term computation
-    vol = CellVolume(problem.mesh)
-    hF = FacetArea(problem.mesh)
-
-    #For the rest
-    u = TestFunction(problem.V_CR)
-    v = TrialFunction(problem.V_CR)
-    
-    list_L = []
-    #L = csr_matrix((problem.nb_dof_CR,problem.nb_dof_CR))
-    for BC in list_Dirichlet_BC:
-        assert len(BC) == 2 or len(BC) == 3    
-        if len(BC) == 3:
-            domain = BC[2]
-            dds = Measure('ds')(domain)
-        else:
-            dds = Measure('ds')
-        components = BC[0]
-        for i in components:
-            form = problem.penalty_u * hF / vol * v[i] * u[i] * dds
-            list_L.append(form)
-
-    #Assemble Matrix
-    L = sum(l for l in list_L)
-    L = assemble(L)
-    row,col,val = as_backend_type(L).mat().getValuesCSR()
-    L = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
-
-    return problem.DEM_to_CR.T * L * problem.DEM_to_CR
+#def lhs_nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
+#    #For lhs penalty term computation
+#    vol = CellVolume(problem.mesh)
+#    hF = FacetArea(problem.mesh)
+#
+#    #For the rest
+#    u = TestFunction(problem.V_CR)
+#    v = TrialFunction(problem.V_CR)
+#    
+#    list_L = []
+#    #L = csr_matrix((problem.nb_dof_CR,problem.nb_dof_CR))
+#    for BC in list_Dirichlet_BC:
+#        assert len(BC) == 2 or len(BC) == 3    
+#        if len(BC) == 3:
+#            domain = BC[2]
+#            dds = Measure('ds')(domain)
+#        else:
+#            dds = Measure('ds')
+#        components = BC[0]
+#        for i in components:
+#            form = problem.penalty_u * hF / vol * v[i] * u[i] * dds
+#            list_L.append(form)
+#
+#    #Assemble Matrix
+#    L = sum(l for l in list_L)
+#    L = assemble(L)
+#    row,col,val = as_backend_type(L).mat().getValuesCSR()
+#    L = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
+#
+#    return problem.DEM_to_CR.T * L * problem.DEM_to_CR
 
 def gradient_matrix(problem):
     vol = CellVolume(problem.mesh)

@@ -49,10 +49,10 @@ problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term? #2*G*l
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
 #compliance tensor
-D = D_Matrix(G, nu, l, N)
+problem.D = D_Matrix(G, nu, l, N)
 
 # Variational problem
-A = elastic_bilinear_form(problem, D, strain, stresses)
+A = elastic_bilinear_form(problem, strain, stresses)
 
 #Penalty matrix
 A += inner_penalty(problem)
@@ -61,24 +61,8 @@ A += inner_penalty(problem)
 t = Constant((-(a+c),-(a+c),0))
 rhs = assemble_volume_load(t, problem)
 
-##Nitsche penalty bilinear form
-u,phi = TrialFunctions(problem.V_DG1)
-v,psi = TestFunctions(problem.V_DG1)
-vol = CellVolume(problem.mesh)
-hF = FacetArea(problem.mesh)
-n = FacetNormal(problem.mesh)
-h = vol / hF
-strains = strain(u,phi)
-stress,couple_stress = stresses(D,strains)
-stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
-#Bilinear
-bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), psi)*ds + inner(dot(stress,n), v) * ds
-Mat = assemble(bilinear)
-row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-Mat = csr_matrix((val, col, row))
-#print(Mat.nonzero())
-#sys.exit()
-A += problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
+#Nitsche penalty bilinear form. Homogeneous Dirichlet in this case.
+A += lhs_nitsche_penalty(problem, strain, stresses)
 
 #Solving linear problem
 v = spsolve(A,rhs)
