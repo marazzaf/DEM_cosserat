@@ -64,8 +64,8 @@ t = Constant((-(a+c),-(a+c),0))
 rhs = problem.assemble_volume_load(t)
 
 #Listing Dirichlet BC
-#bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
-bc = [[0,Constant(0)], [1, Constant(0)], [2, Constant(0)]]
+bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
+#bc = [[0,Constant(0)], [1, Constant(0)], [2, Constant(0)]]
 
 #Nitsche penalty rhs
 rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
@@ -79,39 +79,53 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
-print(u_h(0,L),phi_h(0,L))
-print(u_h(0,0),phi_h(0,0))
+#print(u_h(0,L),phi_h(0,L))
+#print(u_h(0,0),phi_h(0,0))
 
 #U = VectorFunctionSpace(problem.mesh, 'DG', 1)
 #u = interpolate(u_D, U)
-#print(u(0,L))
+#print(u(0,0))
+#sys.exit()
+
+#fig = plot(u_h[0])
+#plt.colorbar(fig)
+#plt.savefig('u_x_15.pdf')
+#plt.show()
+#fig = plot(u_h[1])
+#plt.colorbar(fig)
+#plt.savefig('u_y_15.pdf')
+#plt.show()
+#fig = plot(phi_h)
+#plt.colorbar(fig)
+#plt.savefig('phi_15.pdf')
+#plt.show()
 #sys.exit()
 
 fig = plot(u_h[0])
 plt.colorbar(fig)
-plt.savefig('u_x_15.pdf')
+plt.savefig('u_x_25.pdf')
 plt.show()
+#sys.exit()
+
+U = VectorFunctionSpace(problem.mesh, 'DG', 1)
+u = interpolate(u_D, U)[0]
+fig = plot(u)
+plt.colorbar(fig)
+plt.savefig('ref_u_x_25.pdf')
+plt.show()
+#sys.exit()
+
 fig = plot(u_h[1])
 plt.colorbar(fig)
-plt.savefig('u_y_15.pdf')
+plt.savefig('u_y_25.pdf')
 plt.show()
-fig = plot(phi_h)
-plt.colorbar(fig)
-plt.savefig('phi_15.pdf')
-plt.show()
-sys.exit()
+#sys.exit()
 
 U = VectorFunctionSpace(problem.mesh, 'DG', 1)
 u = interpolate(u_D, U)[1]
 fig = plot(u)
 plt.colorbar(fig)
-plt.savefig('ref_u_y_15.pdf')
-plt.show()
-sys.exit()
-
-fig = plot(u_h[1])
-plt.colorbar(fig)
-plt.savefig('u_y_15.pdf')
+plt.savefig('ref_u_y_25.pdf')
 plt.show()
 sys.exit()
 
