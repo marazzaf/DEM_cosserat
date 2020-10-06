@@ -69,6 +69,14 @@ class DEMProblem:
     #Importing useful functions
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
+    #Defining methods
+    def D_Matrix(self, G, nu, l, N):
+        a = 2*(1-nu)/(1-2*nu)
+        b = 2*nu/(1-2*nu)
+        c = 1/(1-N*N)
+        d = (1-2*N*N)/(1-N*N)
+        return G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]])
+
 
 def elastic_bilinear_form(problem, strain, stress):
     u_CR,psi_CR = TrialFunctions(problem.V_CR)

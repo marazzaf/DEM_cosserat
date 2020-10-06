@@ -11,7 +11,6 @@ from DEM_cosserat.miscellaneous import *
 from scipy.sparse.linalg import spsolve
 
 # Parameters
-d = 2 #2d problem
 nu = 0.3 # Poisson's ratio
 l = 0.2 # intrinsic length scale
 N = 0.8 # coupling parameter
@@ -22,9 +21,6 @@ a = 2*(1-nu)/(1-2*nu)
 b = 2*nu/(1-2*nu)
 c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
-
-def D_Matrix(G, nu, l, N):
-    return G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]])
 
 def strain(v, eta):
     gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
@@ -54,7 +50,7 @@ u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degr
 phi_D = Constant(0.)
 
 #compliance tensor
-problem.D = D_Matrix(G, nu, l, N)
+problem.D = problem.D_Matrix(G, nu, l, N)
 
 # Variational problem
 A = elastic_bilinear_form(problem, strain, stresses)
