@@ -69,14 +69,14 @@ t = Constant((-(a+c),-(a+c),0))
 rhs = problem.assemble_volume_load(t)
 
 #Listing Dirichlet BC
-bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
-#bc = [[0,Constant(0)], [1, Constant(0)], [2, Constant(0)]]
+#bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
+bc = [[0,Constant(0)], [1, Constant(0)], [2, Constant(0)]]
 
 #Nitsche penalty rhs
 #rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
 
 #Nitsche penalty bilinear form
-A += lhs_nitsche_penalty(problem, strain, stresses) #, bc)
+A += lhs_nitsche_penalty(problem, strain, stresses, bc)
 
 #Solving linear problem
 v = spsolve(A,rhs)
