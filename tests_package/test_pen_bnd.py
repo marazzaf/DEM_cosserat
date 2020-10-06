@@ -3,7 +3,6 @@
 # Computation of the solution in the plate for different meshes
 from dolfin import *
 import numpy as np
-from mshr import Rectangle, Circle, generate_mesh
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
@@ -40,7 +39,7 @@ def stresses(D,strains):
     
 # Mesh
 L = 0.5
-nb_elt = 5
+nb_elt = 25
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -59,7 +58,7 @@ A += inner_penalty(problem)
 
 #rhs
 t = Constant((-(a+c),-(a+c),0))
-rhs = assemble_volume_load(t, problem)
+rhs = problem.assemble_volume_load(t)
 
 #Nitsche penalty bilinear form. Homogeneous Dirichlet in this case.
 A += lhs_nitsche_penalty(problem, strain, stresses)

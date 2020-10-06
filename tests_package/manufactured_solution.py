@@ -3,7 +3,6 @@
 # Computation of the solution in the plate for different meshes
 from dolfin import *
 import numpy as np
-from mshr import Rectangle, Circle, generate_mesh
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
@@ -16,7 +15,7 @@ d = 2 #2d problem
 nu = 0.3 # Poisson's ratio
 l = 0.2 # intrinsic length scale
 N = 0.8 # coupling parameter
-G = 1
+G = 100
 
 #Parameters for D_Matrix
 a = 2*(1-nu)/(1-2*nu)
@@ -25,7 +24,7 @@ c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
 
 def D_Matrix(G, nu, l, N):
-    return as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
+    return G * as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
 
 def strain(v, eta):
     gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
@@ -40,7 +39,7 @@ def stresses(D,strains):
     
 # Mesh
 L = 0.5
-nb_elt = 15
+nb_elt = 25
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -73,7 +72,7 @@ rhs = problem.assemble_volume_load(t)
 bc = [[0,Constant(0)], [1, Constant(0)], [2, Constant(0)]]
 
 #Nitsche penalty rhs
-#rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
+rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
 
 #Nitsche penalty bilinear form
 A += lhs_nitsche_penalty(problem, strain, stresses, bc)
@@ -84,7 +83,9 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
-#print(u_h(0,L),phi_h(0,L))
+print(u_h(0,L),phi_h(0,L))
+print(u_h(0,0),phi_h(0,0))
+
 #U = VectorFunctionSpace(problem.mesh, 'DG', 1)
 #u = interpolate(u_D, U)
 #print(u(0,L))
