@@ -35,7 +35,7 @@ def stresses(D,strains):
     
 # Mesh
 L = 0.5
-nb_elt = 25
+nb_elt = 50
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -53,7 +53,7 @@ A = elastic_bilinear_form(problem, strain, stresses)
 A += inner_penalty(problem)
 
 #rhs
-t = Constant((-(a+c),-(a+c),0))
+t = Constant((-(a+b),-(a+b),0))
 rhs = problem.assemble_volume_load(t)
 
 #Nitsche penalty bilinear form. Homogeneous Dirichlet in this case.
@@ -67,16 +67,28 @@ u_h, phi_h = v_h.split()
 
 #assert abs(np.linalg.norm(u_h(0,L))) < abs(np.linalg.norm(u_h(0,0))) / 10
 #assert abs(np.linalg.norm(phi_h(0,L))) < abs(np.linalg.norm(phi_h(0,0))) / 100
-print(u_h(0,L),phi_h(0,L))
+#print(u_h(0,L),phi_h(0,L))
 print(u_h(0,0),phi_h(0,0))
 
+#Reference solution
+x = SpatialCoordinate(problem.mesh)
+u_D = Expression(('B*((x[0]*x[0]+x[1]*x[1]-x[0]*x[1])/(L*L) - 1)','B*((x[0]*x[0]+x[1]*x[1]-x[0]*x[1])/(L*L) - 1)'), B=L**2/G,L=L,  degree=2)
+phi_D = Constant(0.)
+
+U = VectorFunctionSpace(problem.mesh, 'DG', 1)
+u = interpolate(u_D, U)
+print(u(0,0))
 
 fig = plot(u_h[0])
 plt.colorbar(fig)
-plt.savefig('u_x_15.pdf')
+plt.savefig('u_x_25.pdf')
 plt.show()
 fig = plot(u_h[1])
 plt.colorbar(fig)
-plt.savefig('u_y_15.pdf')
+plt.savefig('u_y_25.pdf')
+plt.show()
+fig = plot(phi_h)
+plt.colorbar(fig)
+plt.savefig('phi_25.pdf')
 plt.show()
 sys.exit()
