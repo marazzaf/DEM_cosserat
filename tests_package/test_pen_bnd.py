@@ -35,7 +35,7 @@ def stresses(D,strains):
     
 # Mesh
 L = 0.5
-nb_elt = 50
+nb_elt = 25
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -79,16 +79,29 @@ U = VectorFunctionSpace(problem.mesh, 'DG', 1)
 u = interpolate(u_D, U)
 print(u(0,0))
 
-fig = plot(u_h[0])
+gamma,kappa = strain(u_h,phi_h)
+
+U = FunctionSpace(problem.mesh, 'DG', 0)
+fig = plot(local_project(gamma[3], U))
 plt.colorbar(fig)
-plt.savefig('u_x_25.pdf')
+plt.savefig('stress_1_1.pdf')
 plt.show()
-fig = plot(u_h[1])
+fig = plot(local_project(kappa[1],U))
 plt.colorbar(fig)
-plt.savefig('u_y_25.pdf')
-plt.show()
-fig = plot(phi_h)
-plt.colorbar(fig)
-plt.savefig('phi_25.pdf')
+plt.savefig('kappa_1.pdf')
 plt.show()
 sys.exit()
+
+#fig = plot(u_h[0])
+#plt.colorbar(fig)
+#plt.savefig('u_x_25.pdf')
+#plt.show()
+#fig = plot(u_h[1])
+#plt.colorbar(fig)
+#plt.savefig('u_y_25.pdf')
+#plt.show()
+#fig = plot(phi_h)
+#plt.colorbar(fig)
+#plt.savefig('phi_25.pdf')
+#plt.show()
+#sys.exit()
