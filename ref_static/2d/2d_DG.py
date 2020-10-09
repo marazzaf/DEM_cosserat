@@ -144,10 +144,10 @@ n = FacetNormal(mesh)
     
 elastic = inner(strain(v, eta), D*strain(u, psi))*dx
 inner_pen = penalty_u/hF('+') * inner(jump(u),jump(v)) * dS + penalty_phi/hF('+') * inner(jump(psi),jump(eta)) * dS
-inner_consistency = inner(dot(avg(sigma),n('+')), jump(v))*dS + inner(dot(avg(mu),n('+')), jump(eta))*dS + inner(jump(mu,n), avg(eta))*dS + inner(jump(sigma,n), avg(v))*dS - inner(jump(epsilon*eta,n), avg(u))*dS - inner(dot(avg(epsilon*eta),n('+')), jump(u))*dS
-bnd_consistency = inner(dot(sigma,n)[1], v[1])*ds(1) + inner(dot(sigma,n)[0], v[0])*ds(2) + inner(dot(mu,n), eta) * (ds(2) + ds(1)) + inner(dot(epsilon*eta,n), u) * (ds(2)+ds(1))
+inner_consistency = -inner(dot(avg(sigma),n('+')), jump(v))*dS - inner(dot(avg(mu),n('+')), jump(eta))*dS - inner(dot(avg(epsilon*eta),n('+')), jump(u))*dS #+ inner(jump(epsilon*eta,n), avg(u))*dS #+ inner(jump(mu,n), avg(eta))*dS + inner(jump(sigma,n), avg(v))*dS
+bnd_consistency = inner(dot(sigma,n)[1], v[1])*ds(1) + inner(dot(sigma,n)[0], v[0])*ds(2) + inner(dot(mu,n), eta) * (ds(2) + ds(1)) - inner(dot(epsilon*eta,n), u) * (ds(2)+ds(1))
 bnd_pen = penalty_u/hF * u[1] * v[1] * ds(1) + penalty_u/hF * u[0] * v[0] * ds(2) + penalty_phi/hF * inner(psi,eta) * (ds(2) + ds(1))
-a = elastic + inner_pen + bnd_pen + inner_consistency# + 2*bnd_consistency
+a = elastic + inner_pen + bnd_pen + inner_consistency# + bnd_consistency#*2
  
 L = inner(t, v)*ds(3) 
 
