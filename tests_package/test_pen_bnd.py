@@ -23,8 +23,7 @@ c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
 
 def strain(v, eta):
-    #gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
-    gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)])
+    gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
     kappa = grad(eta)
     return gamma, kappa
 
@@ -40,7 +39,7 @@ nb_elt = 25
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term? #2*G*l
+problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term? #2*G*l
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
@@ -82,27 +81,27 @@ print(u(0,0))
 
 gamma,kappa = strain(u_h,phi_h)
 
-U = FunctionSpace(problem.mesh, 'DG', 0)
-fig = plot(local_project(gamma[3], U))
-plt.colorbar(fig)
-plt.savefig('stress_1_1.pdf')
-plt.show()
-fig = plot(local_project(kappa[1],U))
-plt.colorbar(fig)
-plt.savefig('kappa_1.pdf')
-plt.show()
-sys.exit()
-
-#fig = plot(u_h[0])
+#U = FunctionSpace(problem.mesh, 'DG', 0)
+#fig = plot(local_project(gamma[3], U))
 #plt.colorbar(fig)
-#plt.savefig('u_x_25.pdf')
+#plt.savefig('stress_1_1.pdf')
 #plt.show()
-#fig = plot(u_h[1])
+#fig = plot(local_project(kappa[1],U))
 #plt.colorbar(fig)
-#plt.savefig('u_y_25.pdf')
-#plt.show()
-#fig = plot(phi_h)
-#plt.colorbar(fig)
-#plt.savefig('phi_25.pdf')
+#plt.savefig('kappa_1.pdf')
 #plt.show()
 #sys.exit()
+
+fig = plot(u_h[0])
+plt.colorbar(fig)
+plt.savefig('u_x_25.pdf')
+plt.show()
+fig = plot(u_h[1])
+plt.colorbar(fig)
+plt.savefig('u_y_25.pdf')
+plt.show()
+fig = plot(phi_h)
+plt.colorbar(fig)
+plt.savefig('phi_25.pdf')
+plt.show()
+sys.exit()

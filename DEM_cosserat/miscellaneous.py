@@ -107,17 +107,16 @@ def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #Lis
     h = CellDiameter(problem.mesh)
 
     #For the rest
-    strains = strain(v,psi)
+    strains = strain(u,phi)
     stress,couple_stress = stresses(problem.D,strains)
     if problem.dim == 3:
         stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
     elif problem.dim == 2:
         stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
-    #Que faire en 3d pour le couple stress ?
 
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
-        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds + inner(dot(couple_stress,n), phi)*ds + inner(dot(stress,n), u) * ds
+        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds - inner(dot(couple_stress,n), psi)*ds - inner(dot(stress,n), v) * ds
     elif len(list_Dirichlet_BC) >= 2:
         list_lhs = []
         for BC in list_Dirichlet_BC:
@@ -131,14 +130,14 @@ def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #Lis
 
             if component < problem.dim: #bnd stress
                 form_pen = problem.penalty_u / h * u[component] * v[component] * dds
-                form_pen -= u[component]  * dot(stress,n)[component] * dds
+                form_pen -= v[component]  * dot(stress,n)[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds
-                    form_pen -= phi[component-problem.dim] * dot(couple_stress,n)[component-problem.dim] * dds
+                    form_pen -= psi[component-problem.dim] * dot(couple_stress,n)[component-problem.dim] * dds
                 elif problem.dim == 2:
                     form_pen = problem.penalty_phi / h * phi * psi * dds
-                    form_pen -= phi * dot(couple_stress,n) * dds
+                    form_pen -= psi * dot(couple_stress,n) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
