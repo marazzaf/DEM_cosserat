@@ -19,15 +19,15 @@ N = 0.8 # coupling parameter
 T = 1.0 # load
 c = l/N
 
-#for other version
-K = 16.67e3
-G = 10e3
-Gc = 5e3
-L = 10 #pas de valeur
-R = 0.01
-h3 = 2/5
-M = G*R*R/h3
-Mc = M
+##for other version
+#K = 16.67e3
+#G = 10e3
+#Gc = 5e3
+#L = 10 #pas de valeur
+#R = 0.01
+#h3 = 2/5
+#M = G*R*R/h3
+#Mc = M
 
 # Convergence
 h = [15, 30, 50, 70, 90] # mesh density
@@ -136,7 +136,7 @@ ds = Measure('ds')(subdomain_data=boundary_parts) #Measure("ds")
 
 u_0 = Constant(0.0)
 left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
-bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
+bot_U_2 = DirichletBC(U.sub(1), u_0, bot_boundary)
 left_S = DirichletBC(S, u_0, left_boundary)
 bot_S = DirichletBC(S, u_0, bot_boundary)
 
