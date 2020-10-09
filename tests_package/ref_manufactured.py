@@ -70,6 +70,10 @@ mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
+class Boundary(SubDomain):
+    def inside(self, x, on_boundary):
+        return on_boundary
+
 U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
 S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S))
@@ -78,12 +82,15 @@ U_1, U_2 = U.sub(0), U.sub(1)
 
 #Dirichlet BC
 u_0 = Constant((0,0,0))
-bc = DirichletBC(V, u_0, boundary_parts, 0)
+boundary = Boundary()
+boundary.mark(boundary_parts, 1)
+bc = DirichletBC(V, u_0, boundary)
 
 #Neumann BC
 a = 2*(1-nu)/(1-2*nu)
 b = 2*nu/(1-2*nu)
-t = Constant((-(a+b),-(a+b))) # load
+#t = G*Constant((-(a+b),-(a+b))) # load
+t = Constant((-1,-1)) # load
 
 # Variational problem
 u, psi = TrialFunctions(V)
@@ -91,11 +98,11 @@ v, eta = TestFunctions(V)
 
 D = D_Matrix(G, nu, l, N)
     
-a = inner(strain(v, eta), D*strain(u, psi))*dx
+A = inner(strain(v, eta), D*strain(u, psi))*dx
 L = inner(t, v)*dx
 
 U_h = Function(V)
-problem = LinearVariationalProblem(a, L, U_h, bc)
+problem = LinearVariationalProblem(A, L, U_h, bc)
 solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, psi_h = U_h.split()
