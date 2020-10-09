@@ -44,7 +44,7 @@ problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term? #2*G*l
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
 #compliance tensor
-problem.D = problem.D_Matrix(G, nu, l, N)
+problem.D = problem.D_Matrix(G, nu, N)
 
 # Variational problem
 A = elastic_bilinear_form(problem, strain, stresses)

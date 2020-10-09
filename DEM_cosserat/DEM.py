@@ -70,12 +70,13 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
-    def D_Matrix(self, G, nu, l, N):
+    def D_Matrix(self, G, nu, N):
         a = 2*(1-nu)/(1-2*nu)
         b = 2*nu/(1-2*nu)
         c = 1/(1-N*N)
         d = (1-2*N*N)/(1-N*N)
-        return G * as_matrix([[a,0,0,b], [0,d,c,0], [0,c,d,0], [b,0,0,a]]) #correct
+        #return G * as_matrix([[a,0,0,b], [0,d,c,0], [0,c,d,0], [b,0,0,a]]) #Not correct?
+        return G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]]) #correct
 
 
 def elastic_bilinear_form(problem, strain, stress):
