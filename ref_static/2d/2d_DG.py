@@ -19,15 +19,9 @@ N = 0.8 # coupling parameter
 T = 1.0 # load
 c = l/N
 
-#for other version
-K = 16.67e3
-G = 10e3
-Gc = 5e3
-L = 10 #pas de valeur
-R = 0.01
-h3 = 2/5
-M = G*R*R/h3
-Mc = M
+#penalty terms
+penalty_u = 2*G
+penalty_phi = 2*G*l
 
 # Convergence
 h = [15, 30, 50, 70, 90] # mesh density
@@ -61,11 +55,16 @@ def D_Matrix(G, nu, l, N):
         [0.0,0.0,0.0,0.0, 4.0*l**2, 0.0], \
         [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
     
-    d *= G
+    d_aux = np.array([ \
+        [(2.0*(1.0 - nu))/(1.0 - 2.0*nu), (2.0*nu)/(1.0 - 2.0 * nu), 0.,0.], \
+        [(2.0*nu)/(1.0 - 2.0*nu), (2.0*(1.0 - nu)) / (1.0 - 2.0*nu), 0.,0.], \
+        [0.,0., 1.0/(1.0 - N**2), (1.0 - 2.0*N**2)/(1.0 - N**2)], \
+        [0.,0., (1.0 - 2.0*N**2)/(1.0 - N**2), 1.0/(1.0 - N**2)] ])
 
     #print(type(d))
-    D = as_matrix(d) #Constant(d)
-    return D
+    D = G * as_matrix(d)
+    D_aux = G * as_tensor(d_aux)
+    return D,D_aux
 
 # Strain
 def strain(v, eta):
@@ -79,15 +78,21 @@ def strain(v, eta):
 
     return strain
 
-def strain_bis(v, omega):
-    gamma = grad(v) + as_tensor(([0.,-omega],[omega,0.]))
-    kappa = grad(omega)
+#def strain_bis(v, omega):
+#    gamma = grad(v) + as_tensor(([0.,-omega],[omega,0.]))
+#    kappa = grad(omega)
+#    return gamma, kappa
+
+def strain_bis(v, eta):
+    gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
+    kappa = grad(eta)
     return gamma, kappa
 
-def stress(Tuple):
+def stress(Tuple, D):
     gamma,kappa = Tuple
-    sigma = K * tr(gamma) * Indentity(d) + 2*G * (sym(gamma) - tr(gamma) * Indentity(d) / 3) + 2*Gc * skew(gamma)
-    mu = L * tr(kappa) * Identity(d) + 2*M * (sym(kappa) - tr(kappa) * Identity(d) / 3) + 2*Mc * skew(curvature)
+    sigma = dot(D, gamma)
+    sigma = as_tensor( ([sigma[0],sigma[2]],[sigma[1],sigma[3]]) )
+    mu = 4*G*l*l * kappa
     return sigma,mu
     
 
@@ -101,8 +106,8 @@ with XDMFFile("hole_plate.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
-U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
-S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
+U = VectorElement("DP", mesh.ufl_cell(), 2) # disp space
+S = FiniteElement("DP", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S))
 U,S = V.split()
 U_1, U_2 = U.sub(0), U.sub(1)
@@ -128,31 +133,45 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
 bot_boundary = BotBoundary()
+bot_boundary.mark(boundary_parts, 1)
 left_boundary = LeftBoundary()
+left_boundary.mark(boundary_parts, 2)
 top_boundary = TopBoundary()
-top_boundary.mark(boundary_parts, 1)
+top_boundary.mark(boundary_parts, 3)
+
 
 ds = Measure('ds')(subdomain_data=boundary_parts) #Measure("ds")
 
-u_0 = Constant(0.0)
-left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
-bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
-left_S = DirichletBC(S, u_0, left_boundary)
-bot_S = DirichletBC(S, u_0, bot_boundary)
+#u_0 = Constant(0.0)
+#left_U_1 = DirichletBC(U_1, u_0, left_boundary)
+#bot_U_2 = DirichletBC(U_2, u_0, bot_boundary)
+#left_S = DirichletBC(S, u_0, left_boundary)
+#bot_S = DirichletBC(S, u_0, bot_boundary)
 
-bc = [left_U_1, bot_U_2, left_S, bot_S]
+#bc = [left_U_1, bot_U_2, left_S, bot_S]
 
 # Variational problem
 u, psi = TrialFunctions(V)
 v, eta = TestFunctions(V)
+gamma,kappa = strain_bis(u,psi)
+D,D_aux = D_Matrix(G, nu, l, N)
+sigma,mu = stress((gamma,kappa),D_aux)
 
-D = D_Matrix(G, nu, l, N)
+hF = CellDiameter(mesh)
+n = FacetNormal(mesh)
     
-a = inner(strain(v, eta), D*strain(u, psi))*dx
-L = inner(t, v)*ds(1)
+elastic = inner(strain(v, eta), D*strain(u, psi))*dx
+inner_pen = penalty_u/hF('+') * inner(jump(u),jump(v)) * dS + penalty_phi/hF('+') * inner(jump(psi),jump(eta)) * dS
+inner_consistency = inner(dot(avg(sigma),n('+')), jump(v))*dS + inner(jump(sigma,n), avg(v))*dS + inner(dot(avg(mu),n('+')), jump(eta))*dS + inner(jump(kappa,n), avg(eta))*dS
+bnd_consistency = inner(dot(sigma,n)[1], v[1])*ds(1) + inner(dot(sigma,n)[0], v[0])*ds(2) + inner(dot(mu,n), eta) * (ds(2) + ds(1))
+bnd_pen = penalty_u/hF * u[1] * v[1] * ds(1) + penalty_u/hF * u[0] * v[0] * ds(2) + penalty_phi/hF * inner(psi,eta) * (ds(2) + ds(1))
+a = elastic + inner_consistency + inner_pen + bnd_consistency + bnd_pen
+ 
+L = inner(t, v)*ds(3) 
+#L += penalty_u/hF * u_0[1] * v[1] * ds(1) + penalty_u/hF * u_0[0] * v[0] * ds(2) + penalty_phi/hF * inner(u_0,eta) * (ds(2) + ds(1)) - inner(dot(sigma,n),u_0) * ds(2)
 
 U_h = Function(V)
-problem = LinearVariationalProblem(a, L, U_h, bc)
+problem = LinearVariationalProblem(a, L, U_h) #, bc)
 solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, psi_h = U_h.split()
@@ -162,15 +181,15 @@ u_h, psi_h = U_h.split()
 #sys.exit()
 img = plot(u_h[0])
 plt.colorbar(img)
-plt.savefig('ref_u_x_15.pdf')
+plt.savefig('DG_u_x_15.pdf')
 plt.show()
 img = plot(u_h[1])
 plt.colorbar(img)
-plt.savefig('ref_u_y_15.pdf')
+plt.savefig('DG_u_y_15.pdf')
 plt.show()
 img = plot(psi_h)
 plt.colorbar(img)
-plt.savefig('ref_phi_15.pdf')
+plt.savefig('DG_phi_15.pdf')
 plt.show()
 sys.exit()
 
