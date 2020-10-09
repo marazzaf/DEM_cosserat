@@ -165,7 +165,7 @@ inner_pen = penalty_u/hF('+') * inner(jump(u),jump(v)) * dS + penalty_phi/hF('+'
 inner_consistency = inner(dot(avg(sigma),n('+')), jump(v))*dS + inner(jump(sigma,n), avg(v))*dS + inner(dot(avg(mu),n('+')), jump(eta))*dS + inner(jump(kappa,n), avg(eta))*dS
 bnd_consistency = inner(dot(sigma,n)[1], v[1])*ds(1) + inner(dot(sigma,n)[0], v[0])*ds(2) + inner(dot(mu,n), eta) * (ds(2) + ds(1))
 bnd_pen = penalty_u/hF * u[1] * v[1] * ds(1) + penalty_u/hF * u[0] * v[0] * ds(2) + penalty_phi/hF * inner(psi,eta) * (ds(2) + ds(1))
-a = elastic + inner_pen + bnd_pen# + inner_consistency + bnd_consistency
+a = elastic + inner_pen + bnd_pen# + bnd_consistency + inner_consistency# 
  
 L = inner(t, v)*ds(3) 
 
