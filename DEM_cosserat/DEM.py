@@ -75,7 +75,7 @@ class DEMProblem:
         b = 2*nu/(1-2*nu)
         c = 1/(1-N*N)
         d = (1-2*N*N)/(1-N*N)
-        return G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]])
+        return G * as_matrix([[a,0,0,b], [0,d,c,0], [0,c,d,0], [b,0,0,a]]) #modifier ça ?
 
 
 def elastic_bilinear_form(problem, strain, stress):
