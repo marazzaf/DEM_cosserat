@@ -123,32 +123,3 @@ plt.colorbar(img)
 plt.savefig('ref_phi_15.pdf')
 plt.show()
 sys.exit()
-
-# Stress
-epsilon = strain(u_h, psi_h)
-sigma = D*epsilon
-sigma_yy = project(sigma[1])
-#Other version
-#epsilon = strain_bis(u_h, psi_h)
-#sigma = stress(epsilon)[0]
-#sigma_yy = project(sigma[1])
-
-error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-
-elements_size.append(hm)
-SCF_0.append(sigma_yy(10.0, 1e-6))
-errors.append(error)
-        
-print("Analytical SCF: %.5e" % SCF)
-print(elements_size)
-print(errors)
-print(SCF_0)
-
-
-file = File("sigma.pvd")
-file << sigma_yy
-
-#plt.plot(elements_size, errors, "-*", linewidth=2)
-#plt.xlabel("elements size")
-#plt.ylabel("error")
-#plt.show()
