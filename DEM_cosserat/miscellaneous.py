@@ -119,7 +119,7 @@ def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #Lis
 
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
-        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds - inner(dot(couple_stress,n), psi)*ds - inner(dot(stress,n), v) * ds
+        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds - inner(dot(trial_couple_stress,n), psi)*ds - inner(dot(trial_stress,n), v) * ds + inner(dot(test_couple_stress,n), phi)*ds + inner(dot(test_stress,n), u) * ds
     elif len(list_Dirichlet_BC) >= 2:
         list_lhs = []
         for BC in list_Dirichlet_BC:
@@ -134,7 +134,7 @@ def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #Lis
             if component < problem.dim: #bnd stress
                 form_pen = problem.penalty_u / h * u[component] * v[component] * dds
                 form_pen -= v[component]  * dot(trial_stress,n)[component] * dds
-                form_pen -= u[component]  * dot(test_stress,n)[component] * dds
+                form_pen += u[component]  * dot(test_stress,n)[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds
@@ -142,7 +142,7 @@ def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #Lis
                 elif problem.dim == 2:
                     form_pen = problem.penalty_phi / h * phi * psi * dds
                     form_pen -= psi * dot(trial_couple_stress,n) * dds
-                    form_pen -= phi * dot(test_couple_stress,n) * dds
+                    form_pen += phi * dot(test_couple_stress,n) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
