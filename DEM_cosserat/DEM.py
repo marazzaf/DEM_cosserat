@@ -70,29 +70,41 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
-    def D_Matrix(self, G, nu, N):
+    def D_Matrix(self, G, nu, N, l):
+        self.G = G
+        self.l = l
         a = 2*(1-nu)/(1-2*nu)
         b = 2*nu/(1-2*nu)
         c = 1/(1-N*N)
         d = (1-2*N*N)/(1-N*N)
         #return G * as_matrix([[a,0,0,b], [0,d,c,0], [0,c,d,0], [b,0,0,a]]) #Not correct?
         return G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]]) #correct
+    def strains(self, v, eta):
+        gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
+        kappa = grad(eta)
+        return gamma, kappa
+
+    def stresses(self, D, strains):
+        gamma,kappa = strains
+        sigma = dot(D, gamma)
+        mu = 4*self.G*self.l*self.l * kappa
+        return sigma, mu
 
 
-def elastic_bilinear_form(problem, strain, stress):
-    u_CR,psi_CR = TrialFunctions(problem.V_CR)
-    v_CR,eta_CR = TestFunctions(problem.V_CR)
+    def elastic_bilinear_form(self): #, strain, stress):
+        u_CR,psi_CR = TrialFunctions(self.V_CR)
+        v_CR,eta_CR = TestFunctions(self.V_CR)
 
-    #Variationnal formulation
-    def_test = strain(v_CR,eta_CR)
-    def_trial = strain(u_CR, psi_CR)
-    stress_trial = stress(problem.D,def_trial)
-    a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
-    
-    A = assemble(a)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    A = csr_matrix((val, col, row))
-    return problem.DEM_to_CR.T * A * problem.DEM_to_CR
+        #Variationnal formulation
+        def_test = self.strains(v_CR,eta_CR)
+        def_trial = self.strains(u_CR, psi_CR)
+        stress_trial = self.stresses(self.D,def_trial)
+        a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
+
+        A = assemble(a)
+        row,col,val = as_backend_type(A).mat().getValuesCSR()
+        A = csr_matrix((val, col, row))
+        return self.DEM_to_CR.T * A * self.DEM_to_CR
 
 def inner_penalty(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""

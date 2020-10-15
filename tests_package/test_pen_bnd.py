@@ -22,16 +22,16 @@ b = 2*nu/(1-2*nu)
 c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
 
-def strain(v, eta):
-    gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
-    kappa = grad(eta)
-    return gamma, kappa
-
-def stresses(D,strains):
-    gamma,kappa = strains
-    sigma = dot(D, gamma)
-    mu = 4*G*l*l * kappa
-    return sigma, mu
+#def strain(v, eta):
+#    gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
+#    kappa = grad(eta)
+#    return gamma, kappa
+#
+#def stresses(D,strains):
+#    gamma,kappa = strains
+#    sigma = dot(D, gamma)
+#    mu = 4*G*l*l * kappa
+#    return sigma, mu
     
 # Mesh
 L = 0.5
@@ -44,10 +44,10 @@ problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term? #2*G*l
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
 #compliance tensor
-problem.D = problem.D_Matrix(G, nu, N)
+problem.D = problem.D_Matrix(G, nu, N, l)
 
 # Variational problem
-A = elastic_bilinear_form(problem, strain, stresses)
+A = problem.elastic_bilinear_form() #, strain, stresses)
 
 #Penalty matrix
 A += inner_penalty(problem)
@@ -60,8 +60,8 @@ rhs = problem.assemble_volume_load(t)
 #A += lhs_nitsche_penalty(problem, strain, stresses)
 #bc = [[0, Constant(0)], [1, Constant(0)], [2, Constant(0)]]
 bc = [[0, Constant(1)], [1, Constant(1)], [2, Constant(1)]]
-A += lhs_nitsche_penalty(problem, strain, stresses, bc)
-rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
+A += lhs_nitsche_penalty(problem, bc)
+rhs += rhs_nitsche_penalty(problem, bc)
 
 #Solving linear problem
 v = spsolve(A,rhs)
@@ -74,17 +74,7 @@ u_h, phi_h = v_h.split()
 #print(u_h(0,L),phi_h(0,L))
 print(u_h(0,0),phi_h(0,0))
 
-#Reference solution
-x = SpatialCoordinate(problem.mesh)
-u_D = Expression(('B*((x[0]*x[0]+x[1]*x[1]-x[0]*x[1])/(L*L) - 1)','B*((x[0]*x[0]+x[1]*x[1]-x[0]*x[1])/(L*L) - 1)'), B=L**2/G,L=L,  degree=2)
-phi_D = Constant(0.)
-
-U = VectorFunctionSpace(problem.mesh, 'DG', 1)
-u = interpolate(u_D, U)
-print(u(0,0))
-
-gamma,kappa = strain(u_h,phi_h)
-
+#gamma,kappa = strain(u_h,phi_h)
 #U = FunctionSpace(problem.mesh, 'DG', 0)
 #fig = plot(local_project(gamma[3], U))
 #plt.colorbar(fig)

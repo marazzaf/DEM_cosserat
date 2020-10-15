@@ -22,8 +22,13 @@ b = 2*nu/(1-2*nu)
 c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
 
+#def strain(v, eta):
+#    gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
+#    kappa = grad(eta)
+#    return gamma, kappa
+
 def strain(v, eta):
-    gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
+    gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
     kappa = grad(eta)
     return gamma, kappa
 
