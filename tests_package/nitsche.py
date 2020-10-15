@@ -22,20 +22,24 @@ b = 10*v*dx
 
 #Nitsche symmetric test
 n = FacetNormal(mesh)
-nitsche = - inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
-#nitsche_bis = + inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
+lhs_nitsche = - inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
+#lhs_nitsche_bis = + inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
 
 #Penalty
 h = CellDiameter(mesh)
-pen = 2/h * inner(u,v) * ds
+lhs_pen = 2/h * inner(u,v) * ds
 
-#a += nitsche + pen #sym pen
-a += nitsche #sym no pen
-#a += nitsche_bis #nonsym
+#a += lhs_nitsche + lhs_pen #sym pen
+a += lhs_nitsche #sym no pen
+#a += lhs_nitsche_bis #nonsym
 
 sol = Function(U)
 
-bc = DirichletBC(U, Constant(0), boundary)
+#bc = DirichletBC(U, Constant(0), boundary)
+u_D = Constant(1)
+rhs_pen = 2/h * inner(u_D,v) * ds
+rhs_nitsche = - inner(u_D, dot(grad(v),n)) * ds
+b += rhs_nitsche
 
 #solve(a == b, sol, bc)
 solve(a == b, sol)
