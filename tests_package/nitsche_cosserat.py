@@ -148,12 +148,11 @@ test_strain = strain_bis(v, eta)
 trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
 test_stress,test_couple_stress = stress(test_strain, D_aux)
 lhs_nitsche = -inner(dot(trial_stress, n)[0], v[0]) * ds(3) - inner(dot(trial_stress, n)[1], v[1]) * ds(2) - inner(dot(trial_couple_stress, n), eta) * (ds(2) + ds(3)) + inner(dot(test_stress, n)[0], u[0]) * ds(3) + inner(dot(test_stress, n)[1], u[1]) * ds(2) + inner(dot(test_couple_stress, n), psi) * (ds(2) + ds(3))
-#lhs_nitsche = -inner(dot(trial_stress, n), v) * (ds(3) + ds(2)) - inner(dot(trial_couple_stress, n), eta) * (ds(2) + ds(3)) + inner(dot(test_stress, n)[0], u[0]) * ds(3) + inner(dot(test_stress, n)[1], u[1]) * ds(2) + inner(dot(test_couple_stress, n), psi) * (ds(2) + ds(3))
 a += lhs_nitsche
 
-#u_D = 
-#rhs_nitsche =
-#L += rhs_nitsche
+u_D = Constant(1)
+rhs_nitsche = inner(dot(test_stress, n)[0], u_D) * ds(3) + inner(dot(test_stress, n)[1], u_D) * ds(2)# + inner(dot(test_couple_stress, n), eta) * (ds(2) + ds(3))
+L += rhs_nitsche
 
 U_h = Function(V)
 problem = LinearVariationalProblem(a, L, U_h)
