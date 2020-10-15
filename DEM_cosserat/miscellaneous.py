@@ -65,11 +65,12 @@ def rhs_nitsche_penalty(problem, list_Dirichlet_BC): #List must contain lists wi
     #For the rest
     v,psi = TestFunctions(problem.V_CR) #Use TrialFunctions instead?
     strains = problem.strains(v,psi)
-    stress,couple_stress = problem.stresses(problem.D,strains)
+    stress,couple_stress = problem.stresses(strains)
     if problem.dim == 3:
         stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
     elif problem.dim == 2:
-        stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
+        #stress = as_tensor(((stress[0],stress[1]), (stress[2],stress[3])))
+        stress = as_tensor(((stress[0],stress[3]), (stress[2],stress[1])))
     #Que faire en 3d pour le couple stress ?
     
     list_L = []
@@ -108,14 +109,16 @@ def lhs_nitsche_penalty(problem, list_Dirichlet_BC=None): #List must contain lis
 
     #For the rest
     trial_strains = problem.strains(u,phi)
-    trial_stress,trial_couple_stress = problem.stresses(problem.D,trial_strains)
+    trial_stress,trial_couple_stress = problem.stresses(trial_strains)
     test_strains = problem.strains(v,psi)
-    test_stress,test_couple_stress = problem.stresses(problem.D,test_strains)
+    test_stress,test_couple_stress = problem.stresses(test_strains)
     if problem.dim == 3:
         stress = as_tensor(((stress[0],stress[1],stress[2]), (stress[3],stress[4],stress[5]), (stress[6],stress[7],stress[8])))
     elif problem.dim == 2:
-        trial_stress = as_tensor(((trial_stress[0],trial_stress[1]), (trial_stress[2],trial_stress[3])))
-        test_stress = as_tensor(((test_stress[0],test_stress[1]), (test_stress[2],test_stress[3])))
+        #trial_stress = as_tensor(((trial_stress[0],trial_stress[1]), (trial_stress[2],trial_stress[3])))
+        #test_stress = as_tensor(((test_stress[0],test_stress[1]), (test_stress[2],test_stress[3])))
+        trial_stress = as_tensor(((trial_stress[0],trial_stress[3]), (trial_stress[2],trial_stress[1])))
+        test_stress = as_tensor(((test_stress[0],test_stress[3]), (test_stress[2],test_stress[1])))
 
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary

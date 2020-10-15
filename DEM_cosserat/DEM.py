@@ -77,16 +77,17 @@ class DEMProblem:
         b = 2*nu/(1-2*nu)
         c = 1/(1-N*N)
         d = (1-2*N*N)/(1-N*N)
-        #return G * as_matrix([[a,0,0,b], [0,d,c,0], [0,c,d,0], [b,0,0,a]]) #Not correct?
-        return G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]]) #correct
+        return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]]) #Not correct?
+        #return self.G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]]) #correct
     def strains(self, v, eta):
-        gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
+        #gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
+        gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
         kappa = grad(eta)
         return gamma, kappa
 
-    def stresses(self, D, strains):
+    def stresses(self, strains):
         gamma,kappa = strains
-        sigma = dot(D, gamma)
+        sigma = dot(self.D, gamma)
         mu = 4*self.G*self.l*self.l * kappa
         return sigma, mu
 
@@ -98,7 +99,7 @@ class DEMProblem:
         #Variationnal formulation
         def_test = self.strains(v_CR,eta_CR)
         def_trial = self.strains(u_CR, psi_CR)
-        stress_trial = self.stresses(self.D,def_trial)
+        stress_trial = self.stresses(def_trial)
         a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
 
         A = assemble(a)
@@ -111,9 +112,8 @@ def inner_penalty(problem):
     dofmap_tens_DG_0 = problem.W.dofmap()
 
     #assembling penalty factor
-    vol = CellVolume(problem.mesh)
-    hF = FacetArea(problem.mesh)
-    h_avg = (vol('+') + vol('-')) / (2.*hF('+'))
+    h = CellDiameter(problem.mesh)
+    h_avg = 0.5 * (h('+') + h('-'))
 
     #Writing penalty bilinear form
     u,phi = TrialFunctions(problem.V_DG1)
