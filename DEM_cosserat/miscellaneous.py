@@ -155,7 +155,7 @@ def lhs_nitsche_penalty(problem, list_Dirichlet_BC=None): #List must contain lis
     #Assembling matrix
     Mat = assemble(bilinear)
     row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    Mat = csr_matrix((val, col, row))
+    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
     
     return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
 

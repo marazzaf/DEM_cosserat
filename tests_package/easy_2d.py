@@ -37,26 +37,6 @@ def AnalyticalSolution(nu, l, c, R):
     return SCF
 
 SCF = AnalyticalSolution(nu, l, c, R)
-
-def D_Matrix(G, nu, l, N):
-    a = 2*(1-nu)/(1-2*nu)
-    b = 2*nu/(1-2*nu)
-    c = 1/(1-N*N)
-    d = (1-2*N*N)/(1-N*N)
-    
-    D = as_matrix([[a,0,0,b], [b,0,0,a], [0,c,d,0], [0,d,c,0]])
-    return G * D
-
-def strain(v, eta):
-    gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
-    kappa = grad(eta)
-    return gamma, kappa
-
-def stress(D,strains):
-    gamma,kappa = strains
-    sigma = dot(D, gamma)
-    mu = 4*G*l*l * kappa
-    return sigma, mu
     
 # Mesh
 mesh = Mesh()
@@ -64,7 +44,7 @@ with XDMFFile("hole_plate.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term?
+problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -95,34 +75,28 @@ top_boundary.mark(boundary_parts, 1)
 
 #ds = Measure('ds')(subdomain_data=boundary_parts)
 
-u_0 = Constant(0.0)
-bc_1 = [[0], [u_0], 3]
-bc_2 = [[1], [u_0], 2]
-bc_3 = [[2], [u_0], 3]
-bc_4 = [[2], [u_0], 2]
-bc_bis = [bc_1, bc_2, bc_3, bc_4]
+bc = [[0, Constant(0), 3], [1, Constant(0), 2], [2, Constant(0), 3], [2, Constant(0), 3]]
 
 #compliance tensor
-D = D_Matrix(G, nu, l, N)
+problem.D = problem.D_Matrix(G, nu, N, l)
 
 # Variational problem
-A = elastic_bilinear_form(problem, D, strain, stress)
+A = problem.elastic_bilinear_form()
 
 #rhs
-rhs = assemble_boundary_load(problem, 1, boundary_parts, t)
+b = assemble_boundary_load(problem, 1, boundary_parts, t)
 
 #Imposing weakly the BC!
-rhs += rhs_nitsche_penalty(problem, bc_bis, D, strain, stress)
+b += rhs_nitsche_penalty(problem, bc)
 
 #Nitsche penalty bilinear form
-A += lhs_nitsche_penalty(problem, bc_bis)
+A += lhs_nitsche_penalty(problem, bc)
 
 #Penalty matrix
-#A += inner_penalty(problem)
-A += inner_penalty_bis(problem)
+A += inner_penalty(problem)
 
 #Solving linear problem
-v = spsolve(A,rhs)
+v = spsolve(A,b)
 v_h = Function(problem.V_DG)
 v_h.vector().set_local(v)
 u_h, psi_h = v_h.split()
