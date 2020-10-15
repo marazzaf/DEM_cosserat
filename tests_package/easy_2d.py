@@ -95,19 +95,6 @@ A += lhs_nitsche_penalty(problem, bc)
 #Penalty matrix
 A += inner_penalty(problem)
 
-#Trying to add last term that changes from DG
-u, psi = TrialFunctions(problem.V_DG1)
-v, eta = TestFunctions(problem.V_DG1)
-n = FacetNormal(problem.mesh)
-gamma,kappa = problem.strains(u,psi)
-sigma,mu = problem.stresses((gamma,kappa))
-sigma = as_tensor(((sigma[0], sigma[3]), (sigma[2], sigma[1])))
-inner_consistency = -inner(dot(avg(sigma),n('+')), jump(v))*dS - inner(dot(avg(mu),n('+')), jump(eta))*dS
-aux = assemble(inner_consistency)
-row,col,val = as_backend_type(aux).mat().getValuesCSR()
-aux = csr_matrix((val, col, row))
-A += problem.DEM_to_DG1.T * aux * problem.DEM_to_DG1
-
 #Solving linear problem
 v = spsolve(A,b)
 v_h = Function(problem.V_DG)
