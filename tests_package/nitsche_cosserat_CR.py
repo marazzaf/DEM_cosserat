@@ -88,8 +88,8 @@ with XDMFFile("hole_plate.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
-U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
-S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
+U = VectorElement("CR", mesh.ufl_cell(), 1) # disp space
+S = FiniteElement("CR", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S))
 U,S = V.split()
 U_1, U_2 = U.sub(0), U.sub(1)
@@ -121,7 +121,15 @@ left_boundary.mark(boundary_parts, 3)
 top_boundary = TopBoundary()
 top_boundary.mark(boundary_parts, 1)
 
-ds = Measure('ds')(subdomain_data=boundary_parts)
+ds = Measure('ds')(subdomain_data=boundary_parts) #Measure("ds")
+
+u_0 = Constant(0.0)
+left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
+bot_U_2 = DirichletBC(U.sub(1), u_0, bot_boundary)
+left_S = DirichletBC(S, u_0, left_boundary)
+bot_S = DirichletBC(S, u_0, bot_boundary)
+
+bc = [left_U_1, bot_U_2, left_S, bot_S]
 
 # Variational problem
 u, psi = TrialFunctions(V)
@@ -129,7 +137,12 @@ v, eta = TestFunctions(V)
 
 D,D_aux = D_Matrix(G, nu, l, N)
 
-a = inner(strain(v, eta), D*strain(u, psi))*dx
+h = CellDiameter(mesh)
+h_avg = 0.5*(h('+') + h('-'))
+pen_u = 2*G
+pen_phi = 2*G*l*l
+
+a = inner(strain(v, eta), D*strain(u, psi))*dx + pen_u/h_avg * inner(jump(u),jump(v)) * dS# + pen_phi/h_avg * inner(jump(eta),jump(psi)) * dS
 L = inner(t, v)*ds(1)
 
 #For Nitsche penalty
