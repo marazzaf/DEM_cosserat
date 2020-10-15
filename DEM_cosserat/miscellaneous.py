@@ -86,14 +86,14 @@ def rhs_nitsche_penalty(problem, strain, stress, list_Dirichlet_BC): #List must 
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
             form_pen = problem.penalty_u / h * imposed_value * v[component] * dds
-            form_pen -= imposed_value * dot(stress,n)[component] * dds
+            form_pen += imposed_value * dot(stress,n)[component] * dds
         elif component >= problem.dim: #bnd couple stress
             if problem.dim == 3:
                 form_pen = problem.penalty_phi / h * imposed_value * psi[component-problem.dim] * dds
                 #form_pen += imposed_value * dot(couple_stress,n)[component-problem.dim] * dds
             elif problem.dim == 2:
                 form_pen = problem.penalty_phi / h * imposed_value * psi * dds
-                form_pen -= imposed_value * dot(couple_stress,n) * dds
+                form_pen += imposed_value * dot(couple_stress,n) * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = assemble(L).get_local()
@@ -133,8 +133,8 @@ def lhs_nitsche_penalty(problem, strain, stresses, list_Dirichlet_BC=None): #Lis
 
             if component < problem.dim: #bnd stress
                 form_pen = problem.penalty_u / h * u[component] * v[component] * dds
-                form_pen -= v[component]  * dot(trial_stress,n)[component] * dds
-                form_pen += u[component]  * dot(test_stress,n)[component] * dds
+                form_pen += v[component]  * dot(trial_stress,n)[component] * dds
+                form_pen -= u[component]  * dot(test_stress,n)[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds
