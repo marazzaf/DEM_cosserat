@@ -21,13 +21,15 @@ b = 10*v*dx
 
 #Nitsche symmetric test
 n = FacetNormal(mesh)
-nitsche = - inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
+#nitsche = - inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
+nitsche_bis = + inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
 
 #Penalty
 h = CellDiameter(mesh)
 pen = 2/h * inner(u,v) * ds
 
-a += nitsche + pen
+#a += nitsche + pen
+a += nitsche_bis
 
 sol = Function(U)
 
