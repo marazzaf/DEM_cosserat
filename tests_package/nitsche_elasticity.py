@@ -14,8 +14,8 @@ mesh = UnitSquareMesh(nb_elt, nb_elt)
 def boundary(x):
     return x[0] < DOLFIN_EPS or x[0] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS or x[1] > 1.0 - DOLFIN_EPS
 
-#U = VectorFunctionSpace(mesh, 'CG', 1)
-U = VectorFunctionSpace(mesh, 'CR', 1)
+U = VectorFunctionSpace(mesh, 'CG', 1)
+#U = VectorFunctionSpace(mesh, 'CR', 1)
 
 u = TrialFunction(U)
 v = TestFunction(U)
