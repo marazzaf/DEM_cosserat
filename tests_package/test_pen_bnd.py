@@ -58,8 +58,10 @@ rhs = problem.assemble_volume_load(t)
 
 #Nitsche penalty bilinear form. Homogeneous Dirichlet in this case.
 #A += lhs_nitsche_penalty(problem, strain, stresses)
-bc = [[0, Constant(0)], [1, Constant(0)], [2, Constant(0)]]
+#bc = [[0, Constant(0)], [1, Constant(0)], [2, Constant(0)]]
+bc = [[0, Constant(1)], [1, Constant(1)], [2, Constant(1)]]
 A += lhs_nitsche_penalty(problem, strain, stresses, bc)
+rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
 
 #Solving linear problem
 v = spsolve(A,rhs)

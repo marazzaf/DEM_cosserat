@@ -151,8 +151,12 @@ lhs_nitsche = -inner(dot(trial_stress, n)[0], v[0]) * ds(3) - inner(dot(trial_st
 + inner(dot(test_stress, n)[0], u[0]) * ds(3) + inner(dot(test_stress, n)[1], u[1]) * ds(2) + inner(dot(test_couple_stress, n), psi) * (ds(2) + ds(3))
 a += lhs_nitsche
 
+#u_D = 
+#rhs_nitsche =
+#L += rhs_nitsche
+
 U_h = Function(V)
-problem = LinearVariationalProblem(a, L, U_h, bc)
+problem = LinearVariationalProblem(a, L, U_h)
 solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, psi_h = U_h.split()
