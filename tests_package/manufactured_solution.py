@@ -87,15 +87,11 @@ u = interpolate(u_D, U)
 
 fig = plot(u_h[0])
 plt.colorbar(fig)
-plt.savefig('u_x_15.pdf')
+plt.savefig('u_x_25.pdf')
 plt.show()
 #fig = plot(u_h[1])
 #plt.colorbar(fig)
 #plt.savefig('u_y_15.pdf')
-#plt.show()
-#fig = plot(phi_h)
-#plt.colorbar(fig)
-#plt.savefig('phi_15.pdf')
 #plt.show()
 #sys.exit()
 
@@ -103,27 +99,17 @@ fig = plot(u[0])
 plt.colorbar(fig)
 plt.savefig('ref_u_x_25.pdf')
 plt.show()
-sys.exit()
 
-U = VectorFunctionSpace(problem.mesh, 'DG', 1)
-u = interpolate(u_D, U)[0]
-fig = plot(u)
+fig = plot(phi_h)
 plt.colorbar(fig)
-plt.savefig('ref_u_x_25.pdf')
+plt.savefig('phi_25.pdf')
 plt.show()
-#sys.exit()
 
-fig = plot(u_h[1])
+U = FunctionSpace(problem.mesh, 'DG', 1)
+phi = interpolate(phi_D, U)
+fig = plot(phi)
 plt.colorbar(fig)
-plt.savefig('u_y_25.pdf')
-plt.show()
-#sys.exit()
-
-U = VectorFunctionSpace(problem.mesh, 'DG', 1)
-u = interpolate(u_D, U)[1]
-fig = plot(u)
-plt.colorbar(fig)
-plt.savefig('ref_u_y_25.pdf')
+plt.savefig('ref_phi_25.pdf')
 plt.show()
 sys.exit()
 
@@ -136,22 +122,6 @@ sigma_yy = project(sigma[1])
 #sigma = stress(epsilon)[0]
 #sigma_yy = project(sigma[1])
 
-error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-
-elements_size.append(hm)
-SCF_0.append(sigma_yy(10.0, 1e-6))
-errors.append(error)
-        
-print("Analytical SCF: %.5e" % SCF)
-print(elements_size)
-print(errors)
-print(SCF_0)
-
 
 file = File("sigma.pvd")
 file << sigma_yy
-
-plt.plot(elements_size, errors, "-*", linewidth=2)
-plt.xlabel("elements size")
-plt.ylabel("error")
-plt.show()
