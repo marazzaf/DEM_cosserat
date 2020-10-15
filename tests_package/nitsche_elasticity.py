@@ -23,7 +23,8 @@ v = TestFunction(U)
 def sigma(u):
     return lambda_*div(u)*Identity(2) + 2*mu*sym(grad(u))
 
-a = inner(sigma(u), grad(v)) * dx
+#a = inner(sigma(u), grad(v)) * dx
+a = inner(2*mu*sym(grad(u)), grad(v)) * dx + inner(lambda_*div(u),div(v)) * dx
 
 b = inner(as_vector((10,5)),v) * dx
 
@@ -45,9 +46,9 @@ sol = Function(U)
 #bc = DirichletBC(U, Constant(0), boundary)
 u_D = Constant((1,0))
 rhs_pen = 2/h * inner(u_D,v) * ds
-rhs_nitsche = -inner(dot(2*mu*sym(grad(v)), n), u_D) * ds - inner(lambda_*div(v), dot(u_D,n)) * ds
+rhs_nitsche = inner(dot(2*mu*sym(grad(v)), n), u_D) * ds + inner(lambda_*div(v), dot(u_D,n)) * ds
 b += rhs_nitsche #no pen
-#b += rhs_nitsche + rhs_pen
+#b += -rhs_nitsche + rhs_pen
 
 #solve(a == b, sol, bc)
 solve(a == b, sol)
