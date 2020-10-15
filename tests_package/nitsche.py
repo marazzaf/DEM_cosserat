@@ -10,7 +10,8 @@ mesh = UnitSquareMesh(nb_elt, nb_elt)
 def boundary(x):
     return x[0] < DOLFIN_EPS or x[0] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS or x[1] > 1.0 - DOLFIN_EPS
 
-U = FunctionSpace(mesh, 'CG', 1)
+#U = FunctionSpace(mesh, 'CG', 1)
+U = FunctionSpace(mesh, 'CR', 1)
 
 u = TrialFunction(U)
 v = TestFunction(U)
@@ -21,15 +22,16 @@ b = 10*v*dx
 
 #Nitsche symmetric test
 n = FacetNormal(mesh)
-#nitsche = - inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
-nitsche_bis = + inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
+nitsche = - inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
+#nitsche_bis = + inner(u, dot(grad(v),n)) * ds - inner(v, dot(grad(u),n)) * ds
 
 #Penalty
 h = CellDiameter(mesh)
 pen = 2/h * inner(u,v) * ds
 
-#a += nitsche + pen
-a += nitsche_bis
+#a += nitsche + pen #sym pen
+a += nitsche #sym no pen
+#a += nitsche_bis #nonsym
 
 sol = Function(U)
 
