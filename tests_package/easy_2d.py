@@ -9,7 +9,7 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from scipy.sparse.linalg import spsolve
+from scipy.sparse.linalg import spsolve,cg
 
 # Parameters
 d = 2 #2d problem
@@ -97,6 +97,8 @@ A += inner_penalty(problem)
 
 #Solving linear problem
 v = spsolve(A,b)
+#v,info = cg(A,b)
+#assert info == 0
 v_h = Function(problem.V_DG)
 v_h.vector().set_local(v)
 u_h, psi_h = v_h.split()
