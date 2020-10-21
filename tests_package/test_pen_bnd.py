@@ -21,17 +21,6 @@ a = 2*(1-nu)/(1-2*nu)
 b = 2*nu/(1-2*nu)
 c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
-
-#def strain(v, eta):
-#    gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
-#    kappa = grad(eta)
-#    return gamma, kappa
-#
-#def stresses(D,strains):
-#    gamma,kappa = strains
-#    sigma = dot(D, gamma)
-#    mu = 4*G*l*l * kappa
-#    return sigma, mu
     
 # Mesh
 L = 0.5
@@ -69,10 +58,25 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
+#Loading ref
+ref_mesh = HDF5File(MPI.comm_world, 'ref_mesh_test_pen.hdf5', 'r')
+mesh_ref = Mesh()
+ref_mesh.read(mesh_ref, "Mesh", False)
+print('mesh ok')
+U_ref = VectorFunctionSpace(mesh_ref, 'DG', 1)
+u_ref = Function(U_ref)
+ref = HDF5File(MPI.comm_world, 'ref_test_pen.hdf5', 'r')
+ref.read(u_ref, 'disp')
+print('disp ok')
+PHI_ref = FunctionSpace(mesh_ref, 'DG', 1)
+psi_ref = Function(PHI_ref)
+ref.read(psi_ref, 'rotation')
+
+
 #assert abs(np.linalg.norm(u_h(0,L))) < abs(np.linalg.norm(u_h(0,0))) / 10
 #assert abs(np.linalg.norm(phi_h(0,L))) < abs(np.linalg.norm(phi_h(0,0))) / 100
 #print(u_h(0,L),phi_h(0,L))
-print(u_h(0,0),phi_h(0,0))
+#print(u_h(0,0),phi_h(0,0))
 
 #gamma,kappa = strain(u_h,phi_h)
 #U = FunctionSpace(problem.mesh, 'DG', 0)
@@ -86,16 +90,16 @@ print(u_h(0,0),phi_h(0,0))
 #plt.show()
 #sys.exit()
 
-fig = plot(u_h[0])
-plt.colorbar(fig)
-plt.savefig('u_x_25.pdf')
-plt.show()
-fig = plot(u_h[1])
-plt.colorbar(fig)
-plt.savefig('u_y_25.pdf')
-plt.show()
-fig = plot(phi_h)
-plt.colorbar(fig)
-plt.savefig('phi_25.pdf')
-plt.show()
-sys.exit()
+#fig = plot(u_h[0])
+#plt.colorbar(fig)
+#plt.savefig('u_x_25.pdf')
+#plt.show()
+#fig = plot(u_h[1])
+#plt.colorbar(fig)
+#plt.savefig('u_y_25.pdf')
+#plt.show()
+#fig = plot(phi_h)
+#plt.colorbar(fig)
+#plt.savefig('phi_25.pdf')
+#plt.show()
+#sys.exit()

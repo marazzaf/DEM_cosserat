@@ -55,10 +55,10 @@ u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1]-x[0]*x[1]-1)','A*(x[0]*x[0]+x[1]*x[1]-
 phi_D = Expression('B*(x[0]-x[1])', B=B, degree=2)
 
 #compliance tensor
-problem.D = problem.D_Matrix(G, nu, N)
+problem.D = problem.D_Matrix(G, nu, N, l)
 
 # Variational problem
-lhs = elastic_bilinear_form(problem, strain, stresses)
+lhs = problem.elastic_bilinear_form()
 
 #Penalty matrix
 lhs += inner_penalty(problem)
@@ -71,10 +71,10 @@ rhs = problem.assemble_volume_load(t)
 bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
 
 #Nitsche penalty rhs
-rhs += rhs_nitsche_penalty(problem, strain, stresses, bc)
+rhs += rhs_nitsche_penalty(problem, bc)
 
 #Nitsche penalty bilinear form
-lhs += lhs_nitsche_penalty(problem, strain, stresses, bc)
+lhs += lhs_nitsche_penalty(problem, bc)
 
 #Solving linear problem
 v = spsolve(lhs,rhs)

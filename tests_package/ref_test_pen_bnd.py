@@ -65,7 +65,7 @@ def stress(Tuple):
 
 #Mesh
 L = 0.5
-nb_elt = 25
+nb_elt = 50
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
@@ -107,19 +107,33 @@ solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, psi_h = U_h.split()
 
-#plot(mesh)
+#Saving results
+#results = File('ref_test_pen.pvd')
+#u_h.rename('disp', 'disp')
+#results << u_h
+#psi_h.rename('rotation', 'rotation')
+#results << psi_h
+res_mesh = HDF5File(MPI.comm_world, 'ref_mesh_test_pen.hdf5', 'w')
+res_mesh.write(mesh , "Mesh")
+del res_mesh
+res = HDF5File(MPI.comm_world, 'ref_test_pen.hdf5', 'w')
+res.write(u_h, 'disp')
+res.write(psi_h, 'rotation')
+del res
+
+##plot(mesh)
+##plt.show()
+##sys.exit()
+#img = plot(u_h[0])
+#plt.colorbar(img)
+#plt.savefig('ref_u_x_15.pdf')
+#plt.show()
+#img = plot(u_h[1])
+#plt.colorbar(img)
+#plt.savefig('ref_u_y_15.pdf')
+#plt.show()
+#img = plot(psi_h)
+#plt.colorbar(img)
+#plt.savefig('ref_phi_15.pdf')
 #plt.show()
 #sys.exit()
-img = plot(u_h[0])
-plt.colorbar(img)
-plt.savefig('ref_u_x_15.pdf')
-plt.show()
-img = plot(u_h[1])
-plt.colorbar(img)
-plt.savefig('ref_u_y_15.pdf')
-plt.show()
-img = plot(psi_h)
-plt.colorbar(img)
-plt.savefig('ref_phi_15.pdf')
-plt.show()
-sys.exit()
