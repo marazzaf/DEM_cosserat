@@ -136,8 +136,8 @@ def lhs_nitsche_penalty(problem, list_Dirichlet_BC=None): #List must contain lis
 
             if component < problem.dim: #bnd stress
                 form_pen = problem.penalty_u / h * u[component] * v[component] * dds
-                form_pen += v[component]  * dot(trial_stress,n)[component] * dds
-                form_pen -= u[component]  * dot(test_stress,n)[component] * dds
+                form_pen -= v[component]  * dot(trial_stress,n)[component] * dds
+                form_pen += u[component]  * dot(test_stress,n)[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds

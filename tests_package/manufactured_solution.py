@@ -21,22 +21,6 @@ a = 2*(1-nu)/(1-2*nu)
 b = 2*nu/(1-2*nu)
 c = 1/(1-N*N)
 d = (1-2*N*N)/(1-N*N)
-
-#def strain(v, eta):
-#    gamma = as_vector([v[0].dx(0), v[1].dx(0) - eta, v[0].dx(1) + eta, v[1].dx(1)])
-#    kappa = grad(eta)
-#    return gamma, kappa
-
-def strain(v, eta):
-    gamma = as_vector([v[0].dx(0), v[0].dx(1) + eta, v[1].dx(0) - eta, v[1].dx(1)]) #correct
-    kappa = grad(eta)
-    return gamma, kappa
-
-def stresses(D,strains):
-    gamma,kappa = strains
-    sigma = dot(D, gamma)
-    mu = 4*G*l*l * kappa
-    return sigma, mu
     
 # Mesh
 L = 0.5
@@ -44,7 +28,7 @@ nb_elt = 25
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G, 2*G*l) #sure about second penalty term?
+problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
@@ -122,7 +106,7 @@ plt.show()
 sys.exit()
 
 # Stress
-epsilon = strain(u_h, psi_h)
+epsilon = problem.strain(u_h, psi_h)
 sigma = D*epsilon
 sigma_yy = project(sigma[1])
 #Other version
