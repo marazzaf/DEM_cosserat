@@ -47,7 +47,7 @@ lhs = problem.elastic_bilinear_form()
 lhs += inner_penalty(problem)
 
 #rhs
-t = Expression(('-(A*(2(a+d)-(b+c))+B*(c-d))','-(A*(2(a+d)-(b+c))+B*(c-d))','(x[0]-x[1])*(c-d)*(3*A-2*B)'), A=A, B=B, a=a, b=b, c=c, d=d, degree = 2)
+t = Expression(('-(A*(2*(a+d)-(b+c))+B*(c-d))','-(A*(2*(a+d)-(b+c))+B*(c-d))','(x[0]-x[1])*(c-d)*(3*A-2*B)'), A=A, B=B, a=a, b=b, c=c, d=d, degree = 2)
 rhs = problem.assemble_volume_load(t)
 
 #Listing Dirichlet BC
