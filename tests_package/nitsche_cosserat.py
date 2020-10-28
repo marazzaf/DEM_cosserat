@@ -3,7 +3,6 @@
 # Computation of the solution in the plate for different meshes
 from dolfin import *
 import numpy as np
-from mshr import Rectangle, Circle, generate_mesh
 import matplotlib.pyplot as plt
 import sys
 
@@ -18,19 +17,6 @@ l = 0.2 # intrinsic length scale
 N = 0.8 # coupling parameter
 T = 1.0 # load
 c = l/N
-
-##for other version
-#K = 16.67e3
-#G = 10e3
-#Gc = 5e3
-#L = 10 #pas de valeur
-#R = 0.01
-#h3 = 2/5
-#M = G*R*R/h3
-#Mc = M
-
-# Convergence
-h = [15, 30, 50, 70, 90] # mesh density
 
 elements_size = []
 errors = []
@@ -61,11 +47,16 @@ def D_Matrix(G, nu, l, N):
         [0.0,0.0,0.0,0.0, 4.0*l**2, 0.0], \
         [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
     
-    d *= G
+    d_aux = np.array([ \
+        [(2*(1 - nu))/(1 - 2*nu), (2*nu)/(1 - 2*nu), 0.,0.], \
+        [(2*nu)/(1 - 2*nu), (2*(1 - nu)) / (1 - 2*nu), 0.,0.], \
+        [0.,0., 1/(1 - N**2), (1 - 2*N**2)/(1 - N**2)], \
+        [0.,0., (1 - 2*N**2)/(1 - N**2), 1/(1 - N**2)] ])
 
     #print(type(d))
-    D = as_matrix(d) #Constant(d)
-    return D
+    D = G * as_matrix(d)
+    D_aux = G * as_tensor(d_aux)
+    return D,D_aux
 
 # Strain
 def strain(v, eta):
@@ -79,23 +70,19 @@ def strain(v, eta):
 
     return strain
 
-def strain_bis(v, omega):
-    gamma = grad(v) + as_tensor(([0.,-omega],[omega,0.]))
-    kappa = grad(omega)
+def strain_bis(v, eta):
+    gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
+    kappa = grad(eta)
     return gamma, kappa
 
-def stress(Tuple):
+def stress(Tuple, D):
     gamma,kappa = Tuple
-    sigma = K * tr(gamma) * Indentity(d) + 2*G * (sym(gamma) - tr(gamma) * Indentity(d) / 3) + 2*Gc * skew(gamma)
-    mu = L * tr(kappa) * Identity(d) + 2*M * (sym(kappa) - tr(kappa) * Identity(d) / 3) + 2*Mc * skew(curvature)
+    sigma = dot(D, gamma)
+    sigma = as_tensor( ([sigma[0],sigma[3]],[sigma[2],sigma[1]]) )
+    mu = 4*G*l*l * kappa
     return sigma,mu
     
 
-#for hx in h :
-    
-    ## Mesh
-    #geometry = Rectangle(Point(0,0),Point(plate, plate))-Circle(Point(0,0), R, hx)
-    #mesh = generate_mesh(geometry, hx)
 mesh = Mesh()
 with XDMFFile("hole_plate.xdmf") as infile:
     infile.read(mesh)
@@ -128,31 +115,39 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
 bot_boundary = BotBoundary()
+bot_boundary.mark(boundary_parts, 2)
 left_boundary = LeftBoundary()
+left_boundary.mark(boundary_parts, 3)
 top_boundary = TopBoundary()
 top_boundary.mark(boundary_parts, 1)
 
-ds = Measure('ds')(subdomain_data=boundary_parts) #Measure("ds")
-
-u_0 = Constant(0.0)
-left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
-bot_U_2 = DirichletBC(U.sub(1), u_0, bot_boundary)
-left_S = DirichletBC(S, u_0, left_boundary)
-bot_S = DirichletBC(S, u_0, bot_boundary)
-
-bc = [left_U_1, bot_U_2, left_S, bot_S]
+ds = Measure('ds')(subdomain_data=boundary_parts)
 
 # Variational problem
 u, psi = TrialFunctions(V)
 v, eta = TestFunctions(V)
 
-D = D_Matrix(G, nu, l, N)
-    
+D,D_aux = D_Matrix(G, nu, l, N)
+
 a = inner(strain(v, eta), D*strain(u, psi))*dx
 L = inner(t, v)*ds(1)
 
+#For Nitsche penalty
+#rhs_nitsche = inner(dot(D*strain(v, eta), n), u_D) * ds
+n = FacetNormal(mesh)
+trial_strain = strain_bis(u, psi)
+test_strain = strain_bis(v, eta)
+trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
+test_stress,test_couple_stress = stress(test_strain, D_aux)
+lhs_nitsche = -inner(dot(trial_stress, n)[0], v[0]) * ds(3) - inner(dot(trial_stress, n)[1], v[1]) * ds(2) - inner(dot(trial_couple_stress, n), eta) * (ds(2) + ds(3)) + inner(dot(test_stress, n)[0], u[0]) * ds(3) + inner(dot(test_stress, n)[1], u[1]) * ds(2) + inner(dot(test_couple_stress, n), psi) * (ds(2) + ds(3))
+a += lhs_nitsche
+
+#u_D = Constant(1)
+#rhs_nitsche = inner(dot(test_stress, n)[0], u_D) * ds(3) + inner(dot(test_stress, n)[1], u_D) * ds(2)# + inner(dot(test_couple_stress, n), eta) * (ds(2) + ds(3))
+#L += rhs_nitsche
+
 U_h = Function(V)
-problem = LinearVariationalProblem(a, L, U_h, bc)
+problem = LinearVariationalProblem(a, L, U_h)
 solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, psi_h = U_h.split()
@@ -178,10 +173,6 @@ sys.exit()
 epsilon = strain(u_h, psi_h)
 sigma = D*epsilon
 sigma_yy = project(sigma[1])
-#Other version
-#epsilon = strain_bis(u_h, psi_h)
-#sigma = stress(epsilon)[0]
-#sigma_yy = project(sigma[1])
 
 error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
 
