@@ -51,6 +51,7 @@ bc = [[0, Constant(0)], [1, Constant(0)], [2, Constant(0)]]
 #bc = [[0, Constant(1)], [1, Constant(1)], [2, Constant(1)]]
 A += lhs_nitsche_penalty(problem, bc)
 rhs += rhs_nitsche_penalty(problem, bc)
+#A += lhs_nitsche_penalty(problem)
 
 #Solving linear problem
 v = spsolve(A,rhs)

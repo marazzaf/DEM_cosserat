@@ -32,8 +32,8 @@ problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
-A = 10 #What value to put?
-B = 12 #Same question
+A = 0.5 #What value to put?
+B = 1 #Same question
 u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1]-x[0]*x[1]-1)','A*(x[0]*x[0]+x[1]*x[1]-x[0]*x[1]-1)'), A=A, degree=3)
 phi_D = Expression('B*(x[0]-x[1])', B=B, degree=2)
 
@@ -70,16 +70,19 @@ u_h, phi_h = v_h.split()
 
 U = VectorFunctionSpace(problem.mesh, 'DG', 1)
 u = interpolate(u_D, U)
-#print(u(0,0))
-#sys.exit()
+U = FunctionSpace(problem.mesh, 'DG', 1)
+phi = interpolate(phi_D, U)
 
-fig = plot(u_h[0])
+#fig = plot(u_h[0])
+#plt.colorbar(fig)
+#plt.savefig('u_x_25.pdf')
+#plt.show()
+#fig = plot(u[0])
+#plt.colorbar(fig)
+#plt.savefig('ref_u_x_25.pdf')
+#plt.show()
+fig = plot(u_h[0]-u[0])
 plt.colorbar(fig)
-plt.savefig('u_x_25.pdf')
-plt.show()
-fig = plot(u[0])
-plt.colorbar(fig)
-plt.savefig('ref_u_x_25.pdf')
 plt.show()
 
 #fig = plot(u_h[1])
@@ -90,30 +93,20 @@ plt.show()
 #plt.colorbar(fig)
 #plt.savefig('ref_u_y_25.pdf')
 #plt.show()
-
-fig = plot(phi_h)
+fig = plot(u_h[1]-u[1])
 plt.colorbar(fig)
-plt.savefig('phi_25.pdf')
 plt.show()
 
-U = FunctionSpace(problem.mesh, 'DG', 1)
-phi = interpolate(phi_D, U)
-fig = plot(phi)
+#fig = plot(phi_h)
+#plt.colorbar(fig)
+#plt.savefig('phi_25.pdf')
+#plt.show()
+#fig = plot(phi)
+#plt.colorbar(fig)
+#plt.savefig('ref_phi_25.pdf')
+#plt.show()
+fig = plot(phi_h-phi)
 plt.colorbar(fig)
-plt.savefig('ref_phi_25.pdf')
-plt.show()
-#sys.exit()
-
-fig = plot(phi_h)
-plt.colorbar(fig)
-plt.savefig('phi_25.pdf')
-plt.show()
-
-U = FunctionSpace(problem.mesh, 'DG', 1)
-u = interpolate(phi_D, U)
-fig = plot(u)
-plt.colorbar(fig)
-plt.savefig('ref_phi_25.pdf')
 plt.show()
 sys.exit()
 

@@ -86,12 +86,12 @@ v, eta = TestFunctions(V)
 D,D_aux = D_Matrix(G, nu, l, N)
 
 #BC
-A = 10 #What value to put?
-B = 12 #Same question
+A = 0.5 #What value to put?
+B = 1 #Same question
 u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1]-x[0]*x[1]-1)','A*(x[0]*x[0]+x[1]*x[1]-x[0]*x[1]-1)'), A=A, degree=3)
 phi_D = Expression('B*(x[0]-x[1])', B=B, degree=2)
-t = Expression(('-(2*A*(a+d)+B*(c-d))','-(2*A*(a+d)+B*(c-d))'), A=A, B=B, a=a, b=b, c=c, d=d, degree = 2)
-c = Expression('2*(x[0]-x[1])*(c-d)*(A-B)', A=A, B=B, c=c, d=d, degree = 2)
+t = Expression(('-(A*(2*(a+d)-(b+c))+B*(c-d))','-(A*(2*(a+d)-(b+c))+B*(c-d))'), A=A, B=B, a=a, b=b, c=c, d=d, degree = 2)
+c = Expression('(x[0]-x[1])*(c-d)*(3*A-2*B)', A=A, B=B, c=c, d=d, degree = 2)
 
 #initial lhs and rhs
 lhs = inner(strain(v, eta), D*strain(u, psi))*dx
@@ -116,12 +116,29 @@ solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, psi_h = U_h.split()
 
+#Reference solutions
+U = VectorFunctionSpace(mesh, 'CG', 2)
+u = interpolate(u_D, U)
+U = FunctionSpace(mesh, 'CG', 1)
+phi = interpolate(phi_D, U)
+
 img = plot(u_h[0])
 plt.colorbar(img)
 plt.show()
+fig = plot(u[0])
+plt.colorbar(fig)
+plt.show()
+
 img = plot(u_h[1])
 plt.colorbar(img)
 plt.show()
+fig = plot(u[1])
+plt.colorbar(fig)
+plt.show()
+
 img = plot(psi_h)
 plt.colorbar(img)
+plt.show()
+fig = plot(phi)
+plt.colorbar(fig)
 plt.show()
