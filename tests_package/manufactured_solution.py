@@ -46,8 +46,8 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 #ds = Measure('ds')(subdomain_data=boundary_parts)
 
 x = SpatialCoordinate(problem.mesh)
-u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degree=2)
-phi_D = Constant(0.)
+u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degree=2) #A=0.5
+phi_D = Expression('x[0]-x[1]', degree=1) #B=1
 
 #compliance tensor
 problem.D = problem.D_Matrix(G, nu, l, N)
@@ -59,7 +59,7 @@ A = elastic_bilinear_form(problem, strain, stresses)
 A += inner_penalty(problem)
 
 #rhs
-t = Constant((-(a+c),-(a+c),0))
+t = Expression(('-0.5*(2*(a+d) - b - c) - (c-d)', '-0.5*(2*(a+d) - b - c) - (c-d)', '(x[0]-x[1])*(c-d)*(1.5-2)'), a=a, b=b, c=c, d=d, degree=1)
 #t = Constant((0,0,0))
 rhs = problem.assemble_volume_load(t)
 
@@ -127,6 +127,19 @@ fig = plot(u)
 plt.colorbar(fig)
 plt.savefig('ref_u_y_25.pdf')
 plt.show()
+#sys.exit()
+
+fig = plot(phi_h)
+plt.colorbar(fig)
+plt.savefig('phi_25.pdf')
+plt.show()
+
+U = FunctionSpace(problem.mesh, 'DG', 1)
+u = interpolate(phi_D, U)
+fig = plot(u)
+plt.colorbar(fig)
+plt.savefig('ref_phi_25.pdf')
+plt.show()
 sys.exit()
 
 # Stress
@@ -137,23 +150,3 @@ sigma_yy = project(sigma[1])
 #epsilon = strain_bis(u_h, psi_h)
 #sigma = stress(epsilon)[0]
 #sigma_yy = project(sigma[1])
-
-error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-
-elements_size.append(hm)
-SCF_0.append(sigma_yy(10.0, 1e-6))
-errors.append(error)
-        
-print("Analytical SCF: %.5e" % SCF)
-print(elements_size)
-print(errors)
-print(SCF_0)
-
-
-file = File("sigma.pvd")
-file << sigma_yy
-
-plt.plot(elements_size, errors, "-*", linewidth=2)
-plt.xlabel("elements size")
-plt.ylabel("error")
-plt.show()
