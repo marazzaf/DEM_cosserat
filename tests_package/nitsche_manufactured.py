@@ -59,7 +59,7 @@ def strain_bis(v, eta):
 def stress(Tuple, D):
     gamma,kappa = Tuple
     sigma = dot(D, gamma)
-    sigma = as_tensor( ([sigma[0],sigma[3]],[sigma[2],sigma[1]]) )
+    sigma = as_tensor( ([sigma[0],sigma[2]],[sigma[3],sigma[1]]) )
     mu = 4*G*l*l * kappa
     return sigma,mu
     
