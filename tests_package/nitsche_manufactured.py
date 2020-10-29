@@ -65,7 +65,7 @@ def stress(Tuple, D):
     
 #mesh
 L = 0.5
-nb_elt = 25
+nb_elt = 15
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
@@ -91,7 +91,7 @@ B = 1 #Same question
 u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])'), A=A, degree=2)
 phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
 t = Expression(('-G*(A*2*(a+c)+B*(d-c))','-G*(A*2*(a+c)+B*(d-c))'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
-c = Expression('2*(x[0]-x[1])*(d-c)*(B-A)*G', G=G, A=A, B=B, c=c, d=d, degree = 1)
+c = Expression('-2*(x[0]-x[1])*(d-c)*(B-A)*G', G=G, A=A, B=B, c=c, d=d, degree = 1)
 #c = Constant(0)
 
 #initial lhs and rhs
@@ -123,32 +123,32 @@ u = interpolate(u_D, U)
 U = FunctionSpace(mesh, 'CG', 1)
 phi = interpolate(phi_D, U)
 
-#img = plot(u_h[0]-u[0])
-#plt.colorbar(img)
-#plt.show()
-img = plot(u_h[0])
+img = plot(u_h[0]-u[0])
 plt.colorbar(img)
 plt.show()
-fig = plot(u[0])
-plt.colorbar(fig)
-plt.show()
+#img = plot(u_h[0])
+#plt.colorbar(img)
+#plt.show()
+#fig = plot(u[0])
+#plt.colorbar(fig)
+#plt.show()
 
-#img = plot(u_h[1]-u[1])
-#plt.colorbar(img)
-#plt.show()
-img = plot(u_h[1])
+img = plot(u_h[1]-u[1])
 plt.colorbar(img)
 plt.show()
-fig = plot(u[1])
-plt.colorbar(fig)
-plt.show()
+#img = plot(u_h[1])
+#plt.colorbar(img)
+#plt.show()
+#fig = plot(u[1])
+#plt.colorbar(fig)
+#plt.show()
 
-#img = plot(psi_h-phi)
-#plt.colorbar(img)
-#plt.show()
-img = plot(psi_h)
+img = plot(psi_h-phi)
 plt.colorbar(img)
 plt.show()
-fig = plot(phi)
-plt.colorbar(fig)
-plt.show()
+#img = plot(psi_h)
+#plt.colorbar(img)
+#plt.show()
+#fig = plot(phi)
+#plt.colorbar(fig)
+#plt.show()
