@@ -59,6 +59,14 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
+F = FacetArea(problem.mesh)
+W = FunctionSpace(problem.mesh, 'CR', 1)
+w = TestFunction(W)
+aire = sum(assemble(w * ds).get_local())
+print(assemble(u_h[0] / aire * ds))
+print(assemble(u_h[1] / aire * ds))
+print(assemble(phi_h / aire * ds))
+
 ##Loading ref
 #ref_mesh = HDF5File(MPI.comm_world, 'ref_mesh_test_pen.hdf5', 'r')
 #mesh_ref = Mesh()
