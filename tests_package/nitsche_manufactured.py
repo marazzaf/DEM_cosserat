@@ -90,8 +90,8 @@ A = 0.5 #What value to put?
 B = 1 #Same question
 u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])'), A=A, degree=2)
 phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
-t = Expression(('-G*(A*2*(a+d)+B*(d-c))','-G*(A*2*(a+d)+B*(d-c))'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
-c = Expression('-2*(x[0]-x[1])*(d-c)*(B+A)*G', G=G, A=A, B=B, c=c, d=d, degree = 1)
+t = Expression(('-G*(A*2*(a+c)+B*(d-c))','-G*(A*2*(a+c)+B*(d-c))'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
+c = Expression('2*(x[0]-x[1])*(d-c)*(B-A)*G', G=G, A=A, B=B, c=c, d=d, degree = 1)
 #c = Constant(0)
 
 #initial lhs and rhs
