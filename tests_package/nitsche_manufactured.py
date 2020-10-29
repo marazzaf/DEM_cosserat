@@ -65,7 +65,7 @@ def stress(Tuple, D):
     
 #mesh
 L = 0.5
-nb_elt = 15
+nb_elt = 100
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
