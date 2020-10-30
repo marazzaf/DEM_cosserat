@@ -65,10 +65,10 @@ def stress(Tuple, D):
     
 #mesh
 L = 0.5
-nb_elt = 100
+nb_elt = 200
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
-U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
+U = VectorElement("CG", mesh.ufl_cell(), 1) # disp space
 S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S))
 U,S = V.split()
@@ -105,17 +105,17 @@ test_strain = strain_bis(v, eta)
 trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
 test_stress,test_couple_stress = stress(test_strain, D_aux)
 #sym
-lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds - inner(dot(test_stress, n), u) * ds - inner(dot(test_couple_stress, n), psi) * ds
+#lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds - inner(dot(test_stress, n), u) * ds - inner(dot(test_couple_stress, n), psi) * ds
 #no sym
-#lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds + inner(dot(test_stress, n), u) * ds + inner(dot(test_couple_stress, n), psi) * ds
+lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds + inner(dot(test_stress, n), u) * ds + inner(dot(test_couple_stress, n), psi) * ds
 lhs += lhs_nitsche
 
 #rhs Nitsche penalty
 rhs_nitsche = inner(dot(test_stress, n), u_D) * ds + inner(dot(test_couple_stress, n), phi_D) * ds
 #sym
-L -= rhs_nitsche
+#L -= rhs_nitsche
 #no sym
-#L += rhs_nitsche
+L += rhs_nitsche
 
 U_h = Function(V)
 #problem = LinearVariationalProblem(lhs, L, U_h)
