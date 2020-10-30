@@ -72,7 +72,6 @@ U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
 S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S))
 U,S = V.split()
-U_1, U_2 = U.sub(0), U.sub(1)
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
@@ -104,48 +103,47 @@ bc_phi = DirichletBC(S, phi_D, boundary_parts, 0)
 bc = [bc_u, bc_phi]
 
 U_h = Function(V)
-
 solve(lhs == L, U_h, bc)
 u_h, psi_h = U_h.split()
 
 #Reference solutions
-V = VectorFunctionSpace(mesh, 'CG', 2)
-u = interpolate(u_D, V)
-V = FunctionSpace(mesh, 'CG', 1)
-phi = interpolate(phi_D, V)
+W = VectorFunctionSpace(mesh, 'CG', 2)
+u = interpolate(u_D, W)
+W = FunctionSpace(mesh, 'CG', 1)
+phi = interpolate(phi_D, W)
 
-##solutions and ref
-#img = plot(u_h[0])
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(u[0])
-#plt.colorbar(fig)
-#plt.show()
-#img = plot(u_h[1])
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(u[1])
-#plt.colorbar(fig)
-#plt.show()
-#img = plot(psi_h)
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(phi)
-#plt.colorbar(fig)
-#plt.show()
-#sys.exit()
-
-#errors
-img = plot(u_h[0]-u[0])
+#solutions and ref
+img = plot(u_h[0])
 plt.colorbar(img)
 plt.show()
-img = plot(u_h[1]-u[1])
+fig = plot(u[0])
+plt.colorbar(fig)
+plt.show()
+img = plot(u_h[1])
 plt.colorbar(img)
 plt.show()
-img = plot(psi_h-phi)
+fig = plot(u[1])
+plt.colorbar(fig)
+plt.show()
+img = plot(psi_h)
 plt.colorbar(img)
+plt.show()
+fig = plot(phi)
+plt.colorbar(fig)
 plt.show()
 sys.exit()
+
+##errors
+#img = plot(u_h[0]-u[0])
+#plt.colorbar(img)
+#plt.show()
+#img = plot(u_h[1]-u[1])
+#plt.colorbar(img)
+#plt.show()
+#img = plot(psi_h-phi)
+#plt.colorbar(img)
+#plt.show()
+#sys.exit()
 
 #write convergence test to see if okay...
 err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(psi_h, phi, 'H10')**2)
