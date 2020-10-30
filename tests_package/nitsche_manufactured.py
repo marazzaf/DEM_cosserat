@@ -65,7 +65,7 @@ def stress(Tuple, D):
     
 #mesh
 L = 0.5
-nb_elt = 200
+nb_elt = 25
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 U = VectorElement("CG", mesh.ufl_cell(), 1) # disp space
@@ -106,6 +106,7 @@ trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
 test_stress,test_couple_stress = stress(test_strain, D_aux)
 #sym
 #lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds - inner(dot(test_stress, n), u) * ds - inner(dot(test_couple_stress, n), psi) * ds
+#lhs -= lhs_nitsche #test...
 #no sym
 lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds + inner(dot(test_stress, n), u) * ds + inner(dot(test_couple_stress, n), psi) * ds
 lhs += lhs_nitsche
@@ -113,7 +114,7 @@ lhs += lhs_nitsche
 #rhs Nitsche penalty
 rhs_nitsche = inner(dot(test_stress, n), u_D) * ds + inner(dot(test_couple_stress, n), phi_D) * ds
 #sym
-#L -= rhs_nitsche
+#L += rhs_nitsche
 #no sym
 L += rhs_nitsche
 
@@ -122,7 +123,7 @@ U_h = Function(V)
 #solver = LinearVariationalSolver(problem)
 #solver.parameters.update({"linear_solver" : "umfpack"})
 #solver.solve()
-solve(lhs == L, U_h)
+solve(lhs == L, U_h) #mpi version
 u_h, psi_h = U_h.split()
 
 #Reference solutions
@@ -131,25 +132,25 @@ u = interpolate(u_D, U)
 U = FunctionSpace(mesh, 'CG', 1)
 phi = interpolate(phi_D, U)
 
-##solutions and ref
-#img = plot(u_h[0])
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(u[0])
-#plt.colorbar(fig)
-#plt.show()
-#img = plot(u_h[1])
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(u[1])
-#plt.colorbar(fig)
-#plt.show()
-#img = plot(psi_h)
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(phi)
-#plt.colorbar(fig)
-#plt.show()
+#solutions and ref
+img = plot(u_h[0])
+plt.colorbar(img)
+plt.show()
+fig = plot(u[0])
+plt.colorbar(fig)
+plt.show()
+img = plot(u_h[1])
+plt.colorbar(img)
+plt.show()
+fig = plot(u[1])
+plt.colorbar(fig)
+plt.show()
+img = plot(psi_h)
+plt.colorbar(img)
+plt.show()
+fig = plot(phi)
+plt.colorbar(fig)
+plt.show()
 
 ##errors
 #img = plot(u_h[0]-u[0])
