@@ -57,6 +57,9 @@ U,S = V.split()
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
+def boundary(x, on_boundary):
+    return on_boundary
+
 ds = Measure('ds')(subdomain_data=boundary_parts)
 
 # Variational problem
@@ -79,8 +82,8 @@ lhs = inner(strain(v, eta), D*strain(u, psi))*dx
 L = inner(t, v)*dx + inner(c, eta)*dx
 
 #BC
-bc_u = DirichletBC(U, u_D, boundary_parts, 0)
-bc_phi = DirichletBC(S, phi_D, boundary_parts, 0)
+bc_u = DirichletBC(U, u_D, boundary)
+bc_phi = DirichletBC(S, phi_D, boundary)
 bc = [bc_u, bc_phi]
 
 U_h = Function(V)
