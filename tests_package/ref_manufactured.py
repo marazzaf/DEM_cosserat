@@ -65,7 +65,7 @@ def stress(Tuple, D):
     
 #mesh
 L = 0.5
-nb_elt = 100
+nb_elt = 10
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
@@ -98,38 +98,21 @@ c = Expression('-2*(x[0]-x[1])*(d-c)*(B-A)*G', G=G, A=A, B=B, c=c, d=d, degree =
 lhs = inner(strain(v, eta), D*strain(u, psi))*dx
 L = inner(t, v)*dx + inner(c, eta)*dx
 
-#For Nitsche penalty
-n = FacetNormal(mesh)
-trial_strain = strain_bis(u, psi)
-test_strain = strain_bis(v, eta)
-trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
-test_stress,test_couple_stress = stress(test_strain, D_aux)
-#sym
-lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds - inner(dot(test_stress, n), u) * ds - inner(dot(test_couple_stress, n), psi) * ds
-#no sym
-#lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds + inner(dot(test_stress, n), u) * ds + inner(dot(test_couple_stress, n), psi) * ds
-lhs += lhs_nitsche
-
-#rhs Nitsche penalty
-rhs_nitsche = inner(dot(test_stress, n), u_D) * ds + inner(dot(test_couple_stress, n), phi_D) * ds
-#sym
-L -= rhs_nitsche
-#no sym
-#L += rhs_nitsche
+#BC
+bc_u = DirichletBC(U, u_D, boundary_parts, 0)
+bc_phi = DirichletBC(S, phi_D, boundary_parts, 0)
+bc = [bc_u, bc_phi]
 
 U_h = Function(V)
-#problem = LinearVariationalProblem(lhs, L, U_h)
-#solver = LinearVariationalSolver(problem)
-#solver.parameters.update({"linear_solver" : "umfpack"})
-#solver.solve()
-solve(lhs == L, U_h)
+
+solve(lhs == L, U_h, bc)
 u_h, psi_h = U_h.split()
 
 #Reference solutions
-U = VectorFunctionSpace(mesh, 'CG', 2)
-u = interpolate(u_D, U)
-U = FunctionSpace(mesh, 'CG', 1)
-phi = interpolate(phi_D, U)
+V = VectorFunctionSpace(mesh, 'CG', 2)
+u = interpolate(u_D, V)
+V = FunctionSpace(mesh, 'CG', 1)
+phi = interpolate(phi_D, V)
 
 ##solutions and ref
 #img = plot(u_h[0])
@@ -150,17 +133,19 @@ phi = interpolate(phi_D, U)
 #fig = plot(phi)
 #plt.colorbar(fig)
 #plt.show()
+#sys.exit()
 
-##errors
-#img = plot(u_h[0]-u[0])
-#plt.colorbar(img)
-#plt.show()
-#img = plot(u_h[1]-u[1])
-#plt.colorbar(img)
-#plt.show()
-#img = plot(psi_h-phi)
-#plt.colorbar(img)
-#plt.show()
+#errors
+img = plot(u_h[0]-u[0])
+plt.colorbar(img)
+plt.show()
+img = plot(u_h[1]-u[1])
+plt.colorbar(img)
+plt.show()
+img = plot(psi_h-phi)
+plt.colorbar(img)
+plt.show()
+sys.exit()
 
 #write convergence test to see if okay...
 err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(psi_h, phi, 'H10')**2)
