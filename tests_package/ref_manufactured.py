@@ -27,17 +27,10 @@ def D_Matrix(G, nu, l, N):
         [0.0,0.0, (1.0 - 2.0*N**2)/(1.0 - N**2), 1.0/(1.0 - N**2), 0.0,0.0], \
         [0.0,0.0,0.0,0.0, 4.0*l**2, 0.0], \
         [0.0,0.0,0.0,0.0,0.0, 4.0*l**2] ])
-    
-    d_aux = np.array([ \
-        [(2*(1 - nu))/(1 - 2*nu), (2*nu)/(1 - 2*nu), 0.,0.], \
-        [(2*nu)/(1 - 2*nu), (2*(1 - nu)) / (1 - 2*nu), 0.,0.], \
-        [0.,0., 1/(1 - N**2), (1 - 2*N**2)/(1 - N**2)], \
-        [0.,0., (1 - 2*N**2)/(1 - N**2), 1/(1 - N**2)] ])
 
     #print(type(d))
     D = G * as_matrix(d)
-    D_aux = G * as_tensor(d_aux)
-    return D,D_aux
+    return D
 
 # Strain
 def strain(v, eta):
@@ -50,18 +43,6 @@ def strain(v, eta):
                          eta.dx(1)])
 
     return strain
-
-def strain_bis(v, eta):
-    gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
-    kappa = grad(eta)
-    return gamma, kappa
-
-def stress(Tuple, D):
-    gamma,kappa = Tuple
-    sigma = dot(D, gamma)
-    sigma = as_tensor( ([sigma[0],sigma[2]],[sigma[3],sigma[1]]) )
-    mu = 4*G*l*l * kappa
-    return sigma,mu
     
 #mesh
 L = 0.5
@@ -82,7 +63,7 @@ ds = Measure('ds')(subdomain_data=boundary_parts)
 u, psi = TrialFunctions(V)
 v, eta = TestFunctions(V)
 
-D,D_aux = D_Matrix(G, nu, l, N)
+D = D_Matrix(G, nu, l, N)
 
 #BC
 A = 0.5 #What value to put?
