@@ -65,7 +65,7 @@ def stress(Tuple, D):
     
 #mesh
 L = 0.5
-nb_elt = 100
+nb_elt = 200
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
@@ -104,12 +104,12 @@ trial_strain = strain_bis(u, psi)
 test_strain = strain_bis(v, eta)
 trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
 test_stress,test_couple_stress = stress(test_strain, D_aux)
-lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds + inner(dot(test_stress, n), u) * ds + inner(dot(test_couple_stress, n), psi) * ds
+lhs_nitsche = -inner(dot(trial_stress, n), v) * ds - inner(dot(trial_couple_stress, n), eta) * ds - inner(dot(test_stress, n), u) * ds - inner(dot(test_couple_stress, n), psi) * ds
 lhs += lhs_nitsche
 
 #rhs Nitsche penalty
 rhs_nitsche = inner(dot(test_stress, n), u_D) * ds + inner(dot(test_couple_stress, n), phi_D) * ds
-L += rhs_nitsche
+L -= rhs_nitsche
 
 U_h = Function(V)
 problem = LinearVariationalProblem(lhs, L, U_h)
@@ -152,3 +152,10 @@ plt.show()
 #img = plot(psi_h-phi)
 #plt.colorbar(img)
 #plt.show()
+
+#write convergence test to see if okay...
+err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(psi_h, phi, 'H10')**2)
+err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(psi_h, phi, 'L2')**2)
+print(V.dofmap().global_dimension())
+print(err_grad)
+print(err_L2)
