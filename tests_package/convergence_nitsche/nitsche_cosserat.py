@@ -80,7 +80,7 @@ def stress(Tuple, D):
     
 
 mesh = Mesh()
-with XDMFFile("meshes/hole_plate_5.xdmf") as infile:
+with XDMFFile("meshes/hole_plate_1.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -163,26 +163,37 @@ u_h, psi_h = U_h.split()
 #plt.show()
 #sys.exit()
 
-# Stress
-epsilon = strain(u_h, psi_h)
-sigma = D*epsilon
-sigma_yy = project(sigma[1])
-sigma_yy.set_allow_extrapolation(True)
+## Stress
+#epsilon = strain(u_h, psi_h)
+#sigma = D*epsilon
+#sigma_yy = project(sigma[1])
+#sigma_yy.set_allow_extrapolation(True)
+#
+#error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
+#        
+##print("Analytical SCF: %.5e" % SCF)
+#print(S.dofmap().global_dimension())
+#print(error)
+#print(SCF)
 
-error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-        
-#print("Analytical SCF: %.5e" % SCF)
-print(S.dofmap().global_dimension())
-print(error)
-print(SCF)
+#file = File("sigma.pvd")
+#file << sigma_yy
 
+ref_mesh = Mesh()
+with XDMFFile("meshes/hole_plate_4.xdmf") as infile:
+    infile.read(ref_mesh)
+xdmf = XDMFFile('ref_disp.xdmf')
+#xdmf.read(ref_mesh)
 
-file = File("sigma.pvd")
-file << sigma_yy
+V_ref = FunctionSpace(ref_mesh,'CG',2)
+F_elec = Function(V_ref)
+xdmf.read_checkpoint(F_elec, 'disp', 0)
+print('ok')
+sys.exit()
 
-##write convergence test to see if okay...
-#err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(psi_h, phi, 'H10')**2)
-#err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(psi_h, phi, 'L2')**2)
-#print(V.dofmap().global_dimension())
-#print(err_grad)
-#print(err_L2)
+#write convergence test to see if okay...
+err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(psi_h, phi, 'H10')**2)
+err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(psi_h, phi, 'L2')**2)
+print(V.dofmap().global_dimension())
+print(err_grad)
+print(err_L2)

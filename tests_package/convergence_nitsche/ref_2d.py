@@ -75,7 +75,7 @@ def stress(Tuple):
     
 
 mesh = Mesh()
-with XDMFFile("meshes/hole_plate_1.xdmf") as infile:
+with XDMFFile("meshes/hole_plate_4.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -130,9 +130,10 @@ a = inner(strain(v, eta), D*strain(u, psi))*dx
 L = inner(t, v)*ds(1)
 
 U_h = Function(V)
-problem = LinearVariationalProblem(a, L, U_h, bc)
-solver = LinearVariationalSolver(problem)
-solver.solve()
+#problem = LinearVariationalProblem(a, L, U_h, bc)
+#solver = LinearVariationalSolver(problem)
+#solver.solve()
+solve(a == L, U_h, bc)
 u_h, phi_h = U_h.split()
 u_h.rename('disp', 'disp')
 phi_h.rename('rot', 'rot')
@@ -167,9 +168,9 @@ sigma_yy = project(sigma[1])
 #print(SCF_0)
 
 with XDMFFile(MPI.comm_world, 'ref_disp.xdmf') as xdmf:
-    xdmf.write(u_h)
+    xdmf.write_checkpoint(u_h, 'disp', 0, XDMFFile.Encoding.HDF5, False)
 with XDMFFile(MPI.comm_world, 'ref_rot.xdmf') as xdmf:
-    xdmf.write(phi_h)
+    xdmf.write_checkpoint(phi_h, 'rot', 0, XDMFFile.Encoding.HDF5, False)
 
 #plt.plot(elements_size, errors, "-*", linewidth=2)
 #plt.xlabel("elements size")
