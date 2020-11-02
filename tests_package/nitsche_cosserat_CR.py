@@ -152,7 +152,7 @@ n = FacetNormal(mesh)
 ##a += lhs_nitsche
 
 #LS pen for BC
-lhs_pen = pen_u/h * inner(dot(u,n),dot(v,n)) * (ds(2) + ds(3))# + pen_phi/h * inner(eta,psi) * (ds(2) + ds(3))
+lhs_pen = pen_u/h * inner(dot(u,n),dot(v,n)) * (ds(2) + ds(3)) + pen_phi/h * inner(eta,psi) * (ds(2) + ds(3))
 a += lhs_pen
 
 #u_D = Constant(1)
@@ -160,10 +160,8 @@ a += lhs_pen
 #L += rhs_nitsche
 
 U_h = Function(V)
-#problem = LinearVariationalProblem(a, L, U_h, bc)
-#solver = LinearVariationalSolver(problem)
-#solver.solve()
-solve(a == L, U_h, bc)
+#solve(a == L, U_h, bc) #strongly imposed bc on rotation
+solve(a == L, U_h) #weakly imposed bc on rotation
 u_h, psi_h = U_h.split()
 
 #plot(mesh)
