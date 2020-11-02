@@ -117,7 +117,7 @@ left_boundary.mark(boundary_parts, 3)
 top_boundary = TopBoundary()
 top_boundary.mark(boundary_parts, 1)
 
-ds = Measure('ds')(subdomain_data=boundary_parts) #Measure("ds")
+ds = Measure('ds')(subdomain_data=boundary_parts)
 
 u_0 = Constant(0.0)
 left_U_1 = DirichletBC(U.sub(0), u_0, left_boundary)
@@ -125,7 +125,8 @@ bot_U_2 = DirichletBC(U.sub(1), u_0, bot_boundary)
 left_S = DirichletBC(S, u_0, left_boundary)
 bot_S = DirichletBC(S, u_0, bot_boundary)
 
-bc = [left_U_1, bot_U_2, left_S, bot_S]
+#bc = [left_U_1, bot_U_2, left_S, bot_S]
+bc = [left_S, bot_S]
 
 # Variational problem
 u, psi = TrialFunctions(V)
@@ -138,11 +139,11 @@ h_avg = 0.5*(h('+') + h('-'))
 pen_u = 2*G
 pen_phi = 2*G*l*l
 
-a = inner(strain(v, eta), D*strain(u, psi))*dx + pen_u/h_avg * inner(jump(u),jump(v)) * dS + pen_phi/h_avg * inner(jump(eta),jump(psi)) * dS
+a = inner(strain(v, eta), D*strain(u, psi))*dx + pen_u/h_avg * inner(jump(u),jump(v)) * dS# + pen_phi/h_avg * inner(jump(eta),jump(psi)) * dS #CR is stable for scalar so no inner pen?
 L = inner(t, v)*ds(1)
 
 ##For Nitsche penalty
-#n = FacetNormal(mesh)
+n = FacetNormal(mesh)
 #trial_strain = strain_bis(u, psi)
 #test_strain = strain_bis(v, eta)
 #trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
@@ -151,7 +152,7 @@ L = inner(t, v)*ds(1)
 ##a += lhs_nitsche
 
 #LS pen for BC
-lhs_pen = pen_u/h * inner(u,v) * (ds(2) + ds(3)) + pen_phi/h * inner(eta,psi) * (ds(2) + ds(3))
+lhs_pen = pen_u/h * inner(dot(u,n),dot(v,n)) * (ds(2) + ds(3))# + pen_phi/h * inner(eta,psi) * (ds(2) + ds(3))
 a += lhs_pen
 
 #u_D = Constant(1)
@@ -159,9 +160,10 @@ a += lhs_pen
 #L += rhs_nitsche
 
 U_h = Function(V)
-problem = LinearVariationalProblem(a, L, U_h)
-solver = LinearVariationalSolver(problem)
-solver.solve()
+#problem = LinearVariationalProblem(a, L, U_h, bc)
+#solver = LinearVariationalSolver(problem)
+#solver.solve()
+solve(a == L, U_h, bc)
 u_h, psi_h = U_h.split()
 
 #plot(mesh)
@@ -169,15 +171,15 @@ u_h, psi_h = U_h.split()
 #sys.exit()
 img = plot(u_h[0])
 plt.colorbar(img)
-plt.savefig('ref_u_x_15.pdf')
+#plt.savefig('ref_u_x_15.pdf')
 plt.show()
 img = plot(u_h[1])
 plt.colorbar(img)
-plt.savefig('ref_u_y_15.pdf')
+#plt.savefig('ref_u_y_15.pdf')
 plt.show()
 img = plot(psi_h)
 plt.colorbar(img)
-plt.savefig('ref_phi_15.pdf')
+#plt.savefig('ref_phi_15.pdf')
 plt.show()
 sys.exit()
 
