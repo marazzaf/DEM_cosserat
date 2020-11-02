@@ -10,7 +10,7 @@ lambda_ = nu*E / (1+nu) /(1-2*nu)
 mu = 0.5*E/(1+nu)
 
 # Mesh
-nb_elt = 80
+nb_elt = 10
 mesh = UnitSquareMesh(nb_elt, nb_elt)
 #mesh = RectangleMesh(Point(-0.5,-0.5), Point(0.5,0.5), nb_elt, nb_elt)
 
@@ -45,9 +45,9 @@ lhs_nitsche_bis = -inner(dot(2*mu*sym(grad(u)), n), v) * ds - inner(lambda_*div(
 h = CellDiameter(mesh)
 lhs_pen = 2*mu/h * inner(u,v) * ds
 
-a += lhs_nitsche + lhs_pen #sym pen
+#a += lhs_nitsche + lhs_pen #sym pen
 #a += lhs_nitsche #sym no pen
-#a += lhs_nitsche_bis + lhs_pen #no sym
+a += -lhs_nitsche_bis + lhs_pen #no sym
 
 sol = Function(U)
 
@@ -63,19 +63,19 @@ solve(a == b, sol)
 
 ref = project(u_D, U)
 
-#img = plot(sol[0])
-#plt.colorbar(img)
-#plt.show()
-#img = plot(ref[0])
-#plt.colorbar(img)
-#plt.show()
-#
-#img = plot(sol[1])
-#plt.colorbar(img)
-#plt.show()
-#img = plot(ref[1])
-#plt.colorbar(img)
-#plt.show()
+img = plot(sol[0])
+plt.colorbar(img)
+plt.show()
+img = plot(ref[0])
+plt.colorbar(img)
+plt.show()
+
+img = plot(sol[1])
+plt.colorbar(img)
+plt.show()
+img = plot(ref[1])
+plt.colorbar(img)
+plt.show()
 
 #error = sol - ref
 #img = plot(sqrt(error[0]**2 + error[1]**2))
