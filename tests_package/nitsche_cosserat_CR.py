@@ -18,10 +18,6 @@ N = 0.8 # coupling parameter
 T = 1.0 # load
 c = l/N
 
-elements_size = []
-errors = []
-SCF_0 = []
-
 # Analytical solution
 def AnalyticalSolution(nu, l, c, R):
     
@@ -78,7 +74,7 @@ def strain_bis(v, eta):
 def stress(Tuple, D):
     gamma,kappa = Tuple
     sigma = dot(D, gamma)
-    sigma = as_tensor( ([sigma[0],sigma[3]],[sigma[2],sigma[1]]) )
+    sigma = as_tensor( ([sigma[0],sigma[2]],[sigma[3],sigma[1]]) )
     mu = 4*G*l*l * kappa
     return sigma,mu
     
@@ -142,18 +138,21 @@ h_avg = 0.5*(h('+') + h('-'))
 pen_u = 2*G
 pen_phi = 2*G*l*l
 
-a = inner(strain(v, eta), D*strain(u, psi))*dx + pen_u/h_avg * inner(jump(u),jump(v)) * dS# + pen_phi/h_avg * inner(jump(eta),jump(psi)) * dS
+a = inner(strain(v, eta), D*strain(u, psi))*dx + pen_u/h_avg * inner(jump(u),jump(v)) * dS + pen_phi/h_avg * inner(jump(eta),jump(psi)) * dS
 L = inner(t, v)*ds(1)
 
-#For Nitsche penalty
-#rhs_nitsche = inner(dot(D*strain(v, eta), n), u_D) * ds
-n = FacetNormal(mesh)
-trial_strain = strain_bis(u, psi)
-test_strain = strain_bis(v, eta)
-trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
-test_stress,test_couple_stress = stress(test_strain, D_aux)
-lhs_nitsche = -inner(dot(trial_stress, n)[0], v[0]) * ds(3) - inner(dot(trial_stress, n)[1], v[1]) * ds(2) - inner(dot(trial_couple_stress, n), eta) * (ds(2) + ds(3)) + inner(dot(test_stress, n)[0], u[0]) * ds(3) + inner(dot(test_stress, n)[1], u[1]) * ds(2) + inner(dot(test_couple_stress, n), psi) * (ds(2) + ds(3))
-a += lhs_nitsche
+##For Nitsche penalty
+#n = FacetNormal(mesh)
+#trial_strain = strain_bis(u, psi)
+#test_strain = strain_bis(v, eta)
+#trial_stress,trial_couple_stress = stress(trial_strain, D_aux)
+#test_stress,test_couple_stress = stress(test_strain, D_aux)
+#lhs_nitsche = -inner(dot(trial_stress, n)[0], v[0]) * ds(3) - inner(dot(trial_stress, n)[1], v[1]) * ds(2) - inner(dot(trial_couple_stress, n), eta) * (ds(2) + ds(3)) + inner(dot(test_stress, n)[0], u[0]) * ds(3) + inner(dot(test_stress, n)[1], u[1]) * ds(2) + inner(dot(test_couple_stress, n), psi) * (ds(2) + ds(3))
+##a += lhs_nitsche
+
+#LS pen for BC
+lhs_pen = pen_u/h * inner(u,v) * (ds(2) + ds(3)) + pen_phi/h * inner(eta,psi) * (ds(2) + ds(3))
+a += lhs_pen
 
 #u_D = Constant(1)
 #rhs_nitsche = inner(dot(test_stress, n)[0], u_D) * ds(3) + inner(dot(test_stress, n)[1], u_D) * ds(2)# + inner(dot(test_couple_stress, n), eta) * (ds(2) + ds(3))
