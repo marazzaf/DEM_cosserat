@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 25
+nb_elt = 100
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -34,8 +34,8 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
 A = 0.5 #What value to put?
 B = 1 #Same question
-u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1]-x[0]*x[1]-1)','A*(x[0]*x[0]+x[1]*x[1]-x[0]*x[1]-1)'), A=A, degree=3)
-phi_D = Expression('B*(x[0]-x[1])', B=B, degree=2)
+u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])'), A=A, degree=2)
+phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
 
 #compliance tensor
 problem.D = problem.D_Matrix(G, nu, N, l)
@@ -47,7 +47,7 @@ lhs = problem.elastic_bilinear_form()
 lhs += inner_penalty(problem)
 
 #rhs
-t = Expression(('-(A*(2*(a+d)-(b+c))+B*(c-d))','-(A*(2*(a+d)-(b+c))+B*(c-d))','(x[0]-x[1])*(c-d)*(3*A-2*B)'), A=A, B=B, a=a, b=b, c=c, d=d, degree = 2)
+t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1])*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
 rhs = problem.assemble_volume_load(t)
 
 #Listing Dirichlet BC
@@ -73,41 +73,41 @@ u = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'DG', 1)
 phi = interpolate(phi_D, U)
 
-#fig = plot(u_h[0])
-#plt.colorbar(fig)
-#plt.savefig('u_x_25.pdf')
-#plt.show()
-#fig = plot(u[0])
-#plt.colorbar(fig)
-#plt.savefig('ref_u_x_25.pdf')
-#plt.show()
-fig = plot(u_h[0]-u[0])
+fig = plot(u_h[0])
 plt.colorbar(fig)
+plt.savefig('u_x_25.pdf')
 plt.show()
+fig = plot(u[0])
+plt.colorbar(fig)
+plt.savefig('ref_u_x_25.pdf')
+plt.show()
+#fig = plot(u_h[0]-u[0])
+#plt.colorbar(fig)
+#plt.show()
 
-#fig = plot(u_h[1])
-#plt.colorbar(fig)
-#plt.savefig('u_y_25.pdf')
-#plt.show()
-#fig = plot(u[1])
-#plt.colorbar(fig)
-#plt.savefig('ref_u_y_25.pdf')
-#plt.show()
-fig = plot(u_h[1]-u[1])
+fig = plot(u_h[1])
 plt.colorbar(fig)
+plt.savefig('u_y_25.pdf')
 plt.show()
+fig = plot(u[1])
+plt.colorbar(fig)
+plt.savefig('ref_u_y_25.pdf')
+plt.show()
+#fig = plot(u_h[1]-u[1])
+#plt.colorbar(fig)
+#plt.show()
 
-#fig = plot(phi_h)
-#plt.colorbar(fig)
-#plt.savefig('phi_25.pdf')
-#plt.show()
-#fig = plot(phi)
-#plt.colorbar(fig)
-#plt.savefig('ref_phi_25.pdf')
-#plt.show()
-fig = plot(phi_h-phi)
+fig = plot(phi_h)
 plt.colorbar(fig)
+plt.savefig('phi_25.pdf')
 plt.show()
+fig = plot(phi)
+plt.colorbar(fig)
+plt.savefig('ref_phi_25.pdf')
+plt.show()
+#fig = plot(phi_h-phi)
+#plt.colorbar(fig)
+#plt.show()
 sys.exit()
 
 # Stress

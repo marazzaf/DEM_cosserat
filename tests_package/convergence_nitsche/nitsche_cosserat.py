@@ -193,8 +193,17 @@ V_ref = VectorFunctionSpace(ref_mesh,'CG',2)
 ref_disp = Function(V_ref)
 xdmf.read_checkpoint(ref_disp, 'disp', 0)
 
+ref_disp.set_allow_extrapolation(True)
+ref_disp = project(ref_disp, VectorFunctionSpace(mesh, 'CG', 2))
+ref_rot.set_allow_extrapolation(True)
+ref_rot = project(ref_rot, FunctionSpace(mesh, 'CG', 1))
+#error_disp = u_h - ref_disp
+#img = plot(sqrt(error_disp[0]**2 + error_disp[1]**2))
+#plt.colorbar(img)
+#plt.show()
+
 #write convergence test to see if okay...
-err_grad = np.sqrt(errornorm(project(u_h,V_ref), ref_disp, 'H10')**2 + errornorm(psi_h, ref_rot, 'H10')**2)
+err_grad = np.sqrt(errornorm(u_h, ref_disp, 'H10')**2 + errornorm(psi_h, ref_rot, 'H10')**2)
 err_L2 = np.sqrt(errornorm(u_h, ref_disp, 'L2')**2 + errornorm(psi_h, ref_rot, 'L2')**2)
 print(V.dofmap().global_dimension())
 print(err_grad)

@@ -2,8 +2,8 @@
 
 import numpy as np
 
-#name = 'convergence_nitsche_manufactured_sym.txt'
-name = 'convergence_nitsche_manufactured_no_sym.txt'
+name = 'convergence_nitsche_manufactured_sym.txt'
+#name = 'convergence_nitsche_manufactured_no_sym.txt'
 #name = 'convergence_nitsche_manufactured_no_sym_bis.txt'
 res = np.loadtxt(name)
 
