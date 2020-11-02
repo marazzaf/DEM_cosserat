@@ -12,9 +12,11 @@ mu = 0.5*E/(1+nu)
 # Mesh
 nb_elt = 10
 mesh = UnitSquareMesh(nb_elt, nb_elt)
+#mesh = RectangleMesh(Point(-0.5,-0.5), Point(0.5,0.5), nb_elt, nb_elt)
 
 bnd = MeshFunction('size_t', mesh, 1)
 bnd.set_all(0)
+ds = Measure('ds')(subdomain_data=bnd)
 
 U = VectorFunctionSpace(mesh, 'CG', 1)
 #U = VectorFunctionSpace(mesh, 'CR', 1)
@@ -41,7 +43,7 @@ lhs_nitsche_bis = -inner(dot(2*mu*sym(grad(u)), n), v) * ds - inner(lambda_*div(
 
 #Penalty
 h = CellDiameter(mesh)
-lhs_pen = 2/h * inner(u,v) * ds
+lhs_pen = 2*mu/h * inner(u,v) * ds
 
 a += lhs_nitsche + lhs_pen #sym pen
 #a += lhs_nitsche #sym no pen
@@ -49,9 +51,10 @@ a += lhs_nitsche + lhs_pen #sym pen
 
 sol = Function(U)
 
-rhs_pen = 2/h * inner(u_D,v) * ds
-rhs_nitsche = inner(dot(2*mu*sym(grad(v)), n), u_D) * ds + inner(lambda_*div(v), dot(u_D,n)) * ds
-b += rhs_nitsche #no pen
+rhs_pen = 2*mu/h * inner(u_D,v) * ds
+#rhs_nitsche = inner(dot(2*mu*sym(grad(v)), n), u_D) * ds + inner(lambda_*div(v), dot(u_D,n)) * ds
+rhs_nitsche = inner(dot(sigma(v), n), u_D) * ds
+#b += rhs_nitsche #no pen
 b += -rhs_nitsche + rhs_pen #sym CR
 #b -= rhs_nitsche #sym CG
 
