@@ -54,10 +54,12 @@ rhs = problem.assemble_volume_load(t)
 bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
 
 #Nitsche penalty rhs
-rhs += rhs_nitsche_penalty(problem, bc)
+#rhs += rhs_nitsche_penalty(problem, bc)
+rhs += rhs_bnd_penalty(problem, bc)
 
 #Nitsche penalty bilinear form
-lhs += lhs_nitsche_penalty(problem, bc)
+#lhs += lhs_nitsche_penalty(problem, bc)
+lhs += lhs_bnd_penalty(problem, bc)
 
 #Solving linear problem
 v = spsolve(lhs,rhs)

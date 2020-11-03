@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 25
+nb_elt = 50
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -47,11 +47,11 @@ rhs = problem.assemble_volume_load(t)
 
 #Nitsche penalty bilinear form. Homogeneous Dirichlet in this case.
 #A += lhs_nitsche_penalty(problem, strain, stresses)
-bc = [[0, Constant(0)], [1, Constant(0)], [2, Constant(0)]]
-#bc = [[0, Constant(1)], [1, Constant(1)], [2, Constant(1)]]
-A += lhs_nitsche_penalty(problem, bc)
-rhs += rhs_nitsche_penalty(problem, bc)
-#A += lhs_nitsche_penalty(problem)
+#bc = [[0, Constant(0)], [1, Constant(0)], [2, Constant(0)]]
+bc = [[0, Constant(1)], [1, Constant(1)], [2, Constant(1)]]
+A += lhs_bnd_penalty(problem, bc)
+rhs += rhs_bnd_penalty(problem, bc)
+#A += lhs_bnd_penalty(problem)
 
 #Solving linear problem
 v = spsolve(A,rhs)
@@ -101,14 +101,14 @@ print(assemble(phi_h / aire * ds))
 
 fig = plot(u_h[0])
 plt.colorbar(fig)
-plt.savefig('u_x_25.pdf')
+#plt.savefig('u_x_25.pdf')
 plt.show()
 fig = plot(u_h[1])
 plt.colorbar(fig)
-plt.savefig('u_y_25.pdf')
+#plt.savefig('u_y_25.pdf')
 plt.show()
 fig = plot(phi_h)
 plt.colorbar(fig)
-plt.savefig('phi_25.pdf')
+#plt.savefig('phi_25.pdf')
 plt.show()
 sys.exit()
