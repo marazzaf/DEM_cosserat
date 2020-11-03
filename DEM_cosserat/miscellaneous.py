@@ -170,7 +170,7 @@ def gradient_matrix(problem):
     row,col,val = as_backend_type(A).mat().getValuesCSR()
     return csr_matrix((val, col, row))
 
-def lhs_bnd_penalty(problem, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
+def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     u,phi = TrialFunctions(problem.V_DG1)
     v,psi = TestFunctions(problem.V_DG1)
     h = CellDiameter(problem.mesh)
@@ -184,9 +184,9 @@ def lhs_bnd_penalty(problem, list_Dirichlet_BC=None): #List must contain lists w
             assert len(BC) == 2 or len(BC) == 3
             if len(BC) == 3:
                 domain = BC[2]
-                dds = Measure('ds')(domain)
+                dds = Measure('ds')(subdomain_data=subdomain_data)(domain)
             else:
-                dds = Measure('ds')
+                dds = Measure('ds')(subdomain_data=subdomain_data)
             component = BC[0]
 
             if component < problem.dim: #bnd stress
@@ -209,7 +209,7 @@ def lhs_bnd_penalty(problem, list_Dirichlet_BC=None): #List must contain lists w
     
     return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
 
-def rhs_bnd_penalty(problem, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
+def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
     #For rhs penalty term computation
     h = CellDiameter(problem.mesh)
     v,psi = TestFunctions(problem.V_CR)
@@ -219,9 +219,9 @@ def rhs_bnd_penalty(problem, list_Dirichlet_BC): #List must contain lists with t
         assert len(BC) == 2 or len(BC) == 3
         if len(BC) == 3:
             domain = BC[2]
-            dds = Measure('ds')(domain)
+            dds = Measure('ds')(subdomain_data=subdomain_data)(domain)
         else:
-            dds = Measure('ds')
+            dds = Measure('ds')(subdomain_data=subdomain_data)
         imposed_value = BC[1]
         component = BC[0]
  

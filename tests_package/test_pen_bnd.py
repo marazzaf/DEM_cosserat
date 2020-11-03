@@ -28,7 +28,7 @@ nb_elt = 25
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G, 2*G) #sure about second penalty term? #2*G*l #22*G*l*l ?
+problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term? #2*G*l #22*G*l*l ?
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
 #compliance tensor
@@ -46,10 +46,10 @@ rhs = problem.assemble_volume_load(t)
 
 #Nitsche penalty bilinear form. Homogeneous Dirichlet in this case.
 #A += lhs_nitsche_penalty(problem, strain, stresses)
-#bc = [[0, Constant(0)], [1, Constant(0)], [2, Constant(0)]]
-bc = [[0, Constant(1)], [1, Constant(1)], [2, Constant(1)]]
-A += lhs_bnd_penalty(problem, bc)
-rhs += rhs_bnd_penalty(problem, bc)
+bc = [[0, Constant(0)], [1, Constant(0)], [2, Constant(0)]]
+#bc = [[0, Constant(1)], [1, Constant(1)], [2, Constant(1)]]
+A += lhs_bnd_penalty(problem, boundary_parts, bc)
+rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
 #A += lhs_bnd_penalty(problem)
 
 #Solving linear problem

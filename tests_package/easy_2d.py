@@ -87,10 +87,10 @@ A = problem.elastic_bilinear_form()
 b = assemble_boundary_load(problem, 1, boundary_parts, t)
 
 #Imposing weakly the BC!
-b += rhs_nitsche_penalty(problem, bc)
+b += rhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Nitsche penalty bilinear form
-A += lhs_nitsche_penalty(problem, bc)
+A += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Penalty matrix
 A += inner_penalty(problem)
@@ -105,15 +105,15 @@ u_h, psi_h = v_h.split()
 
 fig = plot(u_h[0])
 plt.colorbar(fig)
-plt.savefig('u_x_15.pdf')
+#plt.savefig('u_x_15.pdf')
 plt.show()
 fig = plot(u_h[1])
 plt.colorbar(fig)
-plt.savefig('u_y_15.pdf')
+#plt.savefig('u_y_15.pdf')
 plt.show()
 fig = plot(psi_h)
 plt.colorbar(fig)
-plt.savefig('phi_15.pdf')
+#plt.savefig('phi_15.pdf')
 plt.show()
 sys.exit()
 
