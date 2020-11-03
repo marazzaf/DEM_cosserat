@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 10
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -55,11 +55,11 @@ bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
 
 #Nitsche penalty rhs
 #rhs += rhs_nitsche_penalty(problem, bc)
-rhs += rhs_bnd_penalty(problem, bc)
+rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Nitsche penalty bilinear form
 #lhs += lhs_nitsche_penalty(problem, bc)
-lhs += lhs_bnd_penalty(problem, bc)
+lhs += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Solving linear problem
 v = spsolve(lhs,rhs)
