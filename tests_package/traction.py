@@ -25,8 +25,8 @@ d = (1-2*N*N)/(1-N*N)
 # Mesh
 L = 5
 H = 1
-nb_elt = 10
-mesh = RectangleMesh(Point(0,0.5*H),Point(L,-0.5*H),nb_elt,5*nb_elt,"crossed")
+nb_elt = 40
+mesh = RectangleMesh(Point(0,0.5*H),Point(L,-0.5*H),5*nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
 problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
@@ -70,16 +70,21 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
+#U = VectorFunctionSpace(problem.mesh, 'DG', 1)
+#u = interpolate(u_D, U)
+U = FunctionSpace(problem.mesh, 'DG', 1)
+#phi = interpolate(phi_D, U)
+
+aux = project((u_h[0]-float(u_D))/float(u_D), U)
+print(u_h(L,0)[0])
+print(abs(aux(L,0)) * 100)
+
+
 file = File('traction.pvd')
 
 file << u_h
 file << phi_h
-#sys.exit()
-
-#U = VectorFunctionSpace(problem.mesh, 'DG', 1)
-#u = interpolate(u_D, U)
-#U = FunctionSpace(problem.mesh, 'DG', 1)
-#phi = interpolate(phi_D, U)
+sys.exit()
 
 fig = plot(u_h[0])
 plt.colorbar(fig)
