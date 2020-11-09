@@ -93,7 +93,7 @@ b += rhs_bnd_penalty(problem, boundary_parts, bc)
 A += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Penalty matrix
-A += inner_penalty(problem)
+A += inner_penalty_light(problem)
 
 #Solving linear problem
 v = spsolve(A,b)

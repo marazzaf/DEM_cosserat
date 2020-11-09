@@ -168,4 +168,6 @@ err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(psi_h, phi, 'H10')**2
 err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(psi_h, phi, 'L2')**2)
 print(V.dofmap().global_dimension())
 print(err_grad)
+en_aux = assemble(inner(strain(u_h, psi_h), D*strain(u_h, psi_h))*dx)
+print(np.sqrt(0.5*en_aux))
 print(err_L2)

@@ -42,7 +42,8 @@ phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
 problem.D = problem.D_Matrix(G, nu, N, l)
 
 # Variational problem
-lhs = problem.elastic_bilinear_form()
+elas = problem.elastic_bilinear_form()
+lhs = elas
 
 #Penalty matrix
 lhs += inner_penalty_light(problem)
@@ -140,7 +141,7 @@ plt.show()
 
 #write convergence test to see if okay...
 err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(phi_h, phi, 'H10')**2)
-err_energy = np.sqrt(0.5 * np.dot(v, lhs*v))
+err_energy = np.sqrt(0.5 * np.dot(v, elas*v)) #lhs #elas
 err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
 print(problem.nb_dof_DEM)
 print(err_grad)
