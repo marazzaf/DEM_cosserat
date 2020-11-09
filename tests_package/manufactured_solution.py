@@ -46,7 +46,8 @@ elas = problem.elastic_bilinear_form()
 lhs = elas
 
 #Penalty matrix
-lhs += inner_penalty_light(problem)
+inner = inner_penalty_light(problem)
+lhs += inner
 
 #rhs
 t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1])*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
@@ -62,7 +63,8 @@ rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Nitsche penalty bilinear form
 #lhs += lhs_nitsche_penalty(problem, bc)
-lhs += lhs_bnd_penalty(problem, boundary_parts, bc)
+bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
+lhs += bnd
 
 #Solving linear problem
 v = spsolve(lhs,rhs)
@@ -141,7 +143,7 @@ plt.show()
 
 #write convergence test to see if okay...
 err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(phi_h, phi, 'H10')**2)
-err_energy = np.sqrt(0.5 * np.dot(v, elas*v)) #lhs #elas
+err_energy = np.sqrt(0.5 * np.dot(v, bnd*v)) #lhs #elas #inner #bnd
 err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
 print(problem.nb_dof_DEM)
 print(err_grad)
