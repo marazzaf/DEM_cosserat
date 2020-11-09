@@ -49,6 +49,7 @@ lhs += inner_penalty_light(problem)
 
 #rhs
 t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1])*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
+#t = Constant((0, 0, 0)) #test
 rhs = problem.assemble_volume_load(t)
 
 #Listing Dirichlet BC
@@ -87,17 +88,17 @@ phi = interpolate(phi_D, U)
 #file << project(kappa, U)
 #sys.exit()
 
-#test BC
-fig = plot(abs(u_h[0]-u[0]))
-plt.colorbar(fig)
-plt.show()
-fig = plot(abs(u_h[1]-u[1]))
-plt.colorbar(fig)
-plt.show()
-fig = plot(abs(phi_h-phi))
-plt.colorbar(fig)
-plt.show()
-sys.exit()
+##test BC
+#fig = plot(abs(u_h[0]-u[0]))
+#plt.colorbar(fig)
+#plt.show()
+#fig = plot(abs(u_h[1]-u[1]))
+#plt.colorbar(fig)
+#plt.show()
+#fig = plot(abs(phi_h-phi))
+#plt.colorbar(fig)
+#plt.show()
+#sys.exit()
 
 
 fig = plot(u_h[0])
