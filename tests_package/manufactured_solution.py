@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 5
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -45,7 +45,7 @@ problem.D = problem.D_Matrix(G, nu, N, l)
 lhs = problem.elastic_bilinear_form()
 
 #Penalty matrix
-lhs += inner_penalty(problem)
+lhs += inner_penalty_light(problem)
 
 #rhs
 t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1])*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
@@ -73,65 +73,65 @@ u_h, phi_h = v_h.split()
 
 U = VectorFunctionSpace(problem.mesh, 'DG', 1)
 u = interpolate(u_D, U)
-#U = FunctionSpace(problem.mesh, 'DG', 1)
-#phi = interpolate(phi_D, U)
+U = FunctionSpace(problem.mesh, 'DG', 1)
+phi = interpolate(phi_D, U)
 
-file = File('out.pvd')
+#file = File('out.pvd')
+#
+#file << u_h
+#file << phi_h
+#
+### Stress
+#eps,kappa = problem.strains(u_h, phi_h)
+##sigma_yy = project(sigma[1])
+#file << project(kappa, U)
+#sys.exit()
 
-file << u_h
-file << phi_h
-
-## Stress
-eps,kappa = problem.strains(u_h, phi_h)
-#sigma_yy = project(sigma[1])
-file << project(kappa, U)
-sys.exit()
-
-#fig = plot(u_h[0])
+fig = plot(u_h[0])
+plt.colorbar(fig)
+##plt.savefig('u_x_25.pdf')
+plt.show()
+fig = plot(u[0])
+plt.colorbar(fig)
+##plt.savefig('ref_u_x_25.pdf')
+plt.show()
+#fig = plot(u_h[0]-u[0])
 #plt.colorbar(fig)
-###plt.savefig('u_x_25.pdf')
 #plt.show()
-#fig = plot(u[0])
+#
+fig = plot(u_h[1])
+plt.colorbar(fig)
+##plt.savefig('u_y_25.pdf')
+plt.show()
+fig = plot(u[1])
+plt.colorbar(fig)
+##plt.savefig('ref_u_y_25.pdf')
+plt.show()
+#fig = plot(u_h[1]-u[1])
 #plt.colorbar(fig)
-###plt.savefig('ref_u_x_25.pdf')
 #plt.show()
-##fig = plot(u_h[0]-u[0])
-##plt.colorbar(fig)
-##plt.show()
-##
-#fig = plot(u_h[1])
+#
+fig = plot(phi_h)
+plt.colorbar(fig)
+##plt.savefig('phi_25.pdf')
+plt.show()
+fig = plot(phi)
+plt.colorbar(fig)
+##plt.savefig('ref_phi_25.pdf')
+plt.show()
+#fig = plot(phi_h-phi)
 #plt.colorbar(fig)
-###plt.savefig('u_y_25.pdf')
 #plt.show()
-#fig = plot(u[1])
-#plt.colorbar(fig)
-###plt.savefig('ref_u_y_25.pdf')
-#plt.show()
-##fig = plot(u_h[1]-u[1])
-##plt.colorbar(fig)
-##plt.show()
-##
-#fig = plot(phi_h)
-#plt.colorbar(fig)
-###plt.savefig('phi_25.pdf')
-#plt.show()
-#fig = plot(phi)
-#plt.colorbar(fig)
-###plt.savefig('ref_phi_25.pdf')
-#plt.show()
-##fig = plot(phi_h-phi)
-##plt.colorbar(fig)
-##plt.show()
-##sys.exit()
+#sys.exit()
 
 #write convergence test to see if okay...
 err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(phi_h, phi, 'H10')**2)
-err_energy = np.sqrt(np.dot(v, lhs*v))
+err_energy = np.sqrt(0.5 * np.dot(v, lhs*v))
 err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
 print(problem.nb_dof_DEM)
 print(err_grad)
 print(err_energy)
 print(err_L2)
-print(errornorm(u_h, u, 'L2'))
-print(errornorm(phi_h, phi, 'L2'))
+#print(errornorm(u_h, u, 'L2'))
+#print(errornorm(phi_h, phi, 'L2'))
 
