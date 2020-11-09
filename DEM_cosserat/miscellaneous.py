@@ -178,7 +178,7 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
         bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds
-    elif len(list_Dirichlet_BC) >= 2:
+    else:
         list_lhs = []
         for BC in list_Dirichlet_BC:
             assert len(BC) == 2 or len(BC) == 3
@@ -224,6 +224,7 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
             dds = Measure('ds')(subdomain_data=subdomain_data)
         imposed_value = BC[1]
         component = BC[0]
+        print(float(imposed_value))
  
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
@@ -236,5 +237,6 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
         list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = assemble(L).get_local()
+    print(L.nonzero())
     
     return problem.DEM_to_CR.T * L

@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 10
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -74,6 +74,12 @@ U = VectorFunctionSpace(problem.mesh, 'DG', 1)
 u = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'DG', 1)
 phi = interpolate(phi_D, U)
+
+file = File('out.pvd')
+
+file << u_h
+file << phi_h
+sys.exit()
 
 #fig = plot(u_h[0])
 #plt.colorbar(fig)
