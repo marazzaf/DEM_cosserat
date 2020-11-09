@@ -31,6 +31,7 @@ mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+boundary_parts.set_all(0)
 
 A = 0.5 #What value to put?
 B = 1 #Same question
@@ -51,7 +52,7 @@ t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1]
 rhs = problem.assemble_volume_load(t)
 
 #Listing Dirichlet BC
-bc = [[0,u_D[0]], [1, u_D[1]], [2, phi_D]]
+bc = [[0,u_D[0],0], [1, u_D[1],0], [2, phi_D,0]]
 
 #Nitsche penalty rhs
 #rhs += rhs_nitsche_penalty(problem, bc)
@@ -79,12 +80,12 @@ file = File('out.pvd')
 
 file << u_h
 file << phi_h
-sys.exit()
+#sys.exit()
 
-#fig = plot(u_h[0])
-#plt.colorbar(fig)
+fig = plot(u_h[0])
+plt.colorbar(fig)
 ##plt.savefig('u_x_25.pdf')
-#plt.show()
+plt.show()
 #fig = plot(u[0])
 #plt.colorbar(fig)
 ##plt.savefig('ref_u_x_25.pdf')
@@ -93,10 +94,10 @@ sys.exit()
 #plt.colorbar(fig)
 #plt.show()
 #
-#fig = plot(u_h[1])
-#plt.colorbar(fig)
+fig = plot(u_h[1])
+plt.colorbar(fig)
 ##plt.savefig('u_y_25.pdf')
-#plt.show()
+plt.show()
 #fig = plot(u[1])
 #plt.colorbar(fig)
 ##plt.savefig('ref_u_y_25.pdf')
@@ -105,10 +106,10 @@ sys.exit()
 #plt.colorbar(fig)
 #plt.show()
 #
-#fig = plot(phi_h)
-#plt.colorbar(fig)
+fig = plot(phi_h)
+plt.colorbar(fig)
 ##plt.savefig('phi_25.pdf')
-#plt.show()
+plt.show()
 #fig = plot(phi)
 #plt.colorbar(fig)
 ##plt.savefig('ref_phi_25.pdf')
