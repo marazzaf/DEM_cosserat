@@ -206,9 +206,8 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
     #Assembling matrix
     Mat = assemble(bilinear)
     row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    Mat = csr_matrix((val, col, row)) #, shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
+    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
     
-    #return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
     return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
 
 def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
