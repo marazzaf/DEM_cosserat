@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 20
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -86,6 +86,19 @@ phi = interpolate(phi_D, U)
 ##sigma_yy = project(sigma[1])
 #file << project(kappa, U)
 #sys.exit()
+
+#test BC
+fig = plot(abs(u_h[0]-u[0]))
+plt.colorbar(fig)
+plt.show()
+fig = plot(abs(u_h[1]-u[1]))
+plt.colorbar(fig)
+plt.show()
+fig = plot(abs(phi_h-phi))
+plt.colorbar(fig)
+plt.show()
+sys.exit()
+
 
 fig = plot(u_h[0])
 plt.colorbar(fig)

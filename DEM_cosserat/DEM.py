@@ -134,7 +134,7 @@ def inner_penalty_light(problem):
     v_CR,psi_CR = TestFunctions(problem.V_CR)
     F = FacetArea(problem.mesh)
 
-    a_jump = inner(jump(u_DG), v_CR('+')) / F('+') * dS + inner(jump(phi_DG), psi_CR('+')) / F('+') * dS# + inner(phi_DG, psi_CR) / F('+') * ds + inner(u_DG, v_CR) / F('+') * ds
+    a_jump = inner(jump(u_DG), v_CR('+')) / F('+') * dS + inner(jump(phi_DG), psi_CR('+')) / F('+') * dS
     A = assemble(a_jump)
     row,col,val = as_backend_type(A).mat().getValuesCSR()
     A = csr_matrix((val, col, row))
