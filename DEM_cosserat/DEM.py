@@ -128,3 +128,6 @@ def inner_penalty(problem):
     return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
 
     
+def inner_penalty_light(problem): #penalising only average value of facet.
+
+    return
