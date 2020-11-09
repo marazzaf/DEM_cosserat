@@ -2,6 +2,7 @@
 from dolfin import *
 from scipy.sparse import csr_matrix
 import ufl
+import sys
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -224,8 +225,7 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
             dds = Measure('ds')(subdomain_data=subdomain_data)
         imposed_value = BC[1]
         component = BC[0]
-        print(float(imposed_value))
- 
+        
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
             form_pen = problem.penalty_u / h * imposed_value * v[component] * dds
@@ -237,6 +237,5 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
         list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = assemble(L).get_local()
-    print(L.nonzero())
     
     return problem.DEM_to_CR.T * L
