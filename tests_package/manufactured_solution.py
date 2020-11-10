@@ -148,8 +148,14 @@ err_energy = np.sqrt(0.5 * np.dot(error, lhs*error)) #lhs #elas #inner #bnd
 err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
 print(problem.nb_dof_DEM)
 print(err_grad)
-print(err_energy)
 print(err_L2)
+print('Errors in energy:')
+#print(err_energy)
+print('Tot: %.2f' % (np.sqrt(0.5 * np.dot(error, lhs*error))))
+print('Inner pen: %.2f' % (np.sqrt(0.5 * np.dot(error, inner*error))))
+print('Elas: %.2f' % (np.sqrt(0.5 * np.dot(error, elas*error))))
+print('Bnd pen: %.2f' % (np.sqrt(0.5 * np.dot(error, bnd*error))))
+
 #print(errornorm(u_h, u, 'L2'))
 #print(errornorm(phi_h, phi, 'L2'))
 

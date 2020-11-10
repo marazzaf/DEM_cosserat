@@ -128,28 +128,30 @@ def inner_penalty(problem):
 
 def inner_penalty_light(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
+    h = CellDiameter(problem.mesh)
+    h_avg = 0.5 * (h('+') + h('-'))
 
-    #Facet jump bilinear form
+    #Average facet jump bilinear form
     u_DG,phi_DG = TrialFunctions(problem.V_DG1)
     v_CR,psi_CR = TestFunctions(problem.V_CR)
     F = FacetArea(problem.mesh)
-    a_jump = inner(jump(u_DG), v_CR('+')) / F('+') * dS + inner(jump(phi_DG), psi_CR('+')) / F('+') * dS
+    #a_jump = inner(jump(u_DG), v_CR('+')) / F('+') * dS + inner(jump(phi_DG), psi_CR('+')) / F('+') * dS
+    a_jump = sqrt(problem.penalty_u / h_avg) * inner(jump(u_DG), v_CR('+')) * dS + sqrt(problem.penalty_phi / h_avg) * inner(jump(phi_DG), psi_CR('+')) * dS
     A = assemble(a_jump)
     row,col,val = as_backend_type(A).mat().getValuesCSR()
     A = csr_matrix((val, col, row))
 
-    #Penalty bilinear form
-    h = CellDiameter(problem.mesh)
-    h_avg = 0.5 * (h('+') + h('-'))
-    u,phi = TrialFunctions(problem.V_CR)
-    v,psi = TestFunctions(problem.V_CR)
-    a_pen = problem.penalty_u / h_avg * inner(u('+'), v('+')) * dS + problem.penalty_phi / h_avg * inner(phi('+'), psi('+')) * dS
-    #Assembling matrix
-    B = assemble(a_pen)
-    row,col,val = as_backend_type(B).mat().getValuesCSR()
-    B = csr_matrix((val, col, row))
+    ##Penalty bilinear form
+    #u,phi = TrialFunctions(problem.V_CR)
+    #v,psi = TestFunctions(problem.V_CR)
+    #a_pen = problem.penalty_u / h_avg * inner(u('+'), v('+')) * dS + problem.penalty_phi / h_avg * inner(phi('+'), psi('+')) * dS
+    ##Assembling matrix
+    #B = assemble(a_pen)
+    #row,col,val = as_backend_type(B).mat().getValuesCSR()
+    #B = csr_matrix((val, col, row))
 
-    return problem.DEM_to_DG1.T * A.T * B * A * problem.DEM_to_DG1
+    #return problem.DEM_to_DG1.T * A.T * B * A * problem.DEM_to_DG1
+    return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1
 
 #def penalties(problem):
 #    """Creates the penalty matrix to stabilize the DEM."""
