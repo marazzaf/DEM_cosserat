@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 20
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -104,46 +104,47 @@ phi = interpolate(phi_D, U)
 #sys.exit()
 
 
-fig = plot(u_h[0])
-plt.colorbar(fig)
-##plt.savefig('u_x_25.pdf')
-plt.show()
-fig = plot(u[0])
-plt.colorbar(fig)
-##plt.savefig('ref_u_x_25.pdf')
-plt.show()
-#fig = plot(u_h[0]-u[0])
+#fig = plot(u_h[0])
 #plt.colorbar(fig)
+###plt.savefig('u_x_25.pdf')
 #plt.show()
-#
-fig = plot(u_h[1])
-plt.colorbar(fig)
-##plt.savefig('u_y_25.pdf')
-plt.show()
-fig = plot(u[1])
-plt.colorbar(fig)
-##plt.savefig('ref_u_y_25.pdf')
-plt.show()
-#fig = plot(u_h[1]-u[1])
+#fig = plot(u[0])
 #plt.colorbar(fig)
+###plt.savefig('ref_u_x_25.pdf')
 #plt.show()
-#
-fig = plot(phi_h)
-plt.colorbar(fig)
-##plt.savefig('phi_25.pdf')
-plt.show()
-fig = plot(phi)
-plt.colorbar(fig)
-##plt.savefig('ref_phi_25.pdf')
-plt.show()
-#fig = plot(phi_h-phi)
+##fig = plot(u_h[0]-u[0])
+##plt.colorbar(fig)
+##plt.show()
+##
+#fig = plot(u_h[1])
 #plt.colorbar(fig)
+###plt.savefig('u_y_25.pdf')
 #plt.show()
-#sys.exit()
+#fig = plot(u[1])
+#plt.colorbar(fig)
+###plt.savefig('ref_u_y_25.pdf')
+#plt.show()
+##fig = plot(u_h[1]-u[1])
+##plt.colorbar(fig)
+##plt.show()
+##
+#fig = plot(phi_h)
+#plt.colorbar(fig)
+###plt.savefig('phi_25.pdf')
+#plt.show()
+#fig = plot(phi)
+#plt.colorbar(fig)
+###plt.savefig('ref_phi_25.pdf')
+#plt.show()
+##fig = plot(phi_h-phi)
+##plt.colorbar(fig)
+##plt.show()
+##sys.exit()
 
 #write convergence test to see if okay...
 err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(phi_h, phi, 'H10')**2)
-err_energy = np.sqrt(0.5 * np.dot(v, bnd*v)) #lhs #elas #inner #bnd
+error = v - project(as_vector((u[0],u[1],phi)), problem.V_DG).vector().get_local()
+err_energy = np.sqrt(0.5 * np.dot(error, lhs*error)) #lhs #elas #inner #bnd
 err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
 print(problem.nb_dof_DEM)
 print(err_grad)

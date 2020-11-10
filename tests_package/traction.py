@@ -93,6 +93,8 @@ aux = project((u_h[0]-float(u_D))/float(u_D), U)
 print(u_h(L,0)[0])
 print(abs(aux(L,0)) * 100)
 
+#print('norms')
+
 
 file = File('traction.pvd')
 
