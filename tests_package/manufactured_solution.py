@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 20
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -46,7 +46,7 @@ elas = problem.elastic_bilinear_form()
 lhs = elas
 
 #Penalty matrix
-inner = inner_penalty_light(problem)
+inner = inner_penalty_light(problem) #light
 lhs += inner
 
 #rhs
@@ -104,42 +104,42 @@ phi = interpolate(phi_D, U)
 #sys.exit()
 
 
-#fig = plot(u_h[0])
+fig = plot(u_h[0])
+plt.colorbar(fig)
+##plt.savefig('u_x_25.pdf')
+plt.show()
+fig = plot(u[0])
+plt.colorbar(fig)
+##plt.savefig('ref_u_x_25.pdf')
+plt.show()
+#fig = plot(u_h[0]-u[0])
 #plt.colorbar(fig)
-###plt.savefig('u_x_25.pdf')
 #plt.show()
-#fig = plot(u[0])
+#
+fig = plot(u_h[1])
+plt.colorbar(fig)
+##plt.savefig('u_y_25.pdf')
+plt.show()
+fig = plot(u[1])
+plt.colorbar(fig)
+##plt.savefig('ref_u_y_25.pdf')
+plt.show()
+#fig = plot(u_h[1]-u[1])
 #plt.colorbar(fig)
-###plt.savefig('ref_u_x_25.pdf')
 #plt.show()
-##fig = plot(u_h[0]-u[0])
-##plt.colorbar(fig)
-##plt.show()
-##
-#fig = plot(u_h[1])
+#
+fig = plot(phi_h)
+plt.colorbar(fig)
+##plt.savefig('phi_25.pdf')
+plt.show()
+fig = plot(phi)
+plt.colorbar(fig)
+##plt.savefig('ref_phi_25.pdf')
+plt.show()
+#fig = plot(phi_h-phi)
 #plt.colorbar(fig)
-###plt.savefig('u_y_25.pdf')
 #plt.show()
-#fig = plot(u[1])
-#plt.colorbar(fig)
-###plt.savefig('ref_u_y_25.pdf')
-#plt.show()
-##fig = plot(u_h[1]-u[1])
-##plt.colorbar(fig)
-##plt.show()
-##
-#fig = plot(phi_h)
-#plt.colorbar(fig)
-###plt.savefig('phi_25.pdf')
-#plt.show()
-#fig = plot(phi)
-#plt.colorbar(fig)
-###plt.savefig('ref_phi_25.pdf')
-#plt.show()
-##fig = plot(phi_h-phi)
-##plt.colorbar(fig)
-##plt.show()
-##sys.exit()
+#sys.exit()
 
 #write convergence test to see if okay...
 err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(phi_h, phi, 'H10')**2)

@@ -165,13 +165,13 @@ def lhs_bnd_penalty_bis(problem, subdomain_data, list_Dirichlet_BC=None): #List 
             component = BC[0]
 
             if component < problem.dim: #bnd stress
-                form_jump = sqrt(problem.penalty_u / h) * u_DG[component] * v_CR[component] * dds
+                form_jump = sqrt(problem.penalty_u / h / F) * u_DG[component] * v_CR[component] * dds
                 #form_pen = problem.penalty_u / h * u[component] * v[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds
                 elif problem.dim == 2:
-                    form_jump = sqrt(problem.penalty_phi / h) * phi_DG * psi_CR * dds
+                    form_jump = sqrt(problem.penalty_phi / h / F) * phi_DG * psi_CR * dds
                     #form_pen = problem.penalty_phi / h * phi * psi * dds
             #Storing new term
             list_jump.append(form_jump)

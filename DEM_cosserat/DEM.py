@@ -130,12 +130,13 @@ def inner_penalty_light(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
     h = CellDiameter(problem.mesh)
     h_avg = 0.5 * (h('+') + h('-'))
+    F = FacetArea(problem.mesh)
 
     #Average facet jump bilinear form
     u_DG,phi_DG = TrialFunctions(problem.V_DG1)
     v_CR,psi_CR = TestFunctions(problem.V_CR)
     F = FacetArea(problem.mesh)
-    a_jump = sqrt(problem.penalty_u / h_avg) * inner(jump(u_DG), v_CR('+')) * dS + sqrt(problem.penalty_phi / h_avg) * inner(jump(phi_DG), psi_CR('+')) * dS
+    a_jump = sqrt(problem.penalty_u / h_avg / F('+')) * inner(jump(u_DG), v_CR('+')) * dS + sqrt(problem.penalty_phi / h_avg / F('+')) * inner(jump(phi_DG), psi_CR('+')) * dS
     A = assemble(a_jump)
     row,col,val = as_backend_type(A).mat().getValuesCSR()
     A = csr_matrix((val, col, row))
