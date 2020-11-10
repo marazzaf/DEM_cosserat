@@ -71,6 +71,11 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
     u,phi = TrialFunctions(problem.V_CR) #V_DG1
     v,psi = TestFunctions(problem.V_CR) #V_DG1
     h = CellDiameter(problem.mesh)
+    n = FacetNormal(problem.mesh)
+
+    #stresses
+    strains = problem.strains(u,phi)
+    sigma,mu = problem.stresses(strains)
 
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
@@ -90,9 +95,9 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
                 form_pen = problem.penalty_u / h * u[component] * v[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
-                    form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds
+                    form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds - inner(dot(sigma, n), v) * dds
                 elif problem.dim == 2:
-                    form_pen = problem.penalty_phi / h * phi * psi * dds
+                    form_pen = problem.penalty_phi / h * phi * psi * dds - inner(dot(mu, n), psi) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 

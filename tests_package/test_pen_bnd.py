@@ -42,7 +42,7 @@ def test_pen_bnd(mesh):
     A = problem.elastic_bilinear_form()
 
     #Penalty matrix
-    A += inner_penalty(problem)
+    A += inner_penalty_light(problem)
 
     #rhs
     t = Constant((-(a+b),-(a+b),0))
