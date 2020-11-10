@@ -8,7 +8,7 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from scipy.sparse.linalg import spsolve
+from scipy.sparse.linalg import spsolve,cg
 
 # Parameters
 nu = 0.3 # Poisson's ratio
@@ -52,11 +52,6 @@ lhs = problem.elastic_bilinear_form()
 pen = inner_penalty(problem)
 lhs += pen
 
-diff = pen - pen.T
-nz = diff.nonzero()
-print(diff[nz])
-sys.exit()
-
 #Listing Dirichlet BC
 bc = [[0, Constant(0), 1], [0, u_D, 2]] #[2, phi_D, 1]
 #bc = [[0, Constant(0)], [0, u_D]]
@@ -72,7 +67,9 @@ rhs = rhs_bnd_penalty(problem, boundary_parts, bc)
 lhs += lhs_bnd_penalty(problem, boundary_parts, bc) #lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Solving linear problem
-v = spsolve(lhs,rhs)
+v = spsolve(lhs,rhs,use_umfpack=False)
+#v,info = cg(lhs,rhs)
+#assert info == 0
 v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()

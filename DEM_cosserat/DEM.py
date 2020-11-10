@@ -127,7 +127,7 @@ def inner_penalty(problem):
     te_sigma,te_mu = problem.stresses(te_strains)
     te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
     
-    a_pen = problem.penalty_u / h_avg * inner(jump(u), jump(v)) * dS + problem.penalty_phi / h_avg * inner(jump(phi), jump(psi)) * dS - inner(dot(avg(tr_sigma), n('+')), jump(v)) * dS - inner(dot(avg(tr_mu), n('+')), jump(psi)) * dS - inner(dot(avg(te_mu), n('+')), jump(phi)) * dS - inner(dot(avg(te_sigma), n('+')), jump(u)) * dS
+    a_pen = problem.penalty_u / h_avg * inner(jump(u), jump(v)) * dS + problem.penalty_phi / h_avg * inner(jump(phi), jump(psi)) * dS# - inner(dot(avg(tr_sigma), n('+')), jump(v)) * dS - inner(dot(avg(tr_mu), n('+')), jump(psi)) * dS - inner(dot(avg(te_mu), n('+')), jump(phi)) * dS - inner(dot(avg(te_sigma), n('+')), jump(u)) * dS
 
     #Assembling matrix
     A = assemble(a_pen)
