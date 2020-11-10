@@ -153,7 +153,7 @@ def lhs_bnd_penalty_bis(problem, subdomain_data, list_Dirichlet_BC=None): #List 
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
         bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds
     else:
-        list_lhs = []
+        #list_lhs = []
         list_jump = []
         for BC in list_Dirichlet_BC:
             assert len(BC) == 2 or len(BC) == 3
@@ -165,28 +165,29 @@ def lhs_bnd_penalty_bis(problem, subdomain_data, list_Dirichlet_BC=None): #List 
             component = BC[0]
 
             if component < problem.dim: #bnd stress
-                form_jump = u_DG[component] * v_CR[component] / F * dds
-                form_pen = problem.penalty_u / h * u[component] * v[component] * dds
+                form_jump = sqrt(problem.penalty_u / h) * u_DG[component] * v_CR[component] * dds
+                #form_pen = problem.penalty_u / h * u[component] * v[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds
                 elif problem.dim == 2:
-                    form_jump = phi_DG * psi_CR / F * dds
-                    form_pen = problem.penalty_phi / h * phi * psi * dds
+                    form_jump = sqrt(problem.penalty_phi / h) * phi_DG * psi_CR * dds
+                    #form_pen = problem.penalty_phi / h * phi * psi * dds
             #Storing new term
             list_jump.append(form_jump)
-            list_lhs.append(form_pen)
+            #list_lhs.append(form_pen)
                 
         #Summing all contributions
         a_jump = sum(l for l in list_jump)
-        bilinear = sum(l for l in list_lhs)
+        #bilinear = sum(l for l in list_lhs)
 
     #Assembling matrices
     A = assemble(a_jump)
     row,col,val = as_backend_type(A).mat().getValuesCSR()
     A = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_DG1))
-    Mat = assemble(bilinear)
-    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
-    
-    return problem.DEM_to_DG1.T * A.T * Mat * A * problem.DEM_to_DG1
+    #Mat = assemble(bilinear)
+    #row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+    #Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
+
+    #return problem.DEM_to_DG1.T * A.T * Mat * A * problem.DEM_to_DG1
+    return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1

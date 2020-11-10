@@ -62,7 +62,7 @@ rhs = rhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Nitsche penalty bilinear form
 #lhs += lhs_nitsche_penalty(problem, bc)
-lhs += lhs_bnd_penalty(problem, boundary_parts, bc) #lhs_bnd_penalty(problem, boundary_parts, bc)
+lhs += lhs_bnd_penalty_bis(problem, boundary_parts, bc) #lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Solving linear problem
 v = spsolve(lhs,rhs)
