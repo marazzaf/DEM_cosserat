@@ -24,11 +24,12 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 20
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
+#problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
+problem = DEMProblem(mesh, 4*G, 4*G*l*l)
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
