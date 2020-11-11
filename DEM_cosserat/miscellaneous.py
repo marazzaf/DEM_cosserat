@@ -68,8 +68,10 @@ def gradient_matrix(problem):
     return csr_matrix((val, col, row))
 
 def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
-    u,phi = TrialFunctions(problem.V_CR) #V_DG1
-    v,psi = TestFunctions(problem.V_CR) #V_DG1
+    #u,phi = TrialFunctions(problem.V_CR) #V_DG1
+    #v,psi = TestFunctions(problem.V_CR) #V_DG1
+    u,phi = TrialFunctions(problem.V_DG1)
+    v,psi = TestFunctions(problem.V_DG1)
     h = CellDiameter(problem.mesh)
     n = FacetNormal(problem.mesh)
 
@@ -111,15 +113,17 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
     #Assembling matrix
     Mat = assemble(bilinear)
     row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
+    #Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
+    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
     
-    return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
+    #return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
+    return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
 
 def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
     #For rhs penalty term computation
     h = CellDiameter(problem.mesh)
-    v,psi = TestFunctions(problem.V_CR)
-    #v,psi = TestFunctions(problem.V_DG1)
+    #v,psi = TestFunctions(problem.V_CR)
+    v,psi = TestFunctions(problem.V_DG1)
     n = FacetNormal(problem.mesh)
 
     #stresses
@@ -150,8 +154,8 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
     L = sum(l for l in list_L)
     L = assemble(L).get_local()
     
-    return problem.DEM_to_CR.T * L
-    #return problem.DEM_to_DG1.T * L
+    #return problem.DEM_to_CR.T * L
+    return problem.DEM_to_DG1.T * L
 
 def lhs_bnd_penalty_bis(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     #Facet jump bilinear form

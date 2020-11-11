@@ -48,9 +48,9 @@ problem.D = problem.D_Matrix(G, nu, N, l)
 lhs = problem.elastic_bilinear_form()
 
 #Penalty matrix
-#lhs += inner_penalty_light(problem)
-pen = inner_penalty(problem)
-lhs += pen
+lhs += inner_penalty_light(problem)
+#pen = inner_penalty(problem)
+#lhs += pen
 
 #Listing Dirichlet BC
 bc = [[0, Constant(0), 1], [0, u_D, 2]] #[2, phi_D, 1]

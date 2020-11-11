@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 20
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -46,7 +46,7 @@ elas = problem.elastic_bilinear_form()
 lhs = elas
 
 #Penalty matrix
-inner = inner_penalty(problem) #light
+inner = inner_penalty_light(problem) #light
 lhs += inner
 
 #rhs
@@ -67,9 +67,9 @@ bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
 lhs += bnd
 
 #Solving linear problem
-#v = spsolve(lhs,rhs,use_umfpack=False)
-v,info = cg(lhs,rhs, tol=1e-10)
-assert info == 0
+v = spsolve(lhs,rhs)
+#v,info = cg(lhs,rhs, tol=1e-10)
+#assert info == 0
 v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
@@ -157,7 +157,8 @@ print('Tot: %.2f' % (np.sqrt(0.5 * np.dot(error, lhs*error))))
 #print('No bnd energy: %.2f' % (np.sqrt(0.5 * np.dot(error, (inner+elas)*error))))
 print('Pen: %.2f' % (np.sqrt(0.5 * np.dot(error, (inner+bnd)*error))))
 print('Elas: %.2f' % (np.sqrt(0.5 * np.dot(error, elas*error))))
-#print('Bnd pen: %.2f' % (np.sqrt(0.5 * np.dot(error, bnd*error))))
+print('Bnd pen: %.2f' % (np.sqrt(0.5 * np.dot(error, bnd*error))))
+print('Bnd pen squared: %.2f' % (np.dot(error, bnd*error)))
 
 #print(errornorm(u_h, u, 'L2'))
 #print(errornorm(phi_h, phi, 'L2'))
