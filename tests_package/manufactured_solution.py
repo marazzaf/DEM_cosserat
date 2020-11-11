@@ -8,7 +8,7 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from scipy.sparse.linalg import spsolve,cg
+from scipy.sparse.linalg import spsolve,cg,bicgstab
 
 # Parameters
 nu = 0.3 # Poisson's ratio
@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -69,7 +69,7 @@ lhs += bnd
 
 #Solving linear problem
 v = spsolve(lhs,rhs)
-#v,info = cg(lhs,rhs, tol=1e-10)
+#v,info = bicgstab(lhs,rhs) #, tol=1e-10)
 #assert info == 0
 v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
