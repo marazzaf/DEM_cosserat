@@ -73,9 +73,8 @@ A = 0.5 #What value to put?
 B = 1 #Same question
 u_D = Expression(('A*pow(x[0]*x[0]+x[1]*x[1],2)','A*pow(x[0]*x[0]+x[1]*x[1],2)'), A=A, degree=4)
 phi_D = Expression('B*(x[0]*x[0]+x[1]*x[1])', B=B, degree=2)
-t = Expression(('G*(8*A*x[0]*(a*x[0]+b*x[1]) + 4*A*(x[0]*x[0]+x[1]*x[1])*(a+d) + 2*x[0]*((4*A*x[1]-B)*c + (4*A*x[0]+B)*d))','G*(8*A*x[1]*(a*x[1]+b*x[0]) + 4*A*(x[0]*x[0]+x[1]*x[1])*(a+d) + 2*x[1]*((4*A*x[1]-B)*d + (4*A*x[0]+B)*c))'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 2)
-c = Expression('G*((x[0]*x[0]+x[1]*x[1])*(c*(4*A*(x[1]-x[0])-2*B) + d*(4*A*(x[0]-x[1])+2*B)) - 16*l*l*B)', G=G, A=A, B=B, c=c, d=d, l=l, degree = 3)
-#c = Constant(0)
+t = Expression(('G*(8*A*x[0]*(a*x[0]+b*x[1]) + 4*A*(x[0]*x[0]+x[1]*x[1])*(a+c) + 2*x[0]*((4*A*x[0]-B)*c + (4*A*x[1]+B)*d))','G*(8*A*x[1]*(a*x[1]+b*x[0]) + 4*A*(x[0]*x[0]+x[1]*x[1])*(a+c) + 2*x[1]*((4*A*x[0]-B)*d + (4*A*x[1]+B)*c))'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 2)
+c = Expression('G*((x[0]*x[0]+x[1]*x[1])*(4*A*(x[0]-x[1])+2*B)*(d-c) - 16*l*l*B)', G=G, A=A, B=B, c=c, d=d, l=l, degree = 3)
 
 #initial lhs and rhs
 lhs = inner(strain(v, eta), D*strain(u, psi))*dx
