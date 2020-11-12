@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 80
+nb_elt = 20
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -36,8 +36,8 @@ boundary_parts.set_all(0)
 
 A = 0.5 #What value to put?
 B = 1 #Same question
-u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])'), A=A, degree=2)
-phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
+u_D = Expression(('A*pow(x[0]*x[0]+x[1]*x[1],2)','A*pow(x[0]*x[0]+x[1]*x[1],2)'), A=A, degree=4)
+phi_D = Expression('B*(x[0]*x[0]+x[1]*x[1])', B=B, degree=2)
 
 #compliance tensor
 problem.D = problem.D_Matrix(G, nu, N, l)
@@ -51,7 +51,7 @@ inner = inner_penalty(problem) #light
 lhs += inner
 
 #rhs
-t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1] )*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
+t = Expression(('G*(8*A*x[0]*(a*x[0]+b*x[1]) + 4*A*(x[0]*x[0]+x[1]*x[1])*(a+d) + 2*x[0]*((4*A*x[1]-B)*c + (4*A*x[0]+B)*d))','G*(8*A*x[1]*(a*x[1]+b*x[0]) + 4*A*(x[0]*x[0]+x[1]*x[1])*(a+d) + 2*x[1]*((4*A*x[1]-B)*d + (4*A*x[0]+B)*c))','G*((x[0]*x[0]+x[1]*x[1])*(c*(4*A*(x[1]-x[0])-2*B) + d*(4*A*(x[0]-x[1])+2*B)) - 16*l*l*B)'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, l=l, degree = 3)
 #t = Constant((0, 0, 0)) #test
 rhs = problem.assemble_volume_load(t)
 

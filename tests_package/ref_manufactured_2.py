@@ -46,7 +46,7 @@ def strain(v, eta):
     
 #mesh
 L = 0.5
-nb_elt = 10
+nb_elt = 20
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
@@ -71,10 +71,10 @@ D = D_Matrix(G, nu, l, N)
 #BC
 A = 0.5 #What value to put?
 B = 1 #Same question
-u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])'), A=A, degree=2)
-phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
-t = Expression(('-G*(A*2*(a+c)+B*(d-c))','-G*(A*2*(a+c)+B*(d-c))'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
-c = Expression('-2*(x[0]-x[1])*(d-c)*(B-A)*G', G=G, A=A, B=B, c=c, d=d, degree = 1)
+u_D = Expression(('A*pow(x[0]*x[0]+x[1]*x[1],2)','A*pow(x[0]*x[0]+x[1]*x[1],2)'), A=A, degree=4)
+phi_D = Expression('B*(x[0]*x[0]+x[1]*x[1])', B=B, degree=2)
+t = Expression(('G*(8*A*x[0]*(a*x[0]+b*x[1]) + 4*A*(x[0]*x[0]+x[1]*x[1])*(a+d) + 2*x[0]*((4*A*x[1]-B)*c + (4*A*x[0]+B)*d))','G*(8*A*x[1]*(a*x[1]+b*x[0]) + 4*A*(x[0]*x[0]+x[1]*x[1])*(a+d) + 2*x[1]*((4*A*x[1]-B)*d + (4*A*x[0]+B)*c))'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 2)
+c = Expression('G*((x[0]*x[0]+x[1]*x[1])*(c*(4*A*(x[1]-x[0])-2*B) + d*(4*A*(x[0]-x[1])+2*B)) - 16*l*l*B)', G=G, A=A, B=B, c=c, d=d, l=l, degree = 3)
 #c = Constant(0)
 
 #initial lhs and rhs
@@ -96,25 +96,25 @@ u = interpolate(u_D, W)
 W = FunctionSpace(mesh, 'CG', 1)
 phi = interpolate(phi_D, W)
 
-##solutions and ref
-#img = plot(u_h[0])
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(u[0])
-#plt.colorbar(fig)
-#plt.show()
-#img = plot(u_h[1])
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(u[1])
-#plt.colorbar(fig)
-#plt.show()
-#img = plot(psi_h)
-#plt.colorbar(img)
-#plt.show()
-#fig = plot(phi)
-#plt.colorbar(fig)
-#plt.show()
+#solutions and ref
+img = plot(u_h[0])
+plt.colorbar(img)
+plt.show()
+fig = plot(u[0])
+plt.colorbar(fig)
+plt.show()
+img = plot(u_h[1])
+plt.colorbar(img)
+plt.show()
+fig = plot(u[1])
+plt.colorbar(fig)
+plt.show()
+img = plot(psi_h)
+plt.colorbar(img)
+plt.show()
+fig = plot(phi)
+plt.colorbar(fig)
+plt.show()
 #sys.exit()
 
 ##errors
