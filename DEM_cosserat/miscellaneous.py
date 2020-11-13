@@ -210,3 +210,15 @@ def lhs_bnd_penalty_bis(problem, subdomain_data, list_Dirichlet_BC=None): #List 
 
     #return problem.DEM_to_DG1.T * A.T * Mat * A * problem.DEM_to_DG1
     return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1
+
+def energy_error_matrix(problem, subdomain_data):
+    ds = Measure('ds')(subdomain_data=subdomain_data)
+    h = CellDiameter(problem.mesh)
+    h_avg = 0.5 * (h('+') + h('-'))
+    u,phi = TrialFunctions(problem.V_CR) #V_DG1 ?
+    v,psi = TestFunctions(problem.V_CR) #V_DG1 ?
+    form = inner(jump(u), jump(v)) / h_avg * dS + inner(jump(phi), jump(psi)) / h_avg  * dS + inner(u, v) / h * ds + phi * psi / h * ds
+    Mat = assemble(form)
+    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
+    return  problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
