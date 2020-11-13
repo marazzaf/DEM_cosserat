@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 5
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -38,6 +38,7 @@ A = 0.5 #What value to put?
 B = 1 #Same question
 u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])'), A=A, degree=2)
 phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
+tot_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])', 'B*(x[0]-x[1])'), A=A, B=B, degree=2)
 
 #compliance tensor
 problem.D = problem.D_Matrix(G, nu, N, l)
@@ -78,23 +79,31 @@ u_DG1,phi_DG1 = v_h.split()
 err_grad = np.sqrt(errornorm(u_DG1, ref_u, 'H10')**2 + errornorm(phi_DG1, ref_phi, 'H10')**2)
 print(err_grad)
 
-#Ref solution
-U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
-S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
-V = FunctionSpace(mesh, MixedElement(U,S))
-ref_sol = Function(V)
-ref_u_aux,ref_phi_aux = ref_sol.split()
-print(len(ref_sol.vector()))
-print(len(ref_u_aux.vector()))
-print(len(ref_phi_aux.vector()))
-ref_u_aux.vector()[:] = ref_u.vector()[:]
-ref_phi_aux.vector()[:] = ref_phi.vector()[:]
+##Ref solution
+#U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
+#S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
+#V = FunctionSpace(mesh, MixedElement(U,S))
+#ref_sol = interpolate(tot_D, V)
+#ref_sol = Function(V)
+#ref_u_aux,ref_phi_aux = ref_sol.split()
+#print(len(ref_sol.vector()))
+#print(len(ref_u_aux.vector()))
+#print(len(ref_phi_aux.vector()))
+#ref_u_aux.vector()[:] = ref_u.vector()[:]
+#ref_phi_aux.vector()[:] = ref_phi.vector()[:]
 
-#For energy error
-Mat = energy_error_matrix(problem, boundary_parts)
+#error bnd
+h = CellDiameter(problem.mesh)
+diff_u = u_DG1 - ref_u
+error_u = assemble(inner(diff_u, diff_u) / h * ds)
+diff_phi = phi_DG1 - ref_phi
+error_phi = assemble(inner(diff_phi, diff_phi) / h * ds)
 
-#Energy error
-error = v_h.vector().get_local() - ref_sol.vector().get_local()
-en_error = np.dot(error, Mat*error)
-print('Error in energy norm bnd: %.5e' % (np.sqrt(en_error)))
+##For energy error
+#Mat = energy_error_matrix(problem, boundary_parts)
+#
+##Energy error
+#error = v_h.vector().get_local() - ref_sol.vector().get_local()
+#en_error = np.dot(error, Mat*error)
+print('Error in energy norm bnd: %.5e' % (np.sqrt(error_u + error_phi)))
 

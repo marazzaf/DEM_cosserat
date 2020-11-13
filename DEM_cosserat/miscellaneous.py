@@ -221,5 +221,5 @@ def energy_error_matrix(problem, subdomain_data):
     form = inner(u, v) / h * ds + phi * psi / h * ds #Just the boundary...
     Mat = assemble(form)
     row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
-    return  problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
+    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
+    return  problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
