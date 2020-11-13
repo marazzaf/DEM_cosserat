@@ -46,110 +46,36 @@ problem.D = problem.D_Matrix(G, nu, N, l)
 elas = problem.elastic_bilinear_form()
 lhs = elas
 
-#Penalty matrix
-inner_pen = inner_penalty_light(problem) #light
-lhs += inner_pen
+U = VectorFunctionSpace(problem.mesh, 'DG', 0)
+u_DG0 = interpolate(u_D, U)
+#u_DG0 = project(u_D, U)
+U = FunctionSpace(problem.mesh, 'DG', 0)
+phi_DG0 = interpolate(phi_D, U)
+#phi_DG0 = project(phi_D, U)
+sol_DG0 = project(as_vector((u_DG0[0],u_DG0[1],phi_DG0)), problem.V_DG)
 
-#rhs
-t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1] )*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
-#t = Constant((0, 0, 0)) #test
-rhs = problem.assemble_volume_load(t)
+#ref solution CG 2
+U = VectorFunctionSpace(problem.mesh, 'CG', 2)
+ref_u = interpolate(u_D, U)
+U = FunctionSpace(problem.mesh, 'CG', 1)
+ref_phi = interpolate(phi_D, U)
 
-#Listing Dirichlet BC
-bc = [[0,u_D[0],0], [1, u_D[1],0], [2, phi_D,0]]
-
-#Nitsche penalty rhs
-#rhs += rhs_nitsche_penalty(problem, bc)
-rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
-
-#Nitsche penalty bilinear form
-#lhs += lhs_nitsche_penalty(problem, bc)
-bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
-lhs += bnd
-
-#Solving linear problem
-v = spsolve(lhs,rhs)
-#v,info = bicgstab(lhs,rhs) #, tol=1e-10)
-#assert info == 0
-v_h = Function(problem.V_DG1)
-v_h.vector().set_local(problem.DEM_to_DG1 * v)
-u_h, phi_h = v_h.split()
-
-#print(u_h(0,L),phi_h(0,L))
-#print(u_h(0,0),phi_h(0,0))
-
-U = VectorFunctionSpace(problem.mesh, 'DG', 1)
-u = interpolate(u_D, U)
-U = FunctionSpace(problem.mesh, 'DG', 1)
-phi = interpolate(phi_D, U)
-
-#file = File('out.pvd')
-#
-#file << u_h
-#file << phi_h
-#
-### Stress
-#eps,kappa = problem.strains(u_h, phi_h)
-##sigma_yy = project(sigma[1])
-#file << project(kappa, U)
-#sys.exit()
-
-##test BC
-#fig = plot(abs(u_h[0]-u[0]))
-#plt.colorbar(fig)
-#plt.show()
-#fig = plot(abs(u_h[1]-u[1]))
-#plt.colorbar(fig)
-#plt.show()
-#fig = plot(abs(phi_h-phi))
-#plt.colorbar(fig)
-#plt.show()
-#sys.exit()
+#DG0 errors
+err_L2 = np.sqrt(errornorm(u_DG0, ref_u, 'L2')**2 + errornorm(phi_DG0, ref_phi, 'L2')**2)
+err_L2_u = errornorm(u_DG0, ref_u, 'L2')
+err_L2_phi = errornorm(phi_DG0, ref_phi, 'L2')
+print(err_L2)
+print(err_L2_u)
+print(err_L2_phi)
+sys.exit()
 
 
-#fig = plot(u_h[0])
-#plt.colorbar(fig)
-###plt.savefig('u_x_25.pdf')
-#plt.show()
-#fig = plot(u[0])
-#plt.colorbar(fig)
-###plt.savefig('ref_u_x_25.pdf')
-#plt.show()
-##fig = plot(u_h[0]-u[0])
-##plt.colorbar(fig)
-##plt.show()
-##
-#fig = plot(u_h[1])
-#plt.colorbar(fig)
-###plt.savefig('u_y_25.pdf')
-#plt.show()
-#fig = plot(u[1])
-#plt.colorbar(fig)
-###plt.savefig('ref_u_y_25.pdf')
-#plt.show()
-##fig = plot(u_h[1]-u[1])
-##plt.colorbar(fig)
-##plt.show()
-##
-#fig = plot(phi_h)
-#plt.colorbar(fig)
-###plt.savefig('phi_25.pdf')
-#plt.show()
-#fig = plot(phi)
-#plt.colorbar(fig)
-###plt.savefig('ref_phi_25.pdf')
-#plt.show()
-##fig = plot(phi_h-phi)
-##plt.colorbar(fig)
-##plt.show()
-##sys.exit()
 
 #DG1 errors
 err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(phi_h, phi, 'H10')**2)
 err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
 print(problem.nb_dof_DEM)
 print(err_grad)
-print(err_L2)
 
 #DG0 L2 error
 v_h = Function(problem.V_DG)
