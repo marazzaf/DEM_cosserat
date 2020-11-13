@@ -215,10 +215,10 @@ def energy_error_matrix(problem, subdomain_data):
     ds = Measure('ds')(subdomain_data=subdomain_data)
     h = CellDiameter(problem.mesh)
     h_avg = 0.5 * (h('+') + h('-'))
-    u,phi = TrialFunctions(problem.V_CR) #V_DG1 ?
-    v,psi = TestFunctions(problem.V_CR) #V_DG1 ?
+    u,phi = TrialFunctions(problem.V_DG1)
+    v,psi = TestFunctions(problem.V_DG1)
     #form = inner(jump(u), jump(v)) / h_avg * dS + inner(jump(phi), jump(psi)) / h_avg  * dS + inner(u, v) / h * ds + phi * psi / h * ds
-    form = inner(u, v) / h * ds + phi * psi / h * ds #Juste the boundary...
+    form = inner(u, v) / h * ds + phi * psi / h * ds #Just the boundary...
     Mat = assemble(form)
     row,col,val = as_backend_type(Mat).mat().getValuesCSR()
     Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
