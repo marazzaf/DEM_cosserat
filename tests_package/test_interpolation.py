@@ -94,16 +94,13 @@ print(err_grad)
 
 #error bnd
 h = CellDiameter(problem.mesh)
+h_avg = 0.5 * (h('+') + h('-'))
 diff_u = u_DG1 - ref_u
 error_u = assemble(inner(diff_u, diff_u) / h * ds)
 diff_phi = phi_DG1 - ref_phi
 error_phi = assemble(inner(diff_phi, diff_phi) / h * ds)
-
-##For energy error
-#Mat = energy_error_matrix(problem, boundary_parts)
-#
-##Energy error
-#error = v_h.vector().get_local() - ref_sol.vector().get_local()
-#en_error = np.dot(error, Mat*error)
 print('Error in energy norm bnd: %.5e' % (np.sqrt(error_u + error_phi)))
+error_u = assemble(inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
+error_phi = assemble(inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
+print('Error in energy norm inner: %.5e' % (np.sqrt(error_u + error_phi)))
 
