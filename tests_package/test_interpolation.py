@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -52,7 +52,7 @@ u_DG0 = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'DG', 0)
 phi_DG0 = interpolate(phi_D, U)
 #phi_DG0 = project(phi_D, U)
-sol_DG0 = project(as_vector((u_DG0[0],u_DG0[1],phi_DG0)), problem.V_DG)
+sol_DG0 = project(as_vector((u_DG0[0],u_DG0[1],phi_DG0)), problem.V_DG).vector().get_local()
 
 #ref solution CG 2
 U = VectorFunctionSpace(problem.mesh, 'CG', 2)
@@ -67,15 +67,15 @@ err_L2_phi = errornorm(phi_DG0, ref_phi, 'L2')
 print(err_L2)
 print(err_L2_u)
 print(err_L2_phi)
-sys.exit()
-
 
 
 #DG1 errors
-err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(phi_h, phi, 'H10')**2)
-err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
-print(problem.nb_dof_DEM)
+v_h = Function(problem.V_DG1)
+v_h.vector().set_local(problem.DEM_to_DG1 * sol_DG0)
+u_DG1,phi_DG1 = v_h.split()
+err_grad = np.sqrt(errornorm(u_DG1, ref_u, 'H10')**2 + errornorm(phi_DG1, ref_phi, 'H10')**2)
 print(err_grad)
+sys.exit()
 
 #DG0 L2 error
 v_h = Function(problem.V_DG)
