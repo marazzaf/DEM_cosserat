@@ -2,8 +2,8 @@
 
 import numpy as np
 
-#name = 'convergence_DEM_manufactured.txt'
-name = 'conv_bis.txt'
+name = 'convergence_DEM_manufactured.txt'
+#name = 'conv_bis.txt'
 res = np.loadtxt(name)
 
 orders_energy = 2 * np.log(res[1:,3] / res[:-1,3]) / np.log(res[:-1, 0] / res[1:,0]) #3 * ???

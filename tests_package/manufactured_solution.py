@@ -72,9 +72,9 @@ lhs += bnd
 v = spsolve(lhs,rhs)
 #v,info = bicgstab(lhs,rhs) #, tol=1e-10)
 #assert info == 0
-v_h = Function(problem.V_DG1)
-v_h.vector().set_local(problem.DEM_to_DG1 * v)
-u_h, phi_h = v_h.split()
+v_DG1 = Function(problem.V_DG1)
+v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
+u_DG1,phi_DG1 = v_DG1.split()
 
 #print(u_h(0,L),phi_h(0,L))
 #print(u_h(0,0),phi_h(0,0))
@@ -146,8 +146,8 @@ phi = interpolate(phi_D, U)
 ##sys.exit()
 
 #DG1 errors
-err_grad = np.sqrt(errornorm(u_h, u, 'H10')**2 + errornorm(phi_h, phi, 'H10')**2)
-err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
+err_grad = np.sqrt(errornorm(u_DG1, u, 'H10')**2 + errornorm(phi_DG1, phi, 'H10')**2)
+err_L2 = np.sqrt(errornorm(u_DG1, u, 'L2')**2 + errornorm(phi_DG1, phi, 'L2')**2)
 print(problem.nb_dof_DEM)
 print(err_grad)
 print(err_L2)
@@ -156,11 +156,11 @@ print(err_L2)
 v_h = Function(problem.V_DG)
 v_h.vector().set_local(v)
 u_h, phi_h = v_h.split()
-U = VectorFunctionSpace(problem.mesh, 'DG', 0)
-ref_u = interpolate(u_D, U)
-U = FunctionSpace(problem.mesh, 'DG', 0)
-ref_phi = interpolate(phi_D, U)
-#err_L2 = np.sqrt(errornorm(u_h, ref_u, 'L2')**2 + errornorm(phi_h, ref_phi, 'L2')**2)
+#U = VectorFunctionSpace(problem.mesh, 'DG', 0)
+#ref_u = interpolate(u_D, U)
+#U = FunctionSpace(problem.mesh, 'DG', 0)
+#ref_phi = interpolate(phi_D, U)
+##err_L2 = np.sqrt(errornorm(u_h, ref_u, 'L2')**2 + errornorm(phi_h, ref_phi, 'L2')**2)
 err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
 print(err_L2)
 
@@ -176,13 +176,23 @@ print(err_L2)
 #print(errornorm(u_h, u, 'L2'))
 #print(errornorm(phi_h, phi, 'L2'))
 
-#For energy error
-Mat = energy_error_matrix(problem, boundary_parts)
+##For energy error
+#Mat = energy_error_matrix(problem, boundary_parts)
+#
+##Energy error
+#ref_u,ref_phi,ref = DEM_interpolation(tot_D, problem)
+##project(as_vector((ref_u[0],ref_u[1],ref_phi)), problem.V_DG).vector().get_local()
+#error = v - ref
+#en_error = np.dot(error, Mat*error)
+#print('Error in energy norm: %.5e' % (np.sqrt(en_error)))
 
-#Energy error
-ref_u,ref_phi,ref = DEM_interpolation(tot_D, problem)
-#project(as_vector((ref_u[0],ref_u[1],ref_phi)), problem.V_DG).vector().get_local()
-error = v - ref
-en_error = np.dot(error, Mat*error)
-print('Error in energy norm: %.5e' % (np.sqrt(en_error)))
+#error bnd
+h = CellDiameter(problem.mesh)
+n = FacetNormal(problem.mesh)
+h_avg = 0.5 * (h('+') + h('-'))
+diff_u = u_DG1 - u
+error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(sym(grad(diff_u)), n), dot(sym(grad(diff_u)), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
+diff_phi = phi_DG1 - phi
+error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
+print('Error in energy norm: %.5e' % (np.sqrt(error_u + error_phi)))
 
