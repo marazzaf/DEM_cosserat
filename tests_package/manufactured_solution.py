@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 80
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -188,11 +188,14 @@ print(err_L2)
 
 #error bnd
 h = CellDiameter(problem.mesh)
+h_avg = 0.5 * (h('+') + h('-'))
 n = FacetNormal(problem.mesh)
 h_avg = 0.5 * (h('+') + h('-'))
 diff_u = u_DG1 - u
-error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(sym(grad(diff_u)), n), dot(sym(grad(diff_u)), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
+#error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_u)), n('+')), dot(avg(grad(diff_u)), n('+'))) * dS)
+error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
 diff_phi = phi_DG1 - phi
+#error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_phi)), n('+')), dot(avg(grad(diff_phi)), n('+'))) * dS)
 error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
 print('Error in energy norm: %.5e' % (np.sqrt(error_u + error_phi)))
 
