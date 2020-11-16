@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -38,6 +38,7 @@ A = 0.5 #What value to put?
 B = 1 #Same question
 u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])'), A=A, degree=2)
 phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
+tot_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])', 'B*(x[0]-x[1])'), A=A, B=B, degree=2)
 
 #compliance tensor
 problem.D = problem.D_Matrix(G, nu, N, l)
@@ -78,9 +79,9 @@ u_h, phi_h = v_h.split()
 #print(u_h(0,L),phi_h(0,L))
 #print(u_h(0,0),phi_h(0,0))
 
-U = VectorFunctionSpace(problem.mesh, 'DG', 1)
+U = VectorFunctionSpace(problem.mesh, 'CG', 2)
 u = interpolate(u_D, U)
-U = FunctionSpace(problem.mesh, 'DG', 1)
+U = FunctionSpace(problem.mesh, 'CG', 1)
 phi = interpolate(phi_D, U)
 
 #file = File('out.pvd')
@@ -159,7 +160,8 @@ U = VectorFunctionSpace(problem.mesh, 'DG', 0)
 ref_u = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'DG', 0)
 ref_phi = interpolate(phi_D, U)
-err_L2 = np.sqrt(errornorm(u_h, ref_u, 'L2')**2 + errornorm(phi_h, ref_phi, 'L2')**2)
+#err_L2 = np.sqrt(errornorm(u_h, ref_u, 'L2')**2 + errornorm(phi_h, ref_phi, 'L2')**2)
+err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
 print(err_L2)
 
 #print('Errors in energy:')
@@ -178,7 +180,9 @@ print(err_L2)
 Mat = energy_error_matrix(problem, boundary_parts)
 
 #Energy error
-error = v - project(as_vector((ref_u[0],ref_u[1],ref_phi)), problem.V_DG).vector().get_local()
+ref_u,ref_phi,ref = DEM_interpolation(tot_D, problem)
+#project(as_vector((ref_u[0],ref_u[1],ref_phi)), problem.V_DG).vector().get_local()
+error = v - ref
 en_error = np.dot(error, Mat*error)
 print('Error in energy norm: %.5e' % (np.sqrt(en_error)))
 
