@@ -107,7 +107,7 @@ class DEMProblem:
         A = csr_matrix((val, col, row))
         return self.DEM_to_CR.T * A * self.DEM_to_CR
 
-def inner_penalty(problem):
+def inner_consistency(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
     
     #assembling penalty factor
