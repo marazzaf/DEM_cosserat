@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -48,11 +48,11 @@ elas = problem.elastic_bilinear_form()
 lhs = elas
 
 U = VectorFunctionSpace(problem.mesh, 'DG', 0)
-u_DG0 = interpolate(u_D, U)
-#u_DG0 = project(u_D, U)
+#u_DG0 = interpolate(u_D, U)
+u_DG0 = local_project(u_D, U)
 U = FunctionSpace(problem.mesh, 'DG', 0)
-phi_DG0 = interpolate(phi_D, U)
-#phi_DG0 = project(phi_D, U)
+#phi_DG0 = interpolate(phi_D, U)
+phi_DG0 = local_project(phi_D, U)
 vec_u_DG0,vec_phi_DG0,sol_DG0 = DEM_interpolation(tot_D, problem)
 
 #ref solution CG 2
@@ -70,6 +70,7 @@ err_L2_phi = errornorm(phi_DG0, ref_phi, 'L2')
 print(err_L2)
 print(err_L2_u)
 print(err_L2_phi)
+sys.exit()
 
 
 #DG1 errors
