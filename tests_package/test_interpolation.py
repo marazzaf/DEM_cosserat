@@ -53,7 +53,7 @@ u_DG0 = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'DG', 0)
 phi_DG0 = interpolate(phi_D, U)
 #phi_DG0 = project(phi_D, U)
-sol_DG0 = project(as_vector((u_DG0[0],u_DG0[1],phi_DG0)), problem.V_DG).vector().get_local()
+vec_u_DG0,vec_phi_DG0,sol_DG0 = DEM_interpolation(tot_D, problem)
 
 #ref solution CG 2
 U = VectorFunctionSpace(problem.mesh, 'CG', 2)
@@ -94,12 +94,16 @@ print(err_grad)
 
 #error bnd
 h = CellDiameter(problem.mesh)
+n = FacetNormal(problem.mesh)
 h_avg = 0.5 * (h('+') + h('-'))
 diff_u = u_DG1 - ref_u
-error_u = assemble(inner(diff_u, diff_u) / h * ds)
+error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(sym(grad(diff_u)), n), dot(sym(grad(diff_u)), n)) * ds)
 diff_phi = phi_DG1 - ref_phi
-error_phi = assemble(inner(diff_phi, diff_phi) / h * ds)
+error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds)
 print('Error in energy norm bnd: %.5e' % (np.sqrt(error_u + error_phi)))
+
+
+#inner error
 error_u = assemble(inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
 error_phi = assemble(inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
 print('Error in energy norm inner: %.5e' % (np.sqrt(error_u + error_phi)))

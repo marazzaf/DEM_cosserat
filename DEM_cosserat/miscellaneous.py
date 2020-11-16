@@ -27,6 +27,7 @@ def DEM_interpolation(func, problem):
     if problem.dim == 2:
         aux = tot.reshape((problem.V_DG.dim() // 3, 3))
         return aux[:,:2].flatten(),aux[:,2],tot
+        #return tot
     elif problem.dim == 3:
         aux = tot.reshape((problem.V_DG.dim() // 6, 6))
         return aux[:,:3].flatten(),aux[:,3:].flatten(),tot
