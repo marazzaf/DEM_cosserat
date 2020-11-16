@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 80
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -67,10 +67,10 @@ print(len(ref_phi.vector()))
 err_L2 = np.sqrt(errornorm(u_DG0, ref_u, 'L2')**2 + errornorm(phi_DG0, ref_phi, 'L2')**2)
 err_L2_u = errornorm(u_DG0, ref_u, 'L2')
 err_L2_phi = errornorm(phi_DG0, ref_phi, 'L2')
-print(err_L2)
+print('DG 0:')
+#print(err_L2)
 print(err_L2_u)
 print(err_L2_phi)
-sys.exit()
 
 
 #DG1 errors
@@ -78,7 +78,13 @@ v_h = Function(problem.V_DG1)
 v_h.vector().set_local(problem.DEM_to_DG1 * sol_DG0)
 u_DG1,phi_DG1 = v_h.split()
 err_grad = np.sqrt(errornorm(u_DG1, ref_u, 'H10')**2 + errornorm(phi_DG1, ref_phi, 'H10')**2)
-print(err_grad)
+print('DG 1:')
+#print(err_grad)
+err_L2_u = errornorm(u_DG1, ref_u, 'L2')
+err_L2_phi = errornorm(phi_DG1, ref_phi, 'L2')
+print(err_L2_u)
+print(err_L2_phi)
+sys.exit()
 
 ##Ref solution
 #U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space

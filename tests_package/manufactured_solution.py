@@ -24,12 +24,12 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-#problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
-problem = DEMProblem(mesh, 4*G, 4*G*l*l)
+#problem = DEMProblem(mesh, 4*G, 4*G*l*l)
+problem = DEMProblem(mesh, 8*G, 8*G*l*l)
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
@@ -49,7 +49,7 @@ lhs = elas
 
 #Penalty matrix
 inner_pen = inner_penalty_light(problem) #light
-lhs += inner_pen
+lhs += inner_pen + inner_penalty(problem)
 
 #rhs
 t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1] )*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
@@ -70,7 +70,7 @@ lhs += bnd
 
 #Solving linear problem
 v = spsolve(lhs,rhs)
-#v,info = bicgstab(lhs,rhs) #, tol=1e-10)
+#v,info = cg(lhs,rhs) #, tol=1e-10)
 #assert info == 0
 v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
@@ -108,42 +108,42 @@ phi = interpolate(phi_D, U)
 #sys.exit()
 
 
-#fig = plot(u_h[0])
+fig = plot(u_DG1[0])
+plt.colorbar(fig)
+##plt.savefig('u_x_25.pdf')
+plt.show()
+fig = plot(u[0])
+plt.colorbar(fig)
+##plt.savefig('ref_u_x_25.pdf')
+plt.show()
+#fig = plot(u_h[0]-u[0])
 #plt.colorbar(fig)
-###plt.savefig('u_x_25.pdf')
 #plt.show()
-#fig = plot(u[0])
+#
+fig = plot(u_DG1[1])
+plt.colorbar(fig)
+##plt.savefig('u_y_25.pdf')
+plt.show()
+fig = plot(u[1])
+plt.colorbar(fig)
+##plt.savefig('ref_u_y_25.pdf')
+plt.show()
+#fig = plot(u_h[1]-u[1])
 #plt.colorbar(fig)
-###plt.savefig('ref_u_x_25.pdf')
 #plt.show()
-##fig = plot(u_h[0]-u[0])
-##plt.colorbar(fig)
-##plt.show()
-##
-#fig = plot(u_h[1])
+#
+fig = plot(phi_DG1)
+plt.colorbar(fig)
+##plt.savefig('phi_25.pdf')
+plt.show()
+fig = plot(phi)
+plt.colorbar(fig)
+##plt.savefig('ref_phi_25.pdf')
+plt.show()
+#fig = plot(phi_h-phi)
 #plt.colorbar(fig)
-###plt.savefig('u_y_25.pdf')
 #plt.show()
-#fig = plot(u[1])
-#plt.colorbar(fig)
-###plt.savefig('ref_u_y_25.pdf')
-#plt.show()
-##fig = plot(u_h[1]-u[1])
-##plt.colorbar(fig)
-##plt.show()
-##
-#fig = plot(phi_h)
-#plt.colorbar(fig)
-###plt.savefig('phi_25.pdf')
-#plt.show()
-#fig = plot(phi)
-#plt.colorbar(fig)
-###plt.savefig('ref_phi_25.pdf')
-#plt.show()
-##fig = plot(phi_h-phi)
-##plt.colorbar(fig)
-##plt.show()
-##sys.exit()
+#sys.exit()
 
 #DG1 errors
 err_grad = np.sqrt(errornorm(u_DG1, u, 'H10')**2 + errornorm(phi_DG1, phi, 'H10')**2)
@@ -152,17 +152,17 @@ print(problem.nb_dof_DEM)
 print(err_grad)
 print(err_L2)
 
-#DG0 L2 error
-v_h = Function(problem.V_DG)
-v_h.vector().set_local(v)
-u_h, phi_h = v_h.split()
-#U = VectorFunctionSpace(problem.mesh, 'DG', 0)
-#ref_u = interpolate(u_D, U)
-#U = FunctionSpace(problem.mesh, 'DG', 0)
-#ref_phi = interpolate(phi_D, U)
-##err_L2 = np.sqrt(errornorm(u_h, ref_u, 'L2')**2 + errornorm(phi_h, ref_phi, 'L2')**2)
-err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
-print(err_L2)
+##DG0 L2 error
+#v_h = Function(problem.V_DG)
+#v_h.vector().set_local(v)
+#u_h, phi_h = v_h.split()
+##U = VectorFunctionSpace(problem.mesh, 'DG', 0)
+##ref_u = interpolate(u_D, U)
+##U = FunctionSpace(problem.mesh, 'DG', 0)
+##ref_phi = interpolate(phi_D, U)
+###err_L2 = np.sqrt(errornorm(u_h, ref_u, 'L2')**2 + errornorm(phi_h, ref_phi, 'L2')**2)
+#err_L2 = np.sqrt(errornorm(u_h, u, 'L2')**2 + errornorm(phi_h, phi, 'L2')**2)
+#print(err_L2)
 
 #print('Errors in energy:')
 #print(err_energy)
@@ -192,10 +192,10 @@ h_avg = 0.5 * (h('+') + h('-'))
 n = FacetNormal(problem.mesh)
 h_avg = 0.5 * (h('+') + h('-'))
 diff_u = u_DG1 - u
-#error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_u)), n('+')), dot(avg(grad(diff_u)), n('+'))) * dS)
-error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
+error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_u)), n('+')), dot(avg(grad(diff_u)), n('+'))) * dS)
+#error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
 diff_phi = phi_DG1 - phi
-#error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_phi)), n('+')), dot(avg(grad(diff_phi)), n('+'))) * dS)
-error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
+error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_phi)), n('+')), dot(avg(grad(diff_phi)), n('+'))) * dS)
+#error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
 print('Error in energy norm: %.5e' % (np.sqrt(error_u + error_phi)))
 
