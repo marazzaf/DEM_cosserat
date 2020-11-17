@@ -19,23 +19,6 @@ N = 0.8 # coupling parameter
 T = 1.0 # load
 c = l/N
 
-##for other version
-#K = 16.67e3
-#G = 10e3
-#Gc = 5e3
-#L = 10 #pas de valeur
-#R = 0.01
-#h3 = 2/5
-#M = G*R*R/h3
-#Mc = M
-
-# Convergence
-h = [15, 30, 50, 70, 90] # mesh density
-
-elements_size = []
-errors = []
-SCF_0 = []
-
 # Analytical solution
 def AnalyticalSolution(nu, l, c, R):
     
@@ -83,12 +66,6 @@ def strain_bis(v, omega):
     gamma = grad(v) + as_tensor(([0.,-omega],[omega,0.]))
     kappa = grad(omega)
     return gamma, kappa
-
-def stress(Tuple):
-    gamma,kappa = Tuple
-    sigma = K * tr(gamma) * Indentity(d) + 2*G * (sym(gamma) - tr(gamma) * Indentity(d) / 3) + 2*Gc * skew(gamma)
-    mu = L * tr(kappa) * Identity(d) + 2*M * (sym(kappa) - tr(kappa) * Identity(d) / 3) + 2*Mc * skew(curvature)
-    return sigma,mu
     
 
 #for hx in h :
@@ -97,7 +74,7 @@ def stress(Tuple):
     #geometry = Rectangle(Point(0,0),Point(plate, plate))-Circle(Point(0,0), R, hx)
     #mesh = generate_mesh(geometry, hx)
 mesh = Mesh()
-with XDMFFile("hole_plate.xdmf") as infile:
+with XDMFFile("hole_plate_fine.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -162,15 +139,15 @@ u_h, psi_h = U_h.split()
 #sys.exit()
 img = plot(u_h[0])
 plt.colorbar(img)
-plt.savefig('ref_u_x_15.pdf')
+plt.savefig('ref_u_x.pdf')
 plt.show()
 img = plot(u_h[1])
 plt.colorbar(img)
-plt.savefig('ref_u_y_15.pdf')
+plt.savefig('ref_u_y.pdf')
 plt.show()
 img = plot(psi_h)
 plt.colorbar(img)
-plt.savefig('ref_phi_15.pdf')
+plt.savefig('ref_phi.pdf')
 plt.show()
 sys.exit()
 
