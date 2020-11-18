@@ -97,7 +97,7 @@ A += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Penalty matrix
 A += inner_penalty_light(problem)
-#A += inner_consistency(problem)
+A += inner_consistency(problem)
 
 #Solving linear problem
 v = spsolve(A,b)
@@ -137,7 +137,7 @@ print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
 print(error)
 
 
-file = File("sigma_very_fine.pvd")
+file = File("sigma_very_fine_with_con_sym.pvd")
 file << sigma_yy
 file << u_DG
 file << u_DG1
