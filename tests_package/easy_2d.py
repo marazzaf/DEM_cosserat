@@ -40,8 +40,9 @@ SCF = AnalyticalSolution(nu, l, c, R)
     
 # Mesh
 mesh = Mesh()
+with XDMFFile("hole_plate_very_fine.xdmf") as infile: #fine
 #with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
-with XDMFFile("hole_plate.xdmf") as infile:
+#with XDMFFile("hole_plate.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
@@ -96,7 +97,7 @@ A += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Penalty matrix
 A += inner_penalty_light(problem)
-A += inner_consistency(problem)
+#A += inner_consistency(problem)
 
 #Solving linear problem
 v = spsolve(A,b)
@@ -136,7 +137,7 @@ print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
 print(error)
 
 
-file = File("sigma.pvd")
+file = File("sigma_very_fine.pvd")
 file << sigma_yy
 file << u_DG
 file << u_DG1

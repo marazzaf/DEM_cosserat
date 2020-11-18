@@ -1,8 +1,12 @@
-#inner_con inner_sym bnd_con bnd_sym error_coarse error_fine
-no	   no	     no	     no	     0.122624	  0.06708
-no	   no	     yes     no	     0.09771  	  0.0278
-no	   no	     yes     yes     0.62530	  0.06695
-no	   no	     yes     anti    0.12708	  0.038105
-yes	   no	     yes     no	     0.093549	  0.02824
-yes	   yes	     yes     yes     0.1609	  0.0109
+#inner_con inner_sym bnd_con bnd_sym error_coarse error_fine error_very_fine
+no	   no	     no	     no	     0.122624	  0.06708    1
+no	   no	     yes     no	     0.09771  	  0.0278     0.113137
+no	   no	     yes     yes     0.62530	  0.06695    1
+no	   no	     yes     anti    0.12708	  0.038105   1
+yes	   no	     yes     no	     0.093549	  0.02824    1
+yes	   yes	     yes     yes     0.1609	  0.0109     1
+
+#ref CG
+#error_coarse error_fine error_very_fine
+0.0215375     0.02867	 0.02853
 
