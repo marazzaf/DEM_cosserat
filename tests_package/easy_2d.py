@@ -40,7 +40,7 @@ SCF = AnalyticalSolution(nu, l, c, R)
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("hole_plate.xdmf") as infile: #fine
+with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
     infile.read(mesh)
 
 #Creating the DEM problem
@@ -95,6 +95,7 @@ A += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Penalty matrix
 A += inner_penalty_light(problem)
+#A += inner_consistency(problem)
 
 #Solving linear problem
 v = spsolve(A,b)
@@ -107,18 +108,18 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
 u_DG1, psi_DG1 = v_DG1.split()
 
-#fig = plot(u_h[0])
-#plt.colorbar(fig)
-##plt.savefig('u_x_15.pdf')
-#plt.show()
-#fig = plot(u_h[1])
-#plt.colorbar(fig)
-##plt.savefig('u_y_15.pdf')
-#plt.show()
-#fig = plot(psi_h)
-#plt.colorbar(fig)
-##plt.savefig('phi_15.pdf')
-#plt.show()
+fig = plot(u_DG[0])
+plt.colorbar(fig)
+#plt.savefig('u_x_15.pdf')
+plt.show()
+fig = plot(u_DG[1])
+plt.colorbar(fig)
+#plt.savefig('u_y_15.pdf')
+plt.show()
+fig = plot(psi_DG)
+plt.colorbar(fig)
+#plt.savefig('phi_15.pdf')
+plt.show()
 
 # Stress
 strains = problem.strains(u_DG1, psi_DG1)
