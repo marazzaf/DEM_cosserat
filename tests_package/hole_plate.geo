@@ -1,7 +1,7 @@
 //Parameters
 plate = 100;
-h = 5;
-hx = 1;
+h = 5/2;
+hx = 1/2;
 R = 10;
 
 //Geometry definition

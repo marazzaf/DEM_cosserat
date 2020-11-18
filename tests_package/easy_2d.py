@@ -40,11 +40,12 @@ SCF = AnalyticalSolution(nu, l, c, R)
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("hole_plate.xdmf") as infile:
+with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
     infile.read(mesh)
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*G, 2*G*l*l) #sure about second penalty term?
+problem = DEMProblem(mesh, 8*G, 8*G*l*l) #sure about second penalty term?
+print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -99,8 +100,10 @@ A += inner_penalty_light(problem)
 v = spsolve(A,b)
 #v,info = cg(A,b)
 #assert info == 0
-v_h = Function(problem.V_DG)
-v_h.vector().set_local(v)
+#v_h = Function(problem.V_DG)
+#v_h.vector().set_local(v)
+v_h = Function(problem.V_DG1)
+v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, psi_h = v_h.split()
 
 fig = plot(u_h[0])
@@ -115,33 +118,20 @@ fig = plot(psi_h)
 plt.colorbar(fig)
 #plt.savefig('phi_15.pdf')
 plt.show()
-sys.exit()
 
 # Stress
-epsilon = strain(u_h, psi_h)
-sigma = D*epsilon
-sigma_yy = project(sigma[1])
-#Other version
-#epsilon = strain_bis(u_h, psi_h)
-#sigma = stress(epsilon)[0]
-#sigma_yy = project(sigma[1])
+strains = problem.strains(u_h, psi_h)
+sigma,mu = problem.stresses(strains)
+U = FunctionSpace(mesh, 'DG', 0)
+sigma_yy = project(sigma[1], U)
+
 
 error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-
-elements_size.append(hm)
-SCF_0.append(sigma_yy(10.0, 1e-6))
-errors.append(error)
         
 print("Analytical SCF: %.5e" % SCF)
-print(elements_size)
-print(errors)
-print(SCF_0)
+print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
+print(error)
 
 
 file = File("sigma.pvd")
 file << sigma_yy
-
-plt.plot(elements_size, errors, "-*", linewidth=2)
-plt.xlabel("elements size")
-plt.ylabel("error")
-plt.show()

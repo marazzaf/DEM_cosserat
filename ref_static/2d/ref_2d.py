@@ -74,13 +74,14 @@ def strain_bis(v, omega):
     #geometry = Rectangle(Point(0,0),Point(plate, plate))-Circle(Point(0,0), R, hx)
     #mesh = generate_mesh(geometry, hx)
 mesh = Mesh()
-with XDMFFile("hole_plate_fine.xdmf") as infile:
+with XDMFFile("hole_plate.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
 U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
 S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S))
+print('nb dof CG: %i' % V.dofmap().global_dimension())
 U,S = V.split()
 U_1, U_2 = U.sub(0), U.sub(1)
 
@@ -149,27 +150,17 @@ img = plot(psi_h)
 plt.colorbar(img)
 plt.savefig('ref_phi.pdf')
 plt.show()
-sys.exit()
 
 # Stress
 epsilon = strain(u_h, psi_h)
 sigma = D*epsilon
 sigma_yy = project(sigma[1])
-#Other version
-#epsilon = strain_bis(u_h, psi_h)
-#sigma = stress(epsilon)[0]
-#sigma_yy = project(sigma[1])
 
 error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-
-elements_size.append(hm)
-SCF_0.append(sigma_yy(10.0, 1e-6))
-errors.append(error)
         
 print("Analytical SCF: %.5e" % SCF)
-print(elements_size)
-print(errors)
-print(SCF_0)
+print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
+print(error)
 
 
 file = File("sigma.pvd")
