@@ -40,9 +40,9 @@ SCF = AnalyticalSolution(nu, l, c, R)
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("hole_plate.xdmf") as infile: #fine
-#with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
-#with XDMFFile("hole_plate.xdmf") as infile:
+#with XDMFFile("hole_plate.xdmf") as infile: #fine
+with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
+#with XDMFFile("hole_plate_very_fine.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
@@ -137,7 +137,7 @@ print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
 print(error)
 
 
-file = File("sigma_2_.pvd")
+file = File("sigma_2_fine_.pvd")
 file << sigma_yy
 #file << u_DG
 file << u_DG1

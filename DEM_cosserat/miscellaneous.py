@@ -69,10 +69,10 @@ def gradient_matrix(problem):
     return csr_matrix((val, col, row))
 
 def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
-    #u,phi = TrialFunctions(problem.V_CR) #V_DG1
-    #v,psi = TestFunctions(problem.V_CR) #V_DG1
-    u,phi = TrialFunctions(problem.V_DG1)
-    v,psi = TestFunctions(problem.V_DG1)
+    u,phi = TrialFunctions(problem.V_CR) #V_DG1
+    v,psi = TestFunctions(problem.V_CR) #V_DG1
+    #u,phi = TrialFunctions(problem.V_DG1)
+    #v,psi = TestFunctions(problem.V_DG1)
     h = CellDiameter(problem.mesh)
     n = FacetNormal(problem.mesh)
 
@@ -99,12 +99,12 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
             component = BC[0]
 
             if component < problem.dim: #bnd stress
-                form_pen = problem.penalty_u / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds# - dot(te_sigma, n)[component] * u[component] * dds
+                form_pen = problem.penalty_u / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds 
                 elif problem.dim == 2:
-                    form_pen = problem.penalty_phi / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds# - inner(dot(te_mu, n), phi) * dds
+                    form_pen = problem.penalty_phi / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
@@ -114,17 +114,17 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
     #Assembling matrix
     Mat = assemble(bilinear)
     row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    #Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
-    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
+    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
+    #Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
     
-    #return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
-    return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
+    return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
+    #return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
 
 def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
     #For rhs penalty term computation
     h = CellDiameter(problem.mesh)
-    #v,psi = TestFunctions(problem.V_CR)
-    v,psi = TestFunctions(problem.V_DG1)
+    v,psi = TestFunctions(problem.V_CR)
+    #v,psi = TestFunctions(problem.V_DG1)
     n = FacetNormal(problem.mesh)
 
     #stresses
@@ -145,18 +145,18 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
         
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
-            form_pen = problem.penalty_u / h * imposed_value * v[component] * dds# - dot(sigma, n)[component] * imposed_value * dds
+            form_pen = problem.penalty_u / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
         elif component >= problem.dim: #bnd couple stress
             if problem.dim == 3:
                 form_pen = problem.penalty_phi / h * imposed_value * psi[component-problem.dim] * dds
             elif problem.dim == 2:
-                form_pen = problem.penalty_phi / h * imposed_value * psi * dds# - inner(dot(mu, n), imposed_value) * dds
+                form_pen = problem.penalty_phi / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = assemble(L).get_local()
     
-    #return problem.DEM_to_CR.T * L
-    return problem.DEM_to_DG1.T * L
+    return problem.DEM_to_CR.T * L
+    #return problem.DEM_to_DG1.T * L
 
 #def lhs_bnd_penalty_bis(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
 #    #Facet jump bilinear form
