@@ -137,7 +137,7 @@ print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
 print(error)
 
 
-file = File("sigma_4_.pvd")
+file = File("sigma_2_.pvd")
 file << sigma_yy
 #file << u_DG
 file << u_DG1

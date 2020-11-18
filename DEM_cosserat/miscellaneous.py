@@ -99,12 +99,12 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
             component = BC[0]
 
             if component < problem.dim: #bnd stress
-                form_pen = problem.penalty_u / h * u[component] * v[component] * dds# - dot(tr_sigma, n)[component] * v[component] * dds# - dot(te_sigma, n)[component] * u[component] * dds
+                form_pen = problem.penalty_u / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds# - dot(te_sigma, n)[component] * u[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds 
                 elif problem.dim == 2:
-                    form_pen = problem.penalty_phi / h * phi * psi * dds# - inner(dot(tr_mu, n), psi) * dds# - inner(dot(te_mu, n), phi) * dds
+                    form_pen = problem.penalty_phi / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds# - inner(dot(te_mu, n), phi) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
