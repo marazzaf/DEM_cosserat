@@ -106,8 +106,8 @@ def test_reconstruction(mesh):
     test_DG1 = Function(problem.V_DG1)
     reco_DG1 = problem.DEM_to_DG1 * tot
     test_DG1.vector().set_local(reco_DG1)
-    #if problem.dim == 3:
-    #    img = plot(test_DG1[4])
+    #if problem.dim == 2:
+    #    img = plot(test_DG1[2])
     #    plt.colorbar(img)
     #    plt.show()
     #assert round(max(reco_DG1), 14) == 1

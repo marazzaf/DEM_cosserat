@@ -40,8 +40,8 @@ SCF = AnalyticalSolution(nu, l, c, R)
     
 # Mesh
 mesh = Mesh()
-#with XDMFFile("hole_plate.xdmf") as infile: #fine
-with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
+with XDMFFile("hole_plate.xdmf") as infile: #fine
+#with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
 #with XDMFFile("hole_plate.xdmf") as infile:
     infile.read(mesh)
 
@@ -78,7 +78,7 @@ top_boundary.mark(boundary_parts, 1)
 
 #ds = Measure('ds')(subdomain_data=boundary_parts)
 
-bc = [[0, Constant(0), 3], [1, Constant(0), 2], [2, Constant(0), 3], [2, Constant(0), 3]]
+bc = [[0, Constant(0), 3], [2, Constant(0), 3], [1, Constant(0), 2], [2, Constant(0), 2]]
 
 #compliance tensor
 problem.D = problem.D_Matrix(G, nu, N, l)
@@ -137,7 +137,7 @@ print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
 print(error)
 
 
-file = File("sigma_4_fine_.pvd")
+file = File("sigma_4_.pvd")
 file << sigma_yy
 #file << u_DG
 file << u_DG1
