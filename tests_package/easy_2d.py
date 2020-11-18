@@ -40,11 +40,11 @@ SCF = AnalyticalSolution(nu, l, c, R)
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
+with XDMFFile("hole_plate.xdmf") as infile: #fine
     infile.read(mesh)
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 8*G, 8*G*l*l) #sure about second penalty term?
+problem = DEMProblem(mesh, 4*G, 4*G*l*l) #sure about second penalty term?
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 # Boundary conditions
@@ -100,27 +100,28 @@ A += inner_penalty_light(problem)
 v = spsolve(A,b)
 #v,info = cg(A,b)
 #assert info == 0
-#v_h = Function(problem.V_DG)
-#v_h.vector().set_local(v)
-v_h = Function(problem.V_DG1)
-v_h.vector().set_local(problem.DEM_to_DG1 * v)
-u_h, psi_h = v_h.split()
+v_DG = Function(problem.V_DG)
+v_DG.vector().set_local(v)
+u_DG, psi_DG = v_DG.split()
+v_DG1 = Function(problem.V_DG1)
+v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
+u_DG1, psi_DG1 = v_DG1.split()
 
-fig = plot(u_h[0])
-plt.colorbar(fig)
-#plt.savefig('u_x_15.pdf')
-plt.show()
-fig = plot(u_h[1])
-plt.colorbar(fig)
-#plt.savefig('u_y_15.pdf')
-plt.show()
-fig = plot(psi_h)
-plt.colorbar(fig)
-#plt.savefig('phi_15.pdf')
-plt.show()
+#fig = plot(u_h[0])
+#plt.colorbar(fig)
+##plt.savefig('u_x_15.pdf')
+#plt.show()
+#fig = plot(u_h[1])
+#plt.colorbar(fig)
+##plt.savefig('u_y_15.pdf')
+#plt.show()
+#fig = plot(psi_h)
+#plt.colorbar(fig)
+##plt.savefig('phi_15.pdf')
+#plt.show()
 
 # Stress
-strains = problem.strains(u_h, psi_h)
+strains = problem.strains(u_DG1, psi_DG1)
 sigma,mu = problem.stresses(strains)
 U = FunctionSpace(mesh, 'DG', 0)
 sigma_yy = project(sigma[1], U)
@@ -135,3 +136,5 @@ print(error)
 
 file = File("sigma.pvd")
 file << sigma_yy
+file << u_DG
+file << u_DG1
