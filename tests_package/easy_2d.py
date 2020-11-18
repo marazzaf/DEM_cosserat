@@ -40,8 +40,8 @@ SCF = AnalyticalSolution(nu, l, c, R)
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("hole_plate_very_fine.xdmf") as infile: #fine
-#with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
+#with XDMFFile("hole_plate.xdmf") as infile: #fine
+with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
 #with XDMFFile("hole_plate.xdmf") as infile:
     infile.read(mesh)
 
@@ -97,7 +97,7 @@ A += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Penalty matrix
 A += inner_penalty_light(problem)
-A += inner_consistency(problem)
+#A += inner_consistency(problem)
 
 #Solving linear problem
 v = spsolve(A,b)
@@ -126,8 +126,8 @@ plt.show()
 # Stress
 strains = problem.strains(u_DG1, psi_DG1)
 sigma,mu = problem.stresses(strains)
-U = FunctionSpace(mesh, 'DG', 0)
-sigma_yy = project(sigma[1], U)
+#U = FunctionSpace(mesh, 'DG', 0)
+sigma_yy = project(sigma[1]) #, U)
 
 
 error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
@@ -137,7 +137,9 @@ print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
 print(error)
 
 
-file = File("sigma_very_fine_with_con_sym.pvd")
+file = File("sigma_4_fine_.pvd")
 file << sigma_yy
-file << u_DG
+#file << u_DG
 file << u_DG1
+file << psi_DG
+file << psi_DG1

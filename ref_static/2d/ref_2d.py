@@ -74,7 +74,7 @@ def strain_bis(v, omega):
     #geometry = Rectangle(Point(0,0),Point(plate, plate))-Circle(Point(0,0), R, hx)
     #mesh = generate_mesh(geometry, hx)
 mesh = Mesh()
-with XDMFFile("hole_plate_very_fine.xdmf") as infile:
+with XDMFFile("hole_plate_fine.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -165,6 +165,7 @@ print(error)
 
 file = File("sigma_very_fine.pvd")
 file << sigma_yy
+file << project(psi_h)
 
 #plt.plot(elements_size, errors, "-*", linewidth=2)
 #plt.xlabel("elements size")
