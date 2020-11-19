@@ -110,17 +110,17 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
 u_DG1, psi_DG1 = v_DG1.split()
 
-fig = plot(u_DG[0])
+fig = plot(u_DG1[0])
 plt.colorbar(fig)
-#plt.savefig('u_x_15.pdf')
+plt.savefig('DEM/u_x.pdf')
 plt.show()
-fig = plot(u_DG[1])
+fig = plot(u_DG1[1])
 plt.colorbar(fig)
-#plt.savefig('u_y_15.pdf')
+plt.savefig('DEM/u_y.pdf')
 plt.show()
-fig = plot(psi_DG)
+fig = plot(psi_DG1)
 plt.colorbar(fig)
-#plt.savefig('phi_15.pdf')
+plt.savefig('DEM/phi.pdf')
 plt.show()
 
 # Stress
@@ -137,7 +137,7 @@ print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
 print(error)
 
 
-file = File("sigma_2_fine_.pvd")
+file = File("DEM/sigma.pvd")
 file << sigma_yy
 #file << u_DG
 file << u_DG1

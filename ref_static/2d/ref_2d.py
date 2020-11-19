@@ -74,8 +74,9 @@ def strain_bis(v, omega):
     #geometry = Rectangle(Point(0,0),Point(plate, plate))-Circle(Point(0,0), R, hx)
     #mesh = generate_mesh(geometry, hx)
 mesh = Mesh()
-with XDMFFile("hole_plate.xdmf") as infile:
-#with XDMFFile("hole_plate_fine.xdmf") as infile:
+#with XDMFFile("hole_plate.xdmf") as infile:
+with XDMFFile("hole_plate_fine.xdmf") as infile:
+#with XDMFFile("hole_plate_very_fine.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
