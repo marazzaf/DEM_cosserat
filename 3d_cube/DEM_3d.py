@@ -34,7 +34,7 @@ def AnalyticalSolution(R, l, nu):
 
 SCF_a = AnalyticalSolution(R, l, nu)
 
-Loading mesh
+#Loading mesh
 mesh = Mesh("meshes/1.xml")
 hm = mesh.hmax()
 
@@ -46,7 +46,7 @@ print('nb dof DEM: %i' % problem.nb_dof_DEM)
 problem.micropolar_constants(nu, mu, lmbda, l, N)
 
 # Boundary conditions
-    class BotBoundary(SubDomain):
+class BotBoundary(SubDomain):
     def inside(self, x, on_boundary):
         tol = 1e-6
         return on_boundary and abs(x[1]) < tol

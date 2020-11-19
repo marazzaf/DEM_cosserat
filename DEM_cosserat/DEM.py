@@ -70,7 +70,7 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
-    def 2d_D_Matrix(self, G, nu, N, l):
+    def D_Matrix(self, G, nu, N, l):
         self.G = G
         self.l = l
         a = 2*(1-nu)/(1-2*nu)
@@ -82,7 +82,7 @@ class DEMProblem:
     def micropolar_constants(nu, mu, lmbda, l, N):
         self.mu = mu
         self.nu = nu
-        self.lambda = lmbda
+        self.lmbda = lmbda
         self.l = l
         self.N = N
         self.alpha = ( mu * N*N ) / (N*N - 1)
@@ -91,26 +91,27 @@ class DEMProblem:
         self.kappa = self.gamma
         return 
         
-    def 2d_strains(self, v, eta):
+    def strains_2d(self, v, eta):
         gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
         kappa = grad(eta)
         return gamma, kappa
 
-    def 2d_stresses(self, strains):
+    def stresses_2d(self, strains):
         gamma,kappa = strains
         sigma = dot(self.D, gamma)
         mu = 4*self.G*self.l*self.l * kappa
         return sigma, mu
 
-    def 3d_strain(v, eta):
-        return as_tensor([ [ v[0].dx(0), v[1].dx(0) - eta[2], v[2].dx(0) + eta[1] ] , \
-                           [ v[0].dx(1) + eta[2], v[1].dx(1), v[2].dx(1) - eta[0] ] , \
-                           [ v[0].dx(2) - eta[1], v[1].dx(2) + eta[0], v[2].dx(2) ] ] )
+    def strain_3d(v, eta):
+        strain = nabla_grad(v)
+        strain += as_tensor([ [ 0, -eta[2], eta[1] ] , \
+[ eta[2], 0, -eta[0] ] , [ -eta[1], eta[0], 0 ] ] )
+        return strain
 
-    def 3d_torsion(eta):
+    def torsion_3d(eta):
         return nabla_grad(eta)
 
-    def 3d_stress(epsilon):
+    def stress_3d(epsilon):
         stress = as_tensor([ \
                              [self.lmbda*epsilon[0,0]+(self.mu+self.kappa)*epsilon[0,0]+ self.mu*epsilon[0,0],
                               \
@@ -126,7 +127,7 @@ class DEMProblem:
                               self.mu*epsilon[2,2]] ])
         return stress
 
-    def 3d_torque(chi):
+    def torque_3d(chi):
         torque = as_tensor([ \
                              [ (self.alpha + self.beta + self.gamma)*chi[0,0], \
                                self.beta*chi[1,0] + self.gamma*chi[0,1], \
@@ -145,20 +146,20 @@ class DEMProblem:
 
         #Variationnal formulation
         if self.d == 2:
-            def_test = self.2d_strains(v_CR,eta_CR)
-            def_trial = self.2d_strains(u_CR, psi_CR)
-            stress_trial = self.2d_stresses(def_trial)
+            def_test = self.strains_2d(v_CR,eta_CR)
+            def_trial = self.strains_2d(u_CR, psi_CR)
+            stress_trial = self.stresses_2d(def_trial)
             a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
         elif self.d == 3:
-            epsilon_u = 3d_strain(u_CR, psi_CR)
-            epsilon_v = 3d_strain(v_CR, eta_CR)
-            chi_u = 3d_torsion(psi_CR)
-            chi_v = 3d_torsion(eta_CR)
+            epsilon_u = strain_3d(u_CR, psi_CR)
+            epsilon_v = strain_3d(v_CR, eta_CR)
+            chi_u = torsion_3d(psi_CR)
+            chi_v = torsion_3d(eta_CR)
 
-            sigma_u = 3d_stress(epsilon_u)
-            sigma_v = 3d_stress(epsilon_v)
-            m_u = 3d_torque(chi_u)
-            m_v = 3d_torque(chi_v)
+            sigma_u = stress_3d(epsilon_u)
+            sigma_v = tress_3d(epsilon_v)
+            m_u = torque_3d(chi_u)
+            m_v = torque_3d(chi_v)
 
             a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
 
