@@ -77,12 +77,22 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
     n = FacetNormal(problem.mesh)
 
     #stresses
-    tr_strains = problem.strains(u,phi)
-    tr_sigma,tr_mu = problem.stresses(tr_strains)
-    tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1]))) #2d
-    te_strains = problem.strains(v,psi)
-    te_sigma,te_mu = problem.stresses(te_strains)
-    te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
+    if problem.dim == 2:
+        tr_strains = problem.strains_2d(u,phi)
+        tr_sigma,tr_mu = problem.stresses_2d(tr_strains)
+        tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1])))
+        te_strains = problem.strains_2d(v,psi)
+        te_sigma,te_mu = problem.stresses_2d(te_strains)
+        te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1])))
+    elif problem.dim == 3:
+        tr_strain = problem.strain_3d(u,phi)
+        tr_torsion = problem.torsion_3d(phi)
+        tr_sigma = problem.stress_3d(tr_strain)
+        tr_mu = problem.torque_3d(tr_torsion)
+        te_strain = problem.strain_3d(v,psi)
+        te_torsion = problem.torsion_3d(psi)
+        te_sigma = problem.stress_3d(te_strain)
+        te_mu = problem.torque_3d(te_torsion)       
 
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
