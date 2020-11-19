@@ -70,7 +70,7 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
-    def D_Matrix(self, G, nu, N, l):
+    def 2d_D_Matrix(self, G, nu, N, l):
         self.G = G
         self.l = l
         a = 2*(1-nu)/(1-2*nu)
@@ -80,17 +80,24 @@ class DEMProblem:
         return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]]) #Not correct?
         #return self.G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]]) #correct
         
-    def strains(self, v, eta):
+    def 2d_strains(self, v, eta):
         gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
         kappa = grad(eta)
         return gamma, kappa
 
-    def stresses(self, strains):
+    def 2d_stresses(self, strains):
         gamma,kappa = strains
         sigma = dot(self.D, gamma)
         mu = 4*self.G*self.l*self.l * kappa
         return sigma, mu
 
+    def 3d_strain(v, eta):
+        return as_tensor([ [ v[0].dx(0), v[1].dx(0) - eta[2], v[2].dx(0) + eta[1] ] , \
+                           [ v[0].dx(1) + eta[2], v[1].dx(1), v[2].dx(1) - eta[0] ] , \
+                           [ v[0].dx(2) - eta[1], v[1].dx(2) + eta[0], v[2].dx(2) ] ] )
+
+    def 3d_torsion(eta):
+        return as_tensor([ [ eta[0].dx(0), eta[1].dx(0), eta[2].dx(0) ], [ eta[0].dx(1), eta[1].dx(1), eta[2].dx(1) ], [ eta[0].dx(2), eta[1].dx(2), eta[2].dx(2) ] ])
 
     def elastic_bilinear_form(self): #, strain, stress):
         u_CR,psi_CR = TrialFunctions(self.V_CR)
@@ -100,6 +107,7 @@ class DEMProblem:
         def_test = self.strains(v_CR,eta_CR)
         def_trial = self.strains(u_CR, psi_CR)
         stress_trial = self.stresses(def_trial)
+        #Just for 2d case?
         a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
 
         A = assemble(a)

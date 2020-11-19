@@ -43,7 +43,6 @@ problem = DEMProblem(mesh, 4*G, 4*G*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 # Boundary conditions
-# Boundary conditions
     class BotBoundary(SubDomain):
     def inside(self, x, on_boundary):
         tol = 1e-6
@@ -68,14 +67,68 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
         
 bot_boundary = BotBoundary()
+top_boundary.mark(boundary_parts, 3)
 left_boundary = LeftBoundary()
+top_boundary.mark(boundary_parts, 2)
 front_boundary = FrontBoundary()
+top_boundary.mark(boundary_parts, 4)
 top_boundary = TopBoundary()
 top_boundary.mark(boundary_parts, 1)
 
-#Computation
-SCF_0 = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
+u_0 = Constant(0.0)
+
+left_U_1 = [0, u_0, 2]
+left_S_2 = [4, u_0, 2]
+left_S_3 = [5, u_0, 2]
+
+bot_U_2 = [1, u_0, 3]
+bot_S_1 = [3, u_0, 3]
+bot_S_3 = [5, u_0, 3]
+
+front_U_3 = [2, u_0, 4]
+front_S_1 = [3, u_0, 4]
+front_S_2 = [4, u_0, 4]
+
+bcs = [left_U_1, left_S_2, left_S_3, bot_U_2, bot_S_1, bot_S_3, front_U_3, front_S_1, front_S_2]
+
+#compliance tensor
+problem.D = problem.D_Matrix(G, nu, N, l)
+
+# Variational problem
+A = problem.elastic_bilinear_form()
+
+#rhs
+b = assemble_boundary_load(problem, 1, boundary_parts, t)
+
+#Imposing weakly the BC!
+b += rhs_bnd_penalty(problem, boundary_parts, bc)
+
+#Nitsche penalty bilinear form
+A += lhs_bnd_penalty(problem, boundary_parts, bc)
+
+#Penalty matrix
+A += inner_penalty_light(problem)
+
+#Solving linear problem
+v = spsolve(A,b)
+#v,info = cg(A,b)
+#assert info == 0
+v_DG = Function(problem.V_DG)
+v_DG.vector().set_local(v)
+u_DG, psi_DG = v_DG.split()
+v_DG1 = Function(problem.V_DG1)
+v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
+u_DG1, psi_DG1 = v_DG1.split()
+
+file = File('3d.pvd')
+file << u_h
+file << phi_h
+
+epsilon_u_h = strain(u_h, phi_h)
+sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)
+sigma_yy = project(sigma_u_h[1,1])
+SCF = sigma_yy(R, 0.0, 0.0)
 
 #Comparing SCF
-e = abs(SCF_0 - SCF_a) / SCF_a
+e = abs(SCF - SCF_a) / SCF_a
 print('Error: %.5e' % e)
