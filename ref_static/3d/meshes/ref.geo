@@ -1,6 +1,6 @@
 R = 10.0; // radius
 D = 100.0; // cude dimension
-refinement = 16.;
+refinement = 1.;
 f = 5 / refinement; // fine mesh around the inclusion
 c = 40 / refinement; // coarse mesh
 

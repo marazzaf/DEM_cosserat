@@ -27,7 +27,9 @@ def AnalyticalSolution(R, l, nu):
     return SCF
 
 SCF_a = AnalyticalSolution(R, l, nu)
-mesh = Mesh("meshes/3.xml")
+mesh = Mesh()
+with XDMFFile("meshes/cube_1.xdmf") as infile:
+    infile.read(mesh)
 hm = mesh.hmax()
 SCF_0 = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
 e = abs(SCF_0 - SCF_a) / SCF_a
