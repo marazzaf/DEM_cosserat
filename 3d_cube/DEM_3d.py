@@ -35,7 +35,9 @@ def AnalyticalSolution(R, l, nu):
 SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
-mesh = Mesh("meshes/2.xml")
+mesh = Mesh()
+with XDMFFile("meshes/cube_1.xdmf") as infile:
+    infile.read(mesh)
 hm = mesh.hmax()
 
 #Creating the DEM problem
@@ -113,17 +115,17 @@ v = spsolve(A,b)
 #assert info == 0
 v_DG = Function(problem.V_DG)
 v_DG.vector().set_local(v)
-u_DG, psi_DG = v_DG.split()
+u_DG, phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
-u_DG1, psi_DG1 = v_DG1.split()
+u_DG1, phi_DG1 = v_DG1.split()
 
 file = File('3d.pvd')
 file << u_DG
 file << phi_DG
 
-epsilon_u_h = strain(u_h, phi_h)
-sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)
+epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
+sigma_u_h = problem.stress_3d(epsilon_u_h)
 sigma_yy = project(sigma_u_h[1,1])
 SCF = sigma_yy(R, 0.0, 0.0)
 

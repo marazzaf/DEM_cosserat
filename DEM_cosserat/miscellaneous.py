@@ -138,9 +138,15 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
     n = FacetNormal(problem.mesh)
 
     #stresses
-    strains = problem.strains(v,psi)
-    sigma,mu = problem.stresses(strains)
-    sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1]))) #2d
+    if problem.dim == 2:
+        strains = problem.strains_2d(v,psi)
+        sigma,mu = problem.stresses_2d(strains)
+        sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1])))
+    elif problem.dim == 3:
+        strain = problem.strain_3d(v,psi)
+        torsion = problem.torsion_3d(psi)
+        sigma = problem.stress_3d(strain)
+        mu = problem.torque_3d(torsion)
     
     list_L = []
     for BC in list_Dirichlet_BC:
