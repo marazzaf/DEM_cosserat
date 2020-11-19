@@ -35,11 +35,11 @@ def AnalyticalSolution(R, l, nu):
 SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
-mesh = Mesh("meshes/1.xml")
+mesh = Mesh("meshes/2.xml")
 hm = mesh.hmax()
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 4*G, 4*G*l*l)
+problem = DEMProblem(mesh, 4*mu, 4*mu*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 #Computing coefficients for Cosserat material
@@ -70,11 +70,11 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
         
 bot_boundary = BotBoundary()
-top_boundary.mark(boundary_parts, 3)
+bot_boundary.mark(boundary_parts, 3)
 left_boundary = LeftBoundary()
-top_boundary.mark(boundary_parts, 2)
+left_boundary.mark(boundary_parts, 2)
 front_boundary = FrontBoundary()
-top_boundary.mark(boundary_parts, 4)
+front_boundary.mark(boundary_parts, 4)
 top_boundary = TopBoundary()
 top_boundary.mark(boundary_parts, 1)
 
