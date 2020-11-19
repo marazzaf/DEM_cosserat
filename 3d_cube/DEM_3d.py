@@ -18,7 +18,7 @@ T = 1.0 # traction force
 
 nu = 0.3 #0.49 #0.3 # Poisson's ratio
 mu = 1000.0 # shear modulus G
-lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
+lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
 l = 0.2 # intrinsic length scale
 N = 0.93 # coupling parameter
@@ -35,12 +35,15 @@ def AnalyticalSolution(R, l, nu):
 SCF_a = AnalyticalSolution(R, l, nu)
 
 Loading mesh
-mesh = Mesh("meshes/3.xml")
+mesh = Mesh("meshes/1.xml")
 hm = mesh.hmax()
 
 #Creating the DEM problem
 problem = DEMProblem(mesh, 4*G, 4*G*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
+
+#Computing coefficients for Cosserat material
+problem.micropolar_constants(nu, mu, lmbda, l, N)
 
 # Boundary conditions
     class BotBoundary(SubDomain):
@@ -91,23 +94,18 @@ front_S_2 = [4, u_0, 4]
 
 bcs = [left_U_1, left_S_2, left_S_3, bot_U_2, bot_S_1, bot_S_3, front_U_3, front_S_1, front_S_2]
 
-#compliance tensor
-problem.D = problem.D_Matrix(G, nu, N, l)
-
 # Variational problem
 A = problem.elastic_bilinear_form()
-
-#rhs
-b = assemble_boundary_load(problem, 1, boundary_parts, t)
-
-#Imposing weakly the BC!
-b += rhs_bnd_penalty(problem, boundary_parts, bc)
-
 #Nitsche penalty bilinear form
-A += lhs_bnd_penalty(problem, boundary_parts, bc)
-
+A += lhs_bnd_penalty(problem, boundary_parts, bcs)
 #Penalty matrix
 A += inner_penalty_light(problem)
+
+#rhs
+t = Constant((0.0, T, 0.0))
+b = assemble_boundary_load(problem, 1, boundary_parts, t)
+#Imposing weakly the BC!
+b += rhs_bnd_penalty(problem, boundary_parts, bcs)
 
 #Solving linear problem
 v = spsolve(A,b)
@@ -121,8 +119,8 @@ v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
 u_DG1, psi_DG1 = v_DG1.split()
 
 file = File('3d.pvd')
-file << u_h
-file << phi_h
+file << u_DG
+file << phi_DG
 
 epsilon_u_h = strain(u_h, phi_h)
 sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)

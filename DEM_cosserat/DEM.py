@@ -77,8 +77,19 @@ class DEMProblem:
         b = 2*nu/(1-2*nu)
         c = 1/(1-N*N)
         d = (1-2*N*N)/(1-N*N)
-        return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]]) #Not correct?
-        #return self.G * as_matrix([[a,0,0,b], [0,c,d,0], [0,d,c,0], [b,0,0,a]]) #correct
+        return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]])
+
+    def micropolar_constants(nu, mu, lmbda, l, N):
+        self.mu = mu
+        self.nu = nu
+        self.lambda = lmbda
+        self.l = l
+        self.N = N
+        self.alpha = ( mu * N*N ) / (N*N - 1)
+        self.beta = mu * l
+        self.gamma = mu * l*l
+        self.kappa = self.gamma
+        return 
         
     def 2d_strains(self, v, eta):
         gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
@@ -97,18 +108,59 @@ class DEMProblem:
                            [ v[0].dx(2) - eta[1], v[1].dx(2) + eta[0], v[2].dx(2) ] ] )
 
     def 3d_torsion(eta):
-        return as_tensor([ [ eta[0].dx(0), eta[1].dx(0), eta[2].dx(0) ], [ eta[0].dx(1), eta[1].dx(1), eta[2].dx(1) ], [ eta[0].dx(2), eta[1].dx(2), eta[2].dx(2) ] ])
+        return nabla_grad(eta)
+
+    def 3d_stress(epsilon):
+        stress = as_tensor([ \
+                             [self.lmbda*epsilon[0,0]+(self.mu+self.kappa)*epsilon[0,0]+ self.mu*epsilon[0,0],
+                              \
+                              (self.mu+self.kappa)*epsilon[0,1] + self.mu*epsilon[1,0], \
+                              (self.mu+self.kappa)*epsilon[0,2] + self.mu*epsilon[2,0] ], \
+                            [ (self.mu+self.kappa)*epsilon[1,0] + self.mu*epsilon[0,1], \
+                              lmbda*epsilon[1,1] + (self.mu+self.kappa)*epsilon[1,1] +
+                            self.mu*epsilon[1,1], \
+                              (self.mu+self.kappa)*epsilon[1,2] + self.mu*epsilon[2,1] ], \
+                            [ (self.mu+self.kappa)*epsilon[2,0] + self.mu*epsilon[0,2], \
+                              (self.mu+self.kappa)*epsilon[2,1] + self.mu*epsilon[1,2], \
+                              lmbda*epsilon[2,2] + (self.mu+self.kappa)*epsilon[2,2] +
+                              self.mu*epsilon[2,2]] ])
+        return stress
+
+    def 3d_torque(chi):
+        torque = as_tensor([ \
+                             [ (self.alpha + self.beta + self.gamma)*chi[0,0], \
+                               self.beta*chi[1,0] + self.gamma*chi[0,1], \
+                               self.beta*chi[2,0] + self.gamma*chi[0,2] ], \
+                             [ self.beta*chi[0,1] + self.gamma*chi[1,0], \
+                               (self.alpha + self.beta + self.gamma)*chi[1,1], \
+                               self.beta*chi[2,1] + self.gamma*chi[1,2] ], \
+                             [ self.beta*chi[0,2] + self.gamma*chi[2,0], \
+                               self.beta*chi[1,2] + self.gamma*chi[2,1], \
+                               (self.alpha + self.beta + self.gamma)*chi[2,2]] ])
+        return torque
 
     def elastic_bilinear_form(self): #, strain, stress):
         u_CR,psi_CR = TrialFunctions(self.V_CR)
         v_CR,eta_CR = TestFunctions(self.V_CR)
 
         #Variationnal formulation
-        def_test = self.strains(v_CR,eta_CR)
-        def_trial = self.strains(u_CR, psi_CR)
-        stress_trial = self.stresses(def_trial)
-        #Just for 2d case?
-        a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
+        if self.d == 2:
+            def_test = self.2d_strains(v_CR,eta_CR)
+            def_trial = self.2d_strains(u_CR, psi_CR)
+            stress_trial = self.2d_stresses(def_trial)
+            a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
+        elif self.d == 3:
+            epsilon_u = 3d_strain(u_CR, psi_CR)
+            epsilon_v = 3d_strain(v_CR, eta_CR)
+            chi_u = 3d_torsion(psi_CR)
+            chi_v = 3d_torsion(eta_CR)
+
+            sigma_u = 3d_stress(epsilon_u)
+            sigma_v = 3d_stress(epsilon_v)
+            m_u = 3d_torque(chi_u)
+            m_v = 3d_torque(chi_v)
+
+            a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
 
         A = assemble(a)
         row,col,val = as_backend_type(A).mat().getValuesCSR()
