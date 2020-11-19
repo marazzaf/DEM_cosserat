@@ -141,6 +141,10 @@ def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
     solver = LinearVariationalSolver(problem)
     solver.solve()
     u_h, phi_h = U_h.split()
+
+    file = File('3d.pvd')
+    file << u_h
+    file << phi_h
         
     epsilon_u_h = strain(u_h, phi_h)
     sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)

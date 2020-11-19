@@ -10,7 +10,7 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-nu = 0.3 # Poisson's ratio
+nu = 0.49 #0.3 # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
 
@@ -27,9 +27,7 @@ def AnalyticalSolution(R, l, nu):
     return SCF
 
 SCF_a = AnalyticalSolution(R, l, nu)
-error = []
-h = []
-mesh = Mesh("meshes/1.xml")
+mesh = Mesh("meshes/3.xml")
 hm = mesh.hmax()
 SCF_0 = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
 e = abs(SCF_0 - SCF_a) / SCF_a
