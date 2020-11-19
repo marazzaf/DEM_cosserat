@@ -3,7 +3,6 @@
 # Computation of the solution in the plate for different meshes
 from dolfin import *
 import numpy as np
-from mshr import Rectangle, Circle, generate_mesh
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
