@@ -108,7 +108,7 @@ def facet_interpolation(problem):
         else: #boundary facet
             assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
 
-            neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=2)) - {num_facet + problem.nb_dof_DEM}
+            neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=problem.dim)) - {num_facet + problem.nb_dof_DEM} #2
 
             neigh_pool = np.array(list(neigh_pool))
             for_deletion = np.where(neigh_pool >= problem.nb_dof_DEM)

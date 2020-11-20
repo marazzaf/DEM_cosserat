@@ -16,7 +16,7 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-nu = 0.49 #0.49 #0.3 # Poisson's ratio
+nu = 0.3 #0.49 #0.3 # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
@@ -102,6 +102,7 @@ A = problem.elastic_bilinear_form()
 A += lhs_bnd_penalty(problem, boundary_parts, bcs)
 #Penalty matrix
 A += inner_penalty_light(problem)
+A = A.tocsr()
 
 #rhs
 t = Constant((0.0, T, 0.0))
@@ -109,26 +110,46 @@ b = assemble_boundary_load(problem, 1, boundary_parts, t)
 #Imposing weakly the BC!
 b += rhs_bnd_penalty(problem, boundary_parts, bcs)
 
-#Solving linear problem
-v = spsolve(A,b)
-#v,info = cg(A,b)
-#assert info == 0
+#test
+from petsc4py import PETSc
+petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
+A_aux = PETScMatrix(petsc_mat)
+#truc = LinearOperator(A_aux)
+x = Function(problem.V_DG)
+x.vector().set_local(b)
+xx = x.vector()
+#A_aux.set(A.data, A.indices, A.indptr)
+#print(petsc_mat)
+#sys.exit()
 v_DG = Function(problem.V_DG)
-v_DG.vector().set_local(v)
+print('Solve!')
+solve(A_aux, v_DG.vector(), xx, 'mumps') # 'mumps'
+
+
+###Solving linear problem
+#print('Solve!')
+#v = spsolve(A,b)
+#v_DG = Function(problem.V_DG)
+#v_DG.vector().set_local(v)
+
 u_DG, phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
-v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
+#v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
+v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('3d.pvd')
+file = File('3d_coarse.pvd')
 file << u_DG
 file << phi_DG
 
 epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
 sigma_u_h = problem.stress_3d(epsilon_u_h)
 sigma_yy = project(sigma_u_h[1,1])
+file << sigma_yy
 SCF = sigma_yy(R, 0.0, 0.0)
 
 #Comparing SCF
 e = abs(SCF - SCF_a) / SCF_a
-print('Error: %.5e' % e)
+print('Ref: %.5e' % SCF_a)
+print('Computed: %.5e' % SCF)
+print('Error: %.2f' % (100*e))
