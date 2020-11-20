@@ -36,7 +36,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-with XDMFFile("meshes/cube_2.xdmf") as infile:
+with XDMFFile("meshes/cube_3.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -110,6 +110,7 @@ b = assemble_boundary_load(problem, 1, boundary_parts, t)
 b += rhs_bnd_penalty(problem, boundary_parts, bcs)
 
 #Solving linear problem
+print('Solve!')
 v = spsolve(A,b)
 #v,info = cg(A,b)
 #assert info == 0
