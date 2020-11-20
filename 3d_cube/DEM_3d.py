@@ -41,7 +41,7 @@ with XDMFFile("meshes/cube_1.xdmf") as infile:
 hm = mesh.hmax()
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 4*mu, 4*mu*l*l)
+problem = DEMProblem(mesh, 2*mu, 2*mu*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 #Computing coefficients for Cosserat material
