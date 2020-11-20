@@ -109,16 +109,32 @@ b = assemble_boundary_load(problem, 1, boundary_parts, t)
 #Imposing weakly the BC!
 b += rhs_bnd_penalty(problem, boundary_parts, bcs)
 
-#Solving linear problem
-print('Solve!')
-v = spsolve(A,b)
-#v,info = cg(A,b)
-#assert info == 0
+#test
+from petsc4py import PETSc
+petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
+A_aux = PETScMatrix(petsc_mat)
+#truc = LinearOperator(A_aux)
+x = Function(problem.V_DG)
+x.vector().set_local(b)
+xx = x.vector()
+#A_aux.set(A.data, A.indices, A.indptr)
+#print(petsc_mat)
+#sys.exit()
 v_DG = Function(problem.V_DG)
-v_DG.vector().set_local(v)
+solve(A_aux, v_DG.vector(), xx, 'bicgstab', 'ilu')
+#
+#
+##Solving linear problem
+#print('Solve!')
+#v = spsolve(A,b)
+##v,info = cg(A,b)
+##assert info == 0
+#v_DG = Function(problem.V_DG)
+#v_DG.vector().set_local(v)
 u_DG, phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
-v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
+#v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
+v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
 file = File('3d.pvd')
