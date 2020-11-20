@@ -102,6 +102,7 @@ A = problem.elastic_bilinear_form()
 A += lhs_bnd_penalty(problem, boundary_parts, bcs)
 #Penalty matrix
 A += inner_penalty_light(problem)
+A = A.tocsr()
 
 #rhs
 t = Constant((0.0, T, 0.0))
@@ -122,7 +123,7 @@ xx = x.vector()
 #sys.exit()
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), xx) #'bicgstab', 'icc')
+solve(A_aux, v_DG.vector(), xx, 'cg', 'hypre_amg') # 'mumps'
 
 
 ###Solving linear problem

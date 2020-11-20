@@ -10,7 +10,7 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-nu = 0.4 # Poisson's ratio
+nu = 0.49 # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
 
