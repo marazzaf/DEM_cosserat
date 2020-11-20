@@ -36,7 +36,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-with XDMFFile("meshes/cube_3.xdmf") as infile:
+with XDMFFile("meshes/cube_1.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -123,7 +123,7 @@ xx = x.vector()
 #sys.exit()
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), xx, 'cg', 'hypre_amg') # 'mumps'
+solve(A_aux, v_DG.vector(), xx, 'mumps') # 'mumps'
 
 
 ###Solving linear problem
@@ -138,13 +138,14 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('3d.pvd')
+file = File('3d_coarse.pvd')
 file << u_DG
 file << phi_DG
 
 epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
 sigma_u_h = problem.stress_3d(epsilon_u_h)
 sigma_yy = project(sigma_u_h[1,1])
+file << sigma_yy
 SCF = sigma_yy(R, 0.0, 0.0)
 
 #Comparing SCF

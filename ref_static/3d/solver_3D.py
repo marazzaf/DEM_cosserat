@@ -152,7 +152,7 @@ def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
     epsilon_u_h = strain(u_h, phi_h)
     sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)
     sigma_yy = project(sigma_u_h[1,1])
-    sigma_yy.set_allow_extrapolation(True)
+    file << sigma_yy
     SCF = sigma_yy(R, 0.0, 0.0)
 
     return SCF
