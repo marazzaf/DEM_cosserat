@@ -16,7 +16,7 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-nu = 0.49 #0.49 #0.3 # Poisson's ratio
+nu = 0.3 #0.49 #0.3 # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
@@ -36,7 +36,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-with XDMFFile("meshes/cube_1.xdmf") as infile:
+with XDMFFile("meshes/cube_2.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -131,4 +131,6 @@ SCF = sigma_yy(R, 0.0, 0.0)
 
 #Comparing SCF
 e = abs(SCF - SCF_a) / SCF_a
-print('Error: %.5e' % e)
+print('Ref: %.5e' % SCF_a)
+print('Computed: %.5e' % SCF)
+print('Error: %.2f' % (100*e))

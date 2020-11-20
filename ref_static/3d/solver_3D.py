@@ -66,6 +66,7 @@ def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
     U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
     S = VectorElement("CG", mesh.ufl_cell(), 1) # micro rotation space
     V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
+    print('nb dof FEM: %i' % V.dofmap().global_dimension())
     U, S = V.split()
     U_1, U_2, U_3 = U.split()
     S_1, S_2, S_3 = S.split()
@@ -139,6 +140,8 @@ def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
     U_h = Function(V)
     problem = LinearVariationalProblem(a, L, U_h, bcs)
     solver = LinearVariationalSolver(problem)
+    #solver.parameters['linear_solver'] = 'bicgstab'
+    #solver.parameters['preconditioner'] = 'petsc_amg'
     solver.solve()
     u_h, phi_h = U_h.split()
 
@@ -149,6 +152,7 @@ def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
     epsilon_u_h = strain(u_h, phi_h)
     sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)
     sigma_yy = project(sigma_u_h[1,1])
+    sigma_yy.set_allow_extrapolation(True)
     SCF = sigma_yy(R, 0.0, 0.0)
 
     return SCF
