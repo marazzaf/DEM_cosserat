@@ -121,16 +121,16 @@ xx = x.vector()
 #print(petsc_mat)
 #sys.exit()
 v_DG = Function(problem.V_DG)
-solve(A_aux, v_DG.vector(), xx, 'bicgstab', 'ilu')
-#
-#
-##Solving linear problem
+print('Solve!')
+solve(A_aux, v_DG.vector(), xx) #'bicgstab', 'icc')
+
+
+###Solving linear problem
 #print('Solve!')
 #v = spsolve(A,b)
-##v,info = cg(A,b)
-##assert info == 0
 #v_DG = Function(problem.V_DG)
 #v_DG.vector().set_local(v)
+
 u_DG, phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
 #v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
