@@ -137,6 +137,13 @@ def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
     a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
     L = inner(t, v)*ds(1)
 
+    ##testing conditioning
+    #A = assemble(a).array()
+    #import numpy as np
+    #cond_numb = np.linalg.cond(A)
+    #print('Cond: %.3e' % cond_numb)
+    #sys.exit()
+
     U_h = Function(V)
     problem = LinearVariationalProblem(a, L, U_h, bcs)
     solver = LinearVariationalSolver(problem)
