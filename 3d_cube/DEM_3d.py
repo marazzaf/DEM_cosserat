@@ -41,7 +41,7 @@ with XDMFFile("meshes/cube_1.xdmf") as infile:
 hm = mesh.hmax()
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*mu, 2*mu*l*l)
+problem = DEMProblem(mesh, 4*mu, 4*mu*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 #Computing coefficients for Cosserat material
@@ -102,7 +102,11 @@ A = problem.elastic_bilinear_form()
 A += lhs_bnd_penalty(problem, boundary_parts, bcs)
 #Penalty matrix
 A += inner_penalty_light(problem)
-A = A.tocsr()
+
+#test conditioning
+cond_numb = np.linalg.cond(A.todense())
+print('Cond: %.3e' % cond_numb)
+sys.exit()
 
 #rhs
 t = Constant((0.0, T, 0.0))
@@ -112,6 +116,7 @@ b += rhs_bnd_penalty(problem, boundary_parts, bcs)
 
 #test
 from petsc4py import PETSc
+A = A.tocsr()
 petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
 A_aux = PETScMatrix(petsc_mat)
 #truc = LinearOperator(A_aux)
@@ -123,7 +128,18 @@ xx = x.vector()
 #sys.exit()
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), xx, 'mumps') # 'mumps'
+#solve(A_aux, v_DG.vector(), xx, 'mumps') # 'mumps'
+
+##test conditionning
+#eigenSolver = SLEPcEigenSolver(A_aux)
+#eigenSolver.parameters["spectrum"]="smallest magnitude"
+#eigenSolver.solve(5)
+#print(eigenSolver.get_number_converged())
+#eigen_min = eigenSolver.get_eigenvalue(0)[0]
+#eigenSolver.parameters["spectrum"]="largest magnitude"
+#eigenSolver.solve(1)
+#eigen_max = eigenSolver.get_eigenvalue(0)[0]
+#print("Condition number {0:.2e}".format(eigen_max/eigen_min))
 
 
 ###Solving linear problem
