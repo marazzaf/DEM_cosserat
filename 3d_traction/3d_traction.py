@@ -22,7 +22,7 @@ N = 0.93 # coupling parameter
 # Mesh
 L = 5
 H = 1
-nb_elt = 6
+nb_elt = 5
 mesh = BoxMesh(Point(0., 0., 0.), Point(L, H, H), 5*nb_elt, nb_elt, nb_elt)
 
 #Creating the DEM problem
@@ -67,9 +67,7 @@ b = Function(problem.V_DG)
 b.vector().set_local(rhs)
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), b.vector(), 'cg', 'sor') # 'mumps'
-#x = SpatialCoordinate(mesh)
-#v_DG = local_project(as_vector((x[0],x[1],x[2],0,0,0)), problem.V_DG)
+solve(A_aux, v_DG.vector(), b.vector(), 'mumps')
 u_DG, phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector().get_local())
