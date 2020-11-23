@@ -103,13 +103,12 @@ class DEMProblem:
         return sigma, mu
 
     def strain_3d(self, v, eta):
-        strain = nabla_grad(v)
-        strain += as_tensor([ [ 0, -eta[2], eta[1] ] , \
-[ eta[2], 0, -eta[0] ] , [ -eta[1], eta[0], 0 ] ] )
+        strain = nabla_grad(v) #nabla
+        strain += as_tensor([ [ 0, -eta[2], eta[1] ] , [ eta[2], 0, -eta[0] ] , [ -eta[1], eta[0], 0 ] ] )
         return strain
-
+    
     def torsion_3d(self, eta):
-        return nabla_grad(eta)
+        return nabla_grad(eta) #nabla
 
     def stress_3d(self, epsilon):
         stress = as_tensor([ \

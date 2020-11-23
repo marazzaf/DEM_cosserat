@@ -9,9 +9,10 @@ sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
 from scipy.sparse.linalg import spsolve,cg
+from petsc4py import PETSc
 
 # Parameters
-nu = 0.3 #0.49 #0.3 # Poisson's ratio
+nu = 0.3 #No Poisson effect # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
@@ -21,7 +22,7 @@ N = 0.93 # coupling parameter
 # Mesh
 L = 5
 H = 1
-nb_elt = 2
+nb_elt = 4
 mesh = BoxMesh(Point(0., 0., 0.), Point(L, H, H), 5*nb_elt, nb_elt, nb_elt)
 
 #Creating the DEM problem
@@ -48,7 +49,7 @@ lhs = problem.elastic_bilinear_form()
 lhs += inner_penalty_light(problem)
 
 #Listing Dirichlet BC
-bc = [[0, Constant(0), 1], [0, u_D, 2], [0, Constant(0), 0]]
+bc = [[0, Constant(0), 1], [0, u_D, 2], [1, Constant(0), 1], [1, u_D, 2], [2, Constant(0), 1], [2, u_D, 2]] #, [3, Constant(0)], [4, Constant(0)], [5, Constant(0)]]
 #Add bc to make problem isostatic!
 
 #Nitsche penalty rhs
@@ -58,23 +59,26 @@ rhs = rhs_bnd_penalty(problem, boundary_parts, bc)
 lhs += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Solving linear problem
-v = spsolve(lhs,rhs)
-#v,info = cg(lhs,rhs)
-#assert info == 0
-print(v) #changing because reconstruction changes?
-v_h = Function(problem.V_DG1)
-#v_h = Function(problem.V_DG)
-#v_h = interpolate(Constant((1,1,1,1,1,1)), problem.V_DG)
-v_h.vector().set_local(problem.DEM_to_DG1 * v)
-u_h, phi_h = v_h.split()
+A = lhs.tocsr()
+petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
+A_aux = PETScMatrix(petsc_mat)
+b = Function(problem.V_DG)
+b.vector().set_local(rhs)
+v_DG = Function(problem.V_DG)
+print('Solve!')
+solve(A_aux, v_DG.vector(), b.vector(), 'petsc') # 'mumps'
+u_DG, phi_DG = v_DG.split()
+v_DG1 = Function(problem.V_DG1)
+v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector().get_local())
+u_DG1, phi_DG1 = v_DG1.split()
 
 #U = VectorFunctionSpace(problem.mesh, 'DG', 1)
 #u = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'DG', 1)
 #phi = interpolate(phi_D, U)
 
-aux = project((u_h[0]-float(u_D))/float(u_D), U)
-print(u_h(L,0,0)[0])
+aux = project((u_DG1[0]-float(u_D))/float(u_D), U)
+print(u_DG1(L,0,0)[0])
 print(abs(aux(L,0,0)) * 100)
 
 #print('norms')
@@ -82,10 +86,10 @@ print(abs(aux(L,0,0)) * 100)
 
 file = File('3d_traction.pvd')
 
-file << u_h
-file << phi_h
+file << u_DG
+file << phi_DG
 U = TensorFunctionSpace(problem.mesh, 'DG', 0)
-file << project(problem.strain_3d(u_h, phi_h), U)
+file << project(problem.strain_3d(u_DG1, phi_DG1), U)
 sys.exit()
 
 fig = plot(u_h[0])
