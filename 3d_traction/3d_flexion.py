@@ -22,11 +22,11 @@ N = 0.93 # coupling parameter
 # Mesh
 L = 5
 H = 1
-nb_elt = 4
+nb_elt = 5
 mesh = BoxMesh(Point(0., 0., 0.), Point(L, H, H), 5*nb_elt, nb_elt, nb_elt)
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, mu, mu*l*l) #sure about second penalty term?
+problem = DEMProblem(mesh, 4*mu, 4*mu*l*l) #sure about second penalty term?
 print('nb dofs: %i' % problem.nb_dof_DEM)
 
 boundary_parts = MeshFunction("size_t", mesh, 1)
@@ -49,11 +49,15 @@ lhs = problem.elastic_bilinear_form()
 lhs += inner_penalty_light(problem)
 
 #Listing Dirichlet BC
-bc = [[0, u_0, 1], [0, u_D, 2], [1, u_0, 1], [1, u_0, 2], [2, u_0, 1], [2, u_0, 2], [3, u_0], [4, u_0], [5, u_0]]
-#Add bc to make problem isostatic!
+bc = [[0, u_0, 1], [1, u_0, 1], [2, u_0, 1], [3, u_0, 1], [4, u_0, 1], [5, u_0, 1]] #, [3, u_0, 1], [4, u_0], [5, u_0]]
+
+#Neumann BC
+T = 1
+t = Constant((0, T, 0))
+rhs = assemble_boundary_load(problem, 2, boundary_parts, t)
 
 #Nitsche penalty rhs
-rhs = rhs_bnd_penalty(problem, boundary_parts, bc)
+rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Nitsche penalty bilinear form
 lhs += lhs_bnd_penalty(problem, boundary_parts, bc)
@@ -74,19 +78,10 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector().get_local())
 u_DG1, phi_DG1 = v_DG1.split()
 
-#U = VectorFunctionSpace(problem.mesh, 'DG', 1)
-#u = interpolate(u_D, U)
-U = FunctionSpace(problem.mesh, 'DG', 1)
-#phi = interpolate(phi_D, U)
+print(u_DG1(0,0,0))
+print(phi_DG1(0,0,0))
 
-aux = project((u_DG1[0]-float(u_D))/float(u_D), U)
-print(u_DG1(L,0,0)[0])
-print(abs(aux(L,0,0)) * 100)
-
-#print('norms')
-
-
-file = File('3d_traction.pvd')
+file = File('3d_flexion.pvd')
 
 file << u_DG1
 file << phi_DG1
