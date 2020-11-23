@@ -41,7 +41,8 @@ with XDMFFile("meshes/cube_1.xdmf") as infile:
 hm = mesh.hmax()
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 4*mu, 4*mu*l*l)
+cte = 2
+problem = DEMProblem(mesh, cte*mu, cte*mu*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 #Computing coefficients for Cosserat material
@@ -103,16 +104,16 @@ A += lhs_bnd_penalty(problem, boundary_parts, bcs)
 #Penalty matrix
 A += inner_penalty_light(problem)
 
-#test conditioning
-cond_numb = np.linalg.cond(A.todense())
-print('Cond: %.3e' % cond_numb)
-sys.exit()
+##test conditioning
+#cond_numb = np.linalg.cond(A.todense())
+#print('Cond: %.3e' % cond_numb)
+#sys.exit()
 
 #rhs
 t = Constant((0.0, T, 0.0))
 b = assemble_boundary_load(problem, 1, boundary_parts, t)
 #Imposing weakly the BC!
-b += rhs_bnd_penalty(problem, boundary_parts, bcs)
+#b += rhs_bnd_penalty(problem, boundary_parts, bcs)
 
 #test
 from petsc4py import PETSc
@@ -123,12 +124,9 @@ A_aux = PETScMatrix(petsc_mat)
 x = Function(problem.V_DG)
 x.vector().set_local(b)
 xx = x.vector()
-#A_aux.set(A.data, A.indices, A.indptr)
-#print(petsc_mat)
-#sys.exit()
 v_DG = Function(problem.V_DG)
 print('Solve!')
-#solve(A_aux, v_DG.vector(), xx, 'mumps') # 'mumps'
+solve(A_aux, v_DG.vector(), xx, 'mumps') # 'mumps'
 
 ##test conditionning
 #eigenSolver = SLEPcEigenSolver(A_aux)
@@ -162,7 +160,25 @@ epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
 sigma_u_h = problem.stress_3d(epsilon_u_h)
 sigma_yy = project(sigma_u_h[1,1])
 file << sigma_yy
+
 SCF = sigma_yy(R, 0.0, 0.0)
+#Calculer plutôt moyenne de la valeur sur le bord du trou?
+boundary_lines = MeshFunction("size_t", mesh, problem.dim-2)
+dl = Measure('ds')(subdomain_data=boundary_lines)
+class HoleBoundary(SubDomain):
+    def inside(self, x, on_boundary):
+        tol = 1e-6
+        return on_boundary and abs(x[1]*x[1]+x[2]*x[2]-R*R) < tol
+hole_boundary = TopBoundary()
+hole_boundary.mark(boundary_lines, 5)
+
+##h = MaxCellEdgeLength(problem.mesh)
+#h = FacetArea(problem.mesh)
+#test = assemble(h * dl(5))
+U = FunctionSpace(problem.mesh, 'CG', 1)
+test_func = TestFunction(U)
+test = assemble(test_func * dl(5)).get_local()
+print(test.sum())
 
 #Comparing SCF
 e = abs(SCF - SCF_a) / SCF_a
