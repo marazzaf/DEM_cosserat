@@ -48,7 +48,7 @@ lhs = problem.elastic_bilinear_form()
 lhs += inner_penalty_light(problem)
 
 #Listing Dirichlet BC
-bc = [[0, Constant(0), 1], [0, u_D, 2]]
+bc = [[0, Constant(0), 1], [0, u_D, 2], [0, Constant(0), 0]]
 #Add bc to make problem isostatic!
 
 #Nitsche penalty rhs
