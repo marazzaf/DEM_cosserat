@@ -26,6 +26,7 @@ mesh = BoxMesh(Point(0., 0., 0.), Point(L, H, H), 5*nb_elt, nb_elt, nb_elt)
 
 #Creating the DEM problem
 problem = DEMProblem(mesh, 4*mu, 4*mu*l*l) #sure about second penalty term?
+print('nb dofs: %i' % problem.nb_dof_DEM)
 
 boundary_parts = MeshFunction("size_t", mesh, 1)
 boundary_parts.set_all(0)
@@ -48,6 +49,7 @@ lhs += inner_penalty_light(problem)
 
 #Listing Dirichlet BC
 bc = [[0, Constant(0), 1], [0, u_D, 2]]
+#Add bc to make problem isostatic!
 
 #Nitsche penalty rhs
 rhs = rhs_bnd_penalty(problem, boundary_parts, bc)
@@ -59,7 +61,10 @@ lhs += lhs_bnd_penalty(problem, boundary_parts, bc)
 v = spsolve(lhs,rhs)
 #v,info = cg(lhs,rhs)
 #assert info == 0
+print(v) #changing because reconstruction changes?
 v_h = Function(problem.V_DG1)
+#v_h = Function(problem.V_DG)
+#v_h = interpolate(Constant((1,1,1,1,1,1)), problem.V_DG)
 v_h.vector().set_local(problem.DEM_to_DG1 * v)
 u_h, phi_h = v_h.split()
 
