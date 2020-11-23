@@ -68,7 +68,7 @@ class TopBoundary(SubDomain):
         tol = 1e-6
         return on_boundary and abs(x[1] - cube) < tol
 
-boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+boundary_parts = MeshFunction("size_t", mesh, problem.dim-1)
 boundary_parts.set_all(0)
         
 bot_boundary = BotBoundary()

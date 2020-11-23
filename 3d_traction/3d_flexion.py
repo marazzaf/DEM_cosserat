@@ -22,14 +22,15 @@ N = 0.93 # coupling parameter
 # Mesh
 L = 5
 H = 1
-nb_elt = 5
+nb_elt = 8
 mesh = BoxMesh(Point(0., 0., 0.), Point(L, H, H), 5*nb_elt, nb_elt, nb_elt)
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 2*mu, 2*mu*l*l) #sure about second penalty term?
+cte = 2
+problem = DEMProblem(mesh, cte*mu, cte*mu*l*l) #sure about second penalty term?
 print('nb dofs: %i' % problem.nb_dof_DEM)
 
-boundary_parts = MeshFunction("size_t", mesh, 1)
+boundary_parts = MeshFunction("size_t", mesh, problem.dim-1)
 boundary_parts.set_all(0)
 left = CompiledSubDomain("near(x[0], 0, 1e-4)")
 right = CompiledSubDomain("near(x[0], %s, 1e-4)"%L)
@@ -46,21 +47,31 @@ problem.micropolar_constants(nu, mu, lmbda, l, N)
 lhs = problem.elastic_bilinear_form()
 
 #Penalty matrix
-lhs += inner_penalty_light(problem)
+inner_pen = inner_penalty_light(problem)
+lhs += inner_pen
 
 #Listing Dirichlet BC
-bc = [[0, u_0, 1], [1, u_0, 1], [2, u_0, 1], [3, u_0, 1], [4, u_0, 1], [5, u_0, 1]] #, [3, u_0, 1], [4, u_0], [5, u_0]]
+bc = [[0, u_0, 1], [1, u_0, 1], [2, u_0, 1], [3, u_0, 1], [4, u_0, 1], [5, u_0, 1]]
+#bc = [[3, u_0, 1], [4, u_0], [5, u_0]]
 
 #Neumann BC
-T = 1
+T = 1e8
 t = Constant((0, T, 0))
 rhs = assemble_boundary_load(problem, 2, boundary_parts, t)
+#t = Constant((-T, -T, -T))
+#rhs += assemble_boundary_load(problem, 1, boundary_parts, t)
 
 #Nitsche penalty rhs
-rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
+#rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Nitsche penalty bilinear form
 lhs += lhs_bnd_penalty(problem, boundary_parts, bc)
+
+##test
+#x = SpatialCoordinate(mesh)
+#v_DG = local_project(as_vector((x[0],x[1],x[2],0,0,0)), problem.V_DG)
+#print(np.dot(v_DG.vector().get_local(), inner_pen*v_DG.vector().get_local()))
+#sys.exit()
 
 #Solving linear problem
 A = lhs.tocsr()
@@ -70,7 +81,7 @@ b = Function(problem.V_DG)
 b.vector().set_local(rhs)
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), b.vector(), 'petsc') # 'mumps'
+solve(A_aux, v_DG.vector(), b.vector(), 'cg', 'hypre_amg') # 'mumps'
 #x = SpatialCoordinate(mesh)
 #v_DG = local_project(as_vector((x[0],x[1],x[2],0,0,0)), problem.V_DG)
 u_DG, phi_DG = v_DG.split()
@@ -78,13 +89,14 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector().get_local())
 u_DG1, phi_DG1 = v_DG1.split()
 
-print(u_DG1(0,0,0))
-print(phi_DG1(0,0,0))
+print(u_DG(0,0,0))
+print(u_DG(L,0,0))
+print(phi_DG(0,0,0))
 
 file = File('3d_flexion.pvd')
 
-file << u_DG1
-file << phi_DG1
+file << u_DG
+file << phi_DG
 U = TensorFunctionSpace(problem.mesh, 'DG', 0)
 file << project(problem.strain_3d(u_DG1, phi_DG1), U)
 sys.exit()

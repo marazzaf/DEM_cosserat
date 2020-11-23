@@ -109,10 +109,10 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
             component = BC[0]
 
             if component < problem.dim: #bnd stress
-                form_pen = problem.penalty_u / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
+                form_pen = problem.penalty_u / h * u[component] * v[component] * dds# - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
-                    form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds - dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds - dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
+                    form_pen = problem.penalty_phi / h * phi[component-problem.dim] * psi[component-problem.dim] * dds# - dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds - dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
                 elif problem.dim == 2:
                     form_pen = problem.penalty_phi / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
             #Storing new term
@@ -161,10 +161,10 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
         
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
-            form_pen = problem.penalty_u / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
+            form_pen = problem.penalty_u / h * imposed_value * v[component] * dds# - dot(sigma, n)[component] * imposed_value * dds
         elif component >= problem.dim: #bnd couple stress
             if problem.dim == 3:
-                form_pen = problem.penalty_phi / h * imposed_value * psi[component-problem.dim] * dds - dot(mu, n)[component-problem.dim] * imposed_value * dds
+                form_pen = problem.penalty_phi / h * imposed_value * psi[component-problem.dim] * dds# - dot(mu, n)[component-problem.dim] * imposed_value * dds
             elif problem.dim == 2:
                 form_pen = problem.penalty_phi / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
         list_L.append(form_pen)

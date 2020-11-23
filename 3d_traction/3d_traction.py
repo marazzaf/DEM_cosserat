@@ -22,14 +22,15 @@ N = 0.93 # coupling parameter
 # Mesh
 L = 5
 H = 1
-nb_elt = 4
+nb_elt = 6
 mesh = BoxMesh(Point(0., 0., 0.), Point(L, H, H), 5*nb_elt, nb_elt, nb_elt)
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, mu, mu*l*l) #sure about second penalty term?
+cte = 2
+problem = DEMProblem(mesh, cte*mu, cte*mu*l*l) #sure about second penalty term?
 print('nb dofs: %i' % problem.nb_dof_DEM)
 
-boundary_parts = MeshFunction("size_t", mesh, 1)
+boundary_parts = MeshFunction("size_t", mesh, problem.dim-1)
 boundary_parts.set_all(0)
 left = CompiledSubDomain("near(x[0], 0, 1e-4)")
 right = CompiledSubDomain("near(x[0], %s, 1e-4)"%L)
@@ -49,7 +50,7 @@ lhs = problem.elastic_bilinear_form()
 lhs += inner_penalty_light(problem)
 
 #Listing Dirichlet BC
-bc = [[0, u_0, 1], [0, u_D, 2], [1, u_0, 1], [1, u_0, 2], [2, u_0, 1], [2, u_0, 2], [3, u_0], [4, u_0], [5, u_0]]
+bc = [[0, u_0, 1], [0, u_D, 2], [1, u_0, 1], [2, u_0, 1], [3, u_0, 1], [4, u_0, 1], [5, u_0, 1]]
 #Add bc to make problem isostatic!
 
 #Nitsche penalty rhs
@@ -66,7 +67,7 @@ b = Function(problem.V_DG)
 b.vector().set_local(rhs)
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), b.vector(), 'petsc') # 'mumps'
+solve(A_aux, v_DG.vector(), b.vector(), 'cg', 'sor') # 'mumps'
 #x = SpatialCoordinate(mesh)
 #v_DG = local_project(as_vector((x[0],x[1],x[2],0,0,0)), problem.V_DG)
 u_DG, phi_DG = v_DG.split()
@@ -88,8 +89,8 @@ print(abs(aux(L,0,0)) * 100)
 
 file = File('3d_traction.pvd')
 
-file << u_DG1
-file << phi_DG1
+file << u_DG
+file << phi_DG
 U = TensorFunctionSpace(problem.mesh, 'DG', 0)
 file << project(problem.strain_3d(u_DG1, phi_DG1), U)
 sys.exit()
