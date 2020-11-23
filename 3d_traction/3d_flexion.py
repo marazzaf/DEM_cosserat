@@ -26,7 +26,7 @@ nb_elt = 5
 mesh = BoxMesh(Point(0., 0., 0.), Point(L, H, H), 5*nb_elt, nb_elt, nb_elt)
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 4*mu, 4*mu*l*l) #sure about second penalty term?
+problem = DEMProblem(mesh, 2*mu, 2*mu*l*l) #sure about second penalty term?
 print('nb dofs: %i' % problem.nb_dof_DEM)
 
 boundary_parts = MeshFunction("size_t", mesh, 1)
