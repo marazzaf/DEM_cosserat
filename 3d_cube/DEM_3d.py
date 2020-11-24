@@ -36,7 +36,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-with XDMFFile("meshes/cube_1.xdmf") as infile:
+with XDMFFile("meshes/cube_3.xdmf") as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -175,10 +175,12 @@ hole_boundary.mark(boundary_lines, 5)
 ##h = MaxCellEdgeLength(problem.mesh)
 #h = FacetArea(problem.mesh)
 #test = assemble(h * dl(5))
-U = FunctionSpace(problem.mesh, 'CG', 1)
+U = FunctionSpace(problem.mesh, 'Nedelec 1st kind H(curl)', 1)
 test_func = TestFunction(U)
-test = assemble(test_func * dl(5)).get_local()
-print(test.sum())
+length = assemble(test_func[0] * dl(5)).get_local().sum()
+print(length)
+values = assemble(sigma_yy * test_func[0] * dl(5)).get_local().sum()
+print(values/length)
 
 #Comparing SCF
 e = abs(SCF - SCF_a) / SCF_a
