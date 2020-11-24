@@ -41,7 +41,7 @@ with XDMFFile("meshes/cube_3.xdmf") as infile:
 hm = mesh.hmax()
 
 #Creating the DEM problem
-cte = 2
+cte = 4
 problem = DEMProblem(mesh, cte*mu, cte*mu*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
@@ -152,38 +152,42 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('3d_coarse.pvd')
+file = File('3d.pvd')
 file << u_DG
+file << u_DG1
 file << phi_DG
+file << phi_DG1
 
 epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
 sigma_u_h = problem.stress_3d(epsilon_u_h)
-sigma_yy = project(sigma_u_h[1,1])
+#U = FunctionSpace(problem.mesh, 'DG', 0)
+U = FunctionSpace(problem.mesh, 'CG', 1)
+sigma_yy = local_project(sigma_u_h[1,1], U)
 file << sigma_yy
 
-SCF = sigma_yy(R, 0.0, 0.0)
-#Calculer plutôt moyenne de la valeur sur le bord du trou?
-boundary_lines = MeshFunction("size_t", mesh, problem.dim-2)
-dl = Measure('ds')(subdomain_data=boundary_lines)
-class HoleBoundary(SubDomain):
-    def inside(self, x, on_boundary):
-        tol = 1e-6
-        return on_boundary and abs(x[1]*x[1]+x[2]*x[2]-R*R) < tol
-hole_boundary = TopBoundary()
-hole_boundary.mark(boundary_lines, 5)
-
-##h = MaxCellEdgeLength(problem.mesh)
-#h = FacetArea(problem.mesh)
-#test = assemble(h * dl(5))
-U = FunctionSpace(problem.mesh, 'Nedelec 1st kind H(curl)', 1)
-test_func = TestFunction(U)
-length = assemble(test_func[0] * dl(5)).get_local().sum()
-print(length)
-values = assemble(sigma_yy * test_func[0] * dl(5)).get_local().sum()
-print(values/length)
-
 #Comparing SCF
+SCF = sigma_yy(R, 0.0, 0.0)
 e = abs(SCF - SCF_a) / SCF_a
 print('Ref: %.5e' % SCF_a)
 print('Computed: %.5e' % SCF)
 print('Error: %.2f' % (100*e))
+
+##Calculer plutôt moyenne de la valeur sur le bord du trou?
+#boundary_lines = MeshFunction("size_t", problem.mesh, problem.dim-2)
+#dl = Measure('ds')(subdomain_data=boundary_lines)
+#class HoleBoundary(SubDomain):
+#    def inside(self, x, on_boundary):
+#        tol = 1e-6
+#        return on_boundary and x[0]*x[0]+x[2]*x[2] < R*R #abs(x[1]*x[1]+x[2]*x[2]-R*R) < tol
+#hole_boundary = HoleBoundary()
+#hole_boundary.mark(boundary_lines, 5)
+#
+###h = MaxCellEdgeLength(problem.mesh)
+##h = FacetArea(problem.mesh)
+##test = assemble(h * dl(5))
+#U = FunctionSpace(problem.mesh, 'Nedelec 1st kind H(curl)', 1)
+#test_func = TestFunction(U)
+#length = assemble(test_func[0] * dl(5)).get_local().sum()
+#print(length)
+#values = assemble(sigma_yy * test_func[0] * dl(5)).get_local().sum()
+#print(values/length)
