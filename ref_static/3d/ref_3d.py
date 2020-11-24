@@ -10,7 +10,7 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-nu = 0.3 # Poisson's ratio
+nu = 0.499 # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
 
@@ -162,7 +162,7 @@ solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, phi_h = U_h.split()
 
-file = File('3d.pvd')
+file = File('locking_3_.pvd')
 file << u_h
 file << phi_h
         

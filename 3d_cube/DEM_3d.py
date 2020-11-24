@@ -16,7 +16,7 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-nu = 0.3 #0.49 #0.3 # Poisson's ratio
+nu = 0.499 #0.49 #0.3 # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
@@ -152,7 +152,7 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('3d.pvd')
+file = File('locking_3_.pvd')
 file << u_DG
 file << u_DG1
 file << phi_DG
