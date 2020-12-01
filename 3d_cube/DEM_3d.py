@@ -36,13 +36,13 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 2
+mesh_num = 4
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
 #Creating the DEM problem
-cte = 4
+cte = 2
 problem = DEMProblem(mesh, cte*mu, cte*mu*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
@@ -127,7 +127,7 @@ x.vector().set_local(b)
 xx = x.vector()
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), xx, 'mumps') # 'mumps'
+solve(A_aux, v_DG.vector(), xx, 'mumps')
 
 ##test conditionning
 #eigenSolver = SLEPcEigenSolver(A_aux)
