@@ -36,7 +36,8 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-with XDMFFile("meshes/cube_3.xdmf") as infile:
+mesh_num = 3
+with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -152,7 +153,7 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('locking_3_.pvd')
+file = File('locking_%i_.pvd' % mesh_num)
 file << u_DG
 file << u_DG1
 file << phi_DG
@@ -166,7 +167,7 @@ sigma_yy = local_project(sigma_u_h[1,1], U)
 file << sigma_yy
 
 #Comparing SCF
-SCF = sigma_yy(R, 0.0, 0.0)
+SCF = sigma_yy(R, 0, 0)
 e = abs(SCF - SCF_a) / SCF_a
 print('Ref: %.5e' % SCF_a)
 print('Computed: %.5e' % SCF)

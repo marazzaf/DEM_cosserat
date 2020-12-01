@@ -22,7 +22,7 @@ N = 0.93 # coupling parameter
 # Mesh
 L = 5
 H = 1
-nb_elt = 8
+nb_elt = 5
 mesh = BoxMesh(Point(0., 0., 0.), Point(L, H, H), 5*nb_elt, nb_elt, nb_elt)
 
 #Creating the DEM problem
@@ -55,7 +55,7 @@ bc = [[0, u_0, 1], [1, u_0, 1], [2, u_0, 1], [3, u_0, 1], [4, u_0, 1], [5, u_0, 
 #bc = [[3, u_0, 1], [4, u_0], [5, u_0]]
 
 #Neumann BC
-T = 1e8
+T = 0.05*H*H*mu
 t = Constant((0, T, 0))
 rhs = assemble_boundary_load(problem, 2, boundary_parts, t)
 #t = Constant((-T, -T, -T))
@@ -65,7 +65,7 @@ rhs = assemble_boundary_load(problem, 2, boundary_parts, t)
 #rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Nitsche penalty bilinear form
-lhs += lhs_bnd_penalty(problem, boundary_parts, bc)
+lhs += lhs_bnd_penalty(problem, boundary_parts, bc) #shouldbe zero
 
 ##test
 #x = SpatialCoordinate(mesh)
@@ -81,7 +81,7 @@ b = Function(problem.V_DG)
 b.vector().set_local(rhs)
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), b.vector(), 'cg', 'hypre_amg') # 'mumps'
+solve(A_aux, v_DG.vector(), b.vector(), 'mumps')
 #x = SpatialCoordinate(mesh)
 #v_DG = local_project(as_vector((x[0],x[1],x[2],0,0,0)), problem.V_DG)
 u_DG, phi_DG = v_DG.split()

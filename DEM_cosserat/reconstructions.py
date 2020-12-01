@@ -115,10 +115,11 @@ def facet_interpolation(problem):
             neigh_pool[for_deletion] = -1
             neigh_pool = set(neigh_pool) - {-1}
 
-        #Empty sets to store result of search
-        chosen_coord_bary = []
-        coord_num = []
-        coord_num_phi = []
+        #Empty sets to store results of search
+        list_coord = []
+        list_max_coord = []
+        list_num = []
+        list_phi = []
         
         #Search of the simplex
         for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
@@ -139,15 +140,24 @@ def facet_interpolation(problem):
             else:
                 coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
                 if max(abs(coord_bary)) < 10.:
-                    chosen_coord_bary = coord_bary
+                    list_coord.append(coord_bary)
+                    list_max_coord.append(max(abs(coord_bary)))
+                    aux_num = []
+                    aux_phi = []
                     for l in dof_num:
-                        coord_num.append(problem.Graph.nodes[l]['dof_u'])
-                        coord_num_phi.append(problem.Graph.nodes[l]['dof_phi'])
-
-                    break #search is finished when we get a simplex that works
+                        aux_num.append(problem.Graph.nodes[l]['dof_u'])
+                        aux_phi.append(problem.Graph.nodes[l]['dof_phi'])
+                    list_num.append(aux_num)
+                    list_phi.append(aux_phi)
+                    
+        #Choosing the final recontruction for the facet
+        assert len(list_coord) > 0 #otherwise no coordinates have been computed
+        Min = np.argmin(np.array(list_max_coord))
+        chosen_coord_bary = list_coord[Min]
+        coord_num = list_num[Min]
+        coord_num_phi = list_phi[Min]
                 
         #Tests if search was fruitful
-        assert len(chosen_coord_bary) > 0 #otherwise no coordinates have been computed
         assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
 
         res_num[num_facet] = coord_num

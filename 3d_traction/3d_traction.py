@@ -8,7 +8,6 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from scipy.sparse.linalg import spsolve,cg
 from petsc4py import PETSc
 
 # Parameters
@@ -88,6 +87,7 @@ print(abs(aux(L,0,0)) * 100)
 file = File('3d_traction.pvd')
 
 file << u_DG
+file << u_DG1
 file << phi_DG
 U = TensorFunctionSpace(problem.mesh, 'DG', 0)
 file << project(problem.strain_3d(u_DG1, phi_DG1), U)

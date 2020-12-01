@@ -30,7 +30,8 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-with XDMFFile("meshes/cube_3.xdmf") as infile:
+mesh_num = 3
+with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 
@@ -162,7 +163,7 @@ solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, phi_h = U_h.split()
 
-file = File('locking_3_.pvd')
+file = File('locking_%i_.pvd' % mesh_num)
 file << u_h
 file << phi_h
         
@@ -171,7 +172,7 @@ sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)
 U = FunctionSpace(mesh, 'CG', 1)
 sigma_yy = project(sigma_u_h[1,1], U)
 file << sigma_yy
-SCF = sigma_yy(R, 0.0, 0.0)
+SCF = sigma_yy(R, 0, 0)
 
 e = abs(SCF - SCF_a) / SCF_a
 print('Ref: %.5e' % SCF_a)

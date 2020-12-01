@@ -138,7 +138,7 @@ print(error)
 
 file = File("DEM/sigma.pvd")
 file << sigma_yy
-#file << u_DG
+file << u_DG
 file << u_DG1
 file << psi_DG
 file << psi_DG1
