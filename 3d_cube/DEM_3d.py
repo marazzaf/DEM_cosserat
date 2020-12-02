@@ -8,7 +8,7 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from scipy.sparse.linalg import spsolve,cg
+from solver_3D import computation
 
 # Parameters
 R = 10.0 # radius
@@ -36,7 +36,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 1
+mesh_num = 2
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -153,7 +153,7 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('locking_%i_.pvd' % mesh_num)
+file = File('no_locking_%i_.pvd' % mesh_num)
 file << u_DG
 file << u_DG1
 file << phi_DG
@@ -174,9 +174,8 @@ print('Computed: %.5e' % SCF)
 print('Error: %.2f' % (100*e))
 
 #Computing errors
-cells = MeshFunction("size_t", mesh, 3)
-ref = XDMFFile(MPI.comm_world, 'ref_1.xdmf')
-#mesh_ref = Mesh()
-#ref.read(mesh_ref, True)
-u_ref = ref.read(cells,'disp')
-phi_ref = ref.read('size_t', 'rot')
+u_ref,phi_ref = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
+err_L2_u = errornorm(u_DG1, u_ref, 'L2', degree_rise=0)
+print(err_L2_u)
+err_L2_phi = errornorm(phi_DG1, phi_ref, 'L2', degree_rise=0)
+print(err_L2_phi)
