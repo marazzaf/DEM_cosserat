@@ -16,7 +16,7 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-nu = 0.499 #0.49 #0.3 # Poisson's ratio
+nu = 0.3 #0.49 #0.3 # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
@@ -36,7 +36,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 4
+mesh_num = 1
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -173,22 +173,10 @@ print('Ref: %.5e' % SCF_a)
 print('Computed: %.5e' % SCF)
 print('Error: %.2f' % (100*e))
 
-##Calculer plutôt moyenne de la valeur sur le bord du trou?
-#boundary_lines = MeshFunction("size_t", problem.mesh, problem.dim-2)
-#dl = Measure('ds')(subdomain_data=boundary_lines)
-#class HoleBoundary(SubDomain):
-#    def inside(self, x, on_boundary):
-#        tol = 1e-6
-#        return on_boundary and x[0]*x[0]+x[2]*x[2] < R*R #abs(x[1]*x[1]+x[2]*x[2]-R*R) < tol
-#hole_boundary = HoleBoundary()
-#hole_boundary.mark(boundary_lines, 5)
-#
-###h = MaxCellEdgeLength(problem.mesh)
-##h = FacetArea(problem.mesh)
-##test = assemble(h * dl(5))
-#U = FunctionSpace(problem.mesh, 'Nedelec 1st kind H(curl)', 1)
-#test_func = TestFunction(U)
-#length = assemble(test_func[0] * dl(5)).get_local().sum()
-#print(length)
-#values = assemble(sigma_yy * test_func[0] * dl(5)).get_local().sum()
-#print(values/length)
+#Computing errors
+cells = MeshFunction("size_t", mesh, 3)
+ref = XDMFFile(MPI.comm_world, 'ref_1.xdmf')
+#mesh_ref = Mesh()
+#ref.read(mesh_ref, True)
+u_ref = ref.read(cells,'disp')
+phi_ref = ref.read('size_t', 'rot')

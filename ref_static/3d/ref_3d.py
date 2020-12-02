@@ -10,7 +10,8 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-nu = 0.499 # Poisson's ratio
+#nu = 0.499 # Poisson's ratio
+nu = 0.3
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
 
@@ -30,7 +31,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 3
+mesh_num = 1
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -163,16 +164,22 @@ solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, phi_h = U_h.split()
 
-file = File('locking_%i_.pvd' % mesh_num)
-file << u_h
-file << phi_h
-        
+#file = File('locking_%i_.pvd' % mesh_num)
+#file << u_h
+#file << phi_h
+
 epsilon_u_h = strain(u_h, phi_h)
 sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)
 U = FunctionSpace(mesh, 'CG', 1)
 sigma_yy = project(sigma_u_h[1,1], U)
-file << sigma_yy
+#file << sigma_yy
 SCF = sigma_yy(R, 0, 0)
+
+file = XDMFFile('ref_%i_.xdmf' % mesh_num)
+u_h.name = 'disp'
+file.write(u_h)
+phi_h.name = 'rot'
+file.write(phi_h)
 
 e = abs(SCF - SCF_a) / SCF_a
 print('Ref: %.5e' % SCF_a)

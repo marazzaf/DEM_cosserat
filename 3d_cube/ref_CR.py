@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 R = 10.0 # radius
 cube = 100.0 # dim
 
-T = 1.0 # traction force
+T = 1 # traction force
 
-nu = 0.499 # Poisson's ratio
+nu = 0.3 # Poisson's ratio
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
 
@@ -30,7 +30,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 3
+mesh_num = 2
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -161,8 +161,9 @@ L = inner(t, v)*ds(1)
 U_h = Function(V)
 problem = LinearVariationalProblem(a, L, U_h, bcs)
 solver = LinearVariationalSolver(problem)
-solver.parameters['linear_solver'] = 'bicgstab'
-solver.parameters['preconditioner'] = 'petsc_amg'
+solver.parameters['linear_solver'] = 'mumps'
+#solver.parameters['linear_solver'] = 'cg'
+#solver.parameters['preconditioner'] = 'hypre_euclid'
 solver.solve()
 u_h, phi_h = U_h.split()
 
