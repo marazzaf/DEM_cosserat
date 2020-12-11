@@ -51,8 +51,8 @@ elas = problem.elastic_bilinear_form()
 lhs = elas
 
 #Penalty matrix
-inner_pen = inner_penalty_light(problem) #usual
-#inner_pen = inner_penalty(problem) #test
+#inner_pen = inner_penalty_light(problem) #usual
+inner_pen = inner_penalty(problem) #test
 lhs += inner_pen
 lhs += inner_consistency(problem)
 

@@ -239,8 +239,8 @@ def inner_penalty(problem):
     te_mu = 4*problem.G*problem.l*problem.l * outer(jump(psi), n('+'))
 
     #penalty bilinear form
-    pen_u = problem.penalty_u / problem.G
-    pen_phi = problem.penalty_phi / problem.G
+    pen_u = 4
+    pen_phi = pen_u * problem.l * problem.l
     a_pen = pen_u / h_avg * inner(outer(jump(u),n('+')), te_sigma) * dS + pen_phi / h_avg * inner(outer(jump(phi),n('+')), te_mu) * dS
 
     #Assembling matrix
