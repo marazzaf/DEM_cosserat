@@ -9,11 +9,12 @@ from DEM_cosserat.miscellaneous import gradient_matrix
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh, penalty_u=1., penalty_phi=1.):
+    def __init__(self, mesh, penalty_u=1., penalty_phi=1., penalty=1.):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
         self.penalty_u = penalty_u
         self.penalty_phi = penalty_phi
+        self.pen_u = penalty #For test...
 
         #Rotation is a scalar in 3d and a vector in 3d
         U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
@@ -228,8 +229,6 @@ def inner_penalty(problem):
     #Writing penalty bilinear form
     u,phi = TrialFunctions(problem.V_DG1)
     v,psi = TestFunctions(problem.V_DG1)
-    #u,phi = TrialFunctions(problem.V_CR)
-    #v,psi = TestFunctions(problem.V_CR)
 
     #stresses
     aux = outer(jump(v),n('+'))
@@ -239,9 +238,8 @@ def inner_penalty(problem):
     te_mu = 4*problem.G*problem.l*problem.l * outer(jump(psi), n('+'))
 
     #penalty bilinear form
-    pen_u = 1e2 #1e2 seems okay. Check if more is too much?
-    pen_phi = pen_u * problem.l * problem.l
-    a_pen = pen_u / h_avg * inner(outer(jump(u),n('+')), te_sigma) * dS + pen_phi / h_avg * inner(outer(jump(phi),n('+')), te_mu) * dS
+    pen_phi = problem.pen_u * problem.l * problem.l
+    a_pen = problem.pen_u / h_avg * inner(outer(jump(u),n('+')), te_sigma) * dS + pen_phi / h_avg * inner(outer(jump(phi),n('+')), te_mu) * dS
 
     #Assembling matrix
     A = assemble(a_pen)

@@ -29,7 +29,7 @@ mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
 cte = 4
-problem = DEMProblem(mesh, cte*G, cte*G*l*l)
+problem = DEMProblem(mesh, cte*G, cte*G*l*l, 1e2) #1e2 seems okay. Check if more is too much?
 #problem = DEMProblem(mesh, 8*G, 8*G*l*l)
 #print('nb_dof: %i' % problem.nb_dof_DEM)
 #print(mesh.hmax())
@@ -68,13 +68,13 @@ rhs += rhs_load
 bc = [[0,u_D[0],0], [1, u_D[1],0], [2, phi_D,0]]
 
 #Nitsche penalty rhs
-nitsche_and_bnd = rhs_bnd_penalty_test(problem, u_D, phi_D) 
-#nitsche_and_bnd = rhs_bnd_penalty(problem, boundary_parts, bc) 
+#nitsche_and_bnd = rhs_bnd_penalty_test(problem, u_D, phi_D) 
+nitsche_and_bnd = rhs_bnd_penalty(problem, boundary_parts, bc) 
 rhs += nitsche_and_bnd
 
 #Nitsche penalty bilinear form
-#bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
-bnd = lhs_bnd_penalty_test(problem)
+bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
+#bnd = lhs_bnd_penalty_test(problem)
 lhs += bnd
 
 #Converting matrix
