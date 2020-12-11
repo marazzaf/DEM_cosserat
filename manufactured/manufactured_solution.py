@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 10
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -51,8 +51,8 @@ elas = problem.elastic_bilinear_form()
 lhs = elas
 
 #Penalty matrix
-#inner_pen = inner_penalty_light(problem) #usual
-inner_pen = inner_penalty(problem) #test
+inner_pen = inner_penalty_light(problem) #usual
+#inner_pen = inner_penalty(problem) #test
 lhs += inner_pen
 lhs += inner_consistency(problem)
 
@@ -73,12 +73,25 @@ rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
 bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
 lhs += bnd
 
+#Converting matrix
+from petsc4py import PETSc
+lhs = lhs.tocsr()
+petsc_mat = PETSc.Mat().createAIJ(size=lhs.shape, csr=(lhs.indptr, lhs.indices,lhs.data))
+lhs = PETScMatrix(petsc_mat)
+x = Function(problem.V_DG)
+x.vector().set_local(rhs)
+xx = x.vector()
+v_DG = Function(problem.V_DG)
+print('Solve!')
+solve(lhs, v_DG.vector(), xx, 'mumps')
+vec_DG = v_DG.vector().get_local()
+
 #Solving linear problem
-v = spsolve(lhs,rhs)
+#v = spsolve(lhs,rhs)
 #v,info = cg(lhs,rhs) #, tol=1e-10)
 #assert info == 0
 v_DG1 = Function(problem.V_DG1)
-v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
+v_DG1.vector().set_local(problem.DEM_to_DG1 * vec_DG)
 u_DG1,phi_DG1 = v_DG1.split()
 
 #print(u_h(0,L),phi_h(0,L))
