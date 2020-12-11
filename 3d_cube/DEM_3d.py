@@ -36,15 +36,18 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 2
+mesh_num = 3
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
+print(hm)
+sys.exit()
 
 #Creating the DEM problem
 cte = 2
 problem = DEMProblem(mesh, cte*mu, cte*mu*l*l)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
+sys.exit()
 
 #Computing coefficients for Cosserat material
 problem.micropolar_constants(nu, mu, lmbda, l, N)
@@ -176,6 +179,15 @@ print('Error: %.2f' % (100*e))
 #Computing errors
 u_ref,phi_ref = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
 err_L2_u = errornorm(u_DG1, u_ref, 'L2', degree_rise=0)
-print(err_L2_u)
+#print(err_L2_u)
 err_L2_phi = errornorm(phi_DG1, phi_ref, 'L2', degree_rise=0)
-print(err_L2_phi)
+#print(err_L2_phi)
+tot_l2 = np.sqrt(err_L2_u**2+err_L2_phi**2)
+print('Tot L2: %.3e' % tot_l2)
+
+err_H10_u = errornorm(u_DG1, u_ref, 'H10', degree_rise=0)
+print(err_H10_u)
+err_H10_phi = errornorm(phi_DG1, phi_ref, 'H10', degree_rise=0)
+print(err_H10_phi)
+tot_H10 = np.sqrt(err_H10_u**2+err_H10_phi**2)
+print('Tot H10: %.3e' % tot_H10)

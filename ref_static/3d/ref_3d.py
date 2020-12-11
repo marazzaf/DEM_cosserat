@@ -31,7 +31,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 1
+mesh_num = 3
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -86,6 +86,7 @@ U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
 S = VectorElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
 print('nb dof FEM: %i' % V.dofmap().global_dimension())
+sys.exit()
 U, S = V.split()
 U_1, U_2, U_3 = U.split()
 S_1, S_2, S_3 = S.split()

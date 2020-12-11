@@ -24,12 +24,12 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 160
+nb_elt = 10
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-#problem = DEMProblem(mesh, 4*G, 4*G*l*l)
-problem = DEMProblem(mesh, 8*G, 8*G*l*l)
+problem = DEMProblem(mesh, 4*G, 4*G*l*l)
+#problem = DEMProblem(mesh, 8*G, 8*G*l*l)
 #print('nb_dof: %i' % problem.nb_dof_DEM)
 #print(mesh.hmax())
 #sys.exit()
@@ -51,7 +51,8 @@ elas = problem.elastic_bilinear_form()
 lhs = elas
 
 #Penalty matrix
-inner_pen = inner_penalty_light(problem) #light
+#inner_pen = inner_penalty_light(problem) #usual
+inner_pen = inner_penalty(problem) #test
 lhs += inner_pen
 lhs += inner_consistency(problem)
 

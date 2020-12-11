@@ -182,11 +182,11 @@ def inner_consistency(problem):
     #v,psi = TestFunctions(problem.V_CR)
 
     #stresses
-    tr_strains = problem.strains(u,phi)
-    tr_sigma,tr_mu = problem.stresses(tr_strains)
+    tr_strains = problem.strains_2d(u,phi)
+    tr_sigma,tr_mu = problem.stresses_2d(tr_strains)
     tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1]))) #2d
-    te_strains = problem.strains(v,psi)
-    te_sigma,te_mu = problem.stresses(te_strains)
+    te_strains = problem.strains_2d(v,psi)
+    te_sigma,te_mu = problem.stresses_2d(te_strains)
     te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
     
     #a_pen = problem.penalty_u / h_avg * inner(jump(u), jump(v)) * dS + problem.penalty_phi / h_avg * inner(jump(phi), jump(psi)) * dS
@@ -216,3 +216,36 @@ def inner_penalty_light(problem):
     A = csr_matrix((val, col, row))
 
     return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1
+
+def inner_penalty(problem):
+    """Creates the penalty matrix on inner facets to stabilize the DEM."""
+    
+    #assembling penalty factor
+    h = CellDiameter(problem.mesh)
+    h_avg = 0.5 * (h('+') + h('-'))
+    n = FacetNormal(problem.mesh)
+
+    #Writing penalty bilinear form
+    u,phi = TrialFunctions(problem.V_DG1)
+    v,psi = TestFunctions(problem.V_DG1)
+    #u,phi = TrialFunctions(problem.V_CR)
+    #v,psi = TestFunctions(problem.V_CR)
+
+    #stresses
+    aux = outer(jump(v),n('+'))
+    aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0]))
+    te_sigma = dot(problem.D, aux)
+    te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
+    te_mu = 4*problem.G*problem.l*problem.l * outer(jump(psi), n('+'))
+
+    #penalty bilinear form
+    pen_u = problem.penalty_u / problem.G
+    pen_phi = problem.penalty_phi / problem.G
+    a_pen = pen_u / h_avg * inner(outer(jump(u),n('+')), te_sigma) * dS + pen_phi / h_avg * inner(outer(jump(phi),n('+')), te_mu) * dS
+
+    #Assembling matrix
+    A = assemble(a_pen)
+    row,col,val = as_backend_type(A).mat().getValuesCSR()
+    A = csr_matrix((val, col, row))
+
+    return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1

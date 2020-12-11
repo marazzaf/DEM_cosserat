@@ -66,6 +66,7 @@ def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
     U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
     S = VectorElement("CG", mesh.ufl_cell(), 1) # micro rotation space
     V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
+    print('nb dofs DEM: %i' % V.dofmap().global_dimension())
     U, S = V.split()
     U_1, U_2, U_3 = U.split()
     S_1, S_2, S_3 = S.split()
