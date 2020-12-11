@@ -24,11 +24,12 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 160
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 4*G, 4*G*l*l)
+cte = 4
+problem = DEMProblem(mesh, cte*G, cte*G*l*l)
 #problem = DEMProblem(mesh, 8*G, 8*G*l*l)
 #print('nb_dof: %i' % problem.nb_dof_DEM)
 #print(mesh.hmax())
@@ -59,18 +60,21 @@ lhs += inner_consistency(problem)
 #rhs
 t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1] )*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
 #t = Constant((0, 0, 0)) #test
-rhs = problem.assemble_volume_load(t)
+rhs_load = problem.assemble_volume_load(t)
+rhs = np.zeros_like(rhs_load)
+rhs += rhs_load
 
 #Listing Dirichlet BC
 bc = [[0,u_D[0],0], [1, u_D[1],0], [2, phi_D,0]]
 
 #Nitsche penalty rhs
-#rhs += rhs_nitsche_penalty(problem, bc)
-rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
+nitsche_and_bnd = rhs_bnd_penalty_test(problem, u_D, phi_D) 
+#nitsche_and_bnd = rhs_bnd_penalty(problem, boundary_parts, bc) 
+rhs += nitsche_and_bnd
 
 #Nitsche penalty bilinear form
-#lhs += lhs_nitsche_penalty(problem, bc)
-bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
+#bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
+bnd = lhs_bnd_penalty_test(problem)
 lhs += bnd
 
 #Converting matrix
@@ -78,14 +82,14 @@ from petsc4py import PETSc
 lhs = lhs.tocsr()
 petsc_mat = PETSc.Mat().createAIJ(size=lhs.shape, csr=(lhs.indptr, lhs.indices,lhs.data))
 lhs = PETScMatrix(petsc_mat)
-x = Function(problem.V_DG)
-x.vector().set_local(rhs)
-xx = x.vector()
+bb = Function(problem.V_DG)
+bb.vector().set_local(rhs)
+rhs = bb.vector()
 
 #Solving linear problem
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(lhs, v_DG.vector(), xx, 'mumps')
+solve(lhs, v_DG.vector(), rhs, 'mumps')
 u_DG,phi_DG = v_DG.split()
 vec_DG = v_DG.vector().get_local()
 
@@ -94,9 +98,19 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * vec_DG)
 u_DG1,phi_DG1 = v_DG1.split()
 
-#print(u_h(0,L),phi_h(0,L))
-#print(u_h(0,0),phi_h(0,0))
+#Bilan d'énergie
+elastic_energy = 0.5*np.dot(vec_DG, elas * vec_DG)
+inner_penalty_energy = 0.5*np.dot(vec_DG, inner_pen * vec_DG)
+bnd_penalty_energy = 0.5*np.dot(vec_DG, bnd * vec_DG)
+work = np.dot(nitsche_and_bnd, vec_DG)
+work_load = np.dot(rhs_load, vec_DG)
+print('Elastic: %.2e' % elastic_energy)
+print('Inner pen: %.2e' % inner_penalty_energy)
+print('Bnd pen: %.2e' % bnd_penalty_energy)
+print('Work rhs bnd pen: %.2e' % work)
+print('Work volume load: %.2e' % work_load)
 
+#solution de ref
 U = VectorFunctionSpace(problem.mesh, 'CG', 2)
 u = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'CG', 1)
