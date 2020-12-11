@@ -24,7 +24,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 80
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -81,15 +81,15 @@ lhs = PETScMatrix(petsc_mat)
 x = Function(problem.V_DG)
 x.vector().set_local(rhs)
 xx = x.vector()
+
+#Solving linear problem
 v_DG = Function(problem.V_DG)
 print('Solve!')
 solve(lhs, v_DG.vector(), xx, 'mumps')
+u_DG,phi_DG = v_DG.split()
 vec_DG = v_DG.vector().get_local()
 
-#Solving linear problem
-#v = spsolve(lhs,rhs)
-#v,info = cg(lhs,rhs) #, tol=1e-10)
-#assert info == 0
+#Computing reconstruction
 v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * vec_DG)
 u_DG1,phi_DG1 = v_DG1.split()
@@ -114,22 +114,22 @@ phi = interpolate(phi_D, U)
 #sys.exit()
 
 ##test BC
-#fig = plot(abs(u_h[0]-u[0]))
+#fig = plot(abs(u_DG[0]-u[0]))
 #plt.colorbar(fig)
 #plt.show()
-#fig = plot(abs(u_h[1]-u[1]))
+#fig = plot(abs(u_DG[1]-u[1]))
 #plt.colorbar(fig)
 #plt.show()
-#fig = plot(abs(phi_h-phi))
+#fig = plot(abs(phi_DG-phi))
 #plt.colorbar(fig)
 #plt.show()
 #sys.exit()
 
 
-#fig = plot(u_DG1[0])
-#plt.colorbar(fig)
+fig = plot(u_DG1[0])
+plt.colorbar(fig)
 #plt.savefig('u_x_80.pdf')
-#plt.show()
+plt.show()
 ###fig = plot(u[0])
 ###plt.colorbar(fig)
 #####plt.savefig('ref_u_x_25.pdf')
@@ -138,10 +138,10 @@ phi = interpolate(phi_D, U)
 ##plt.colorbar(fig)
 ##plt.show()
 ##
-#fig = plot(u_DG1[1])
-#plt.colorbar(fig)
+fig = plot(u_DG1[1])
+plt.colorbar(fig)
 #plt.savefig('u_y_80.pdf')
-#plt.show()
+plt.show()
 ###fig = plot(u[1])
 ###plt.colorbar(fig)
 #####plt.savefig('ref_u_y_25.pdf')
@@ -150,10 +150,10 @@ phi = interpolate(phi_D, U)
 ##plt.colorbar(fig)
 ##plt.show()
 ###
-#fig = plot(phi_DG1)
-#plt.colorbar(fig)
+fig = plot(phi_DG1)
+plt.colorbar(fig)
 #plt.savefig('phi_80.pdf')
-#plt.show()
+plt.show()
 ###fig = plot(phi)
 ###plt.colorbar(fig)
 #####plt.savefig('ref_phi_25.pdf')

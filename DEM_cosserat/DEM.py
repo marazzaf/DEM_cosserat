@@ -93,7 +93,7 @@ class DEMProblem:
         
     def strains_2d(self, v, eta):
         gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
-        kappa = grad(eta)
+        kappa = nabla_grad(eta)
         return gamma, kappa
 
     def stresses_2d(self, strains):
@@ -233,13 +233,13 @@ def inner_penalty(problem):
 
     #stresses
     aux = outer(jump(v),n('+'))
-    aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0]))
+    aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0])) #ref: aux[0,1], aux[1,0])
     te_sigma = dot(problem.D, aux)
     te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
     te_mu = 4*problem.G*problem.l*problem.l * outer(jump(psi), n('+'))
 
     #penalty bilinear form
-    pen_u = 4
+    pen_u = 40
     pen_phi = pen_u * problem.l * problem.l
     a_pen = pen_u / h_avg * inner(outer(jump(u),n('+')), te_sigma) * dS + pen_phi / h_avg * inner(outer(jump(phi),n('+')), te_mu) * dS
 
