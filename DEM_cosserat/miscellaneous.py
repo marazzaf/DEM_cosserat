@@ -209,11 +209,13 @@ def lhs_bnd_penalty_test(problem): #Test
     aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0]))
     sigma = dot(problem.D, aux)
     sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1]))) #2d
-    mu = 4*problem.G*problem.l*problem.l * outer(psi, n)
+    #mu = 4*problem.G*problem.l*problem.l * outer(psi, n)
+    #mu = 4*problem.G*problem.l*problem.l * psi
+    mu = 4 * problem.G * psi
 
     #Bilinear
-    pen_phi = problem.pen_u * problem.l * problem.l
-    pen = problem.pen_u/h * inner(outer(u,n),sigma) * ds + pen_phi/h * inner(outer(phi,n),mu) * ds
+    #pen_phi = problem.pen_u * problem.l * problem.l
+    pen = problem.pen/h * inner(outer(u,n),sigma) * ds + problem.pen/h * inner(phi,mu) * ds #inner(outer(phi,n),mu) * ds
     bilinear = pen + nitsche
     
     #Assembling matrix
@@ -242,11 +244,12 @@ def rhs_bnd_penalty_test(problem, imposed_value_u, imposed_value_phi): #Test
     aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0]))
     sigma = dot(problem.D, aux)
     sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1]))) #2d
-    mu = 4*problem.G*problem.l*problem.l * outer(psi, n)
+    #mu = 4*problem.G*problem.l*problem.l * psi #outer(psi, n)
+    mu = 4 * problem.G * psi
 
     #penalty
-    pen_phi = problem.pen_u * problem.l * problem.l
-    pen = problem.pen_u / h * inner(outer(imposed_value_u,n), sigma) * ds + pen_phi / h * inner(outer(imposed_value_phi,n), mu) * ds
+    #pen_phi = problem.pen_u * problem.l * problem.l
+    pen = problem.pen / h * inner(outer(imposed_value_u,n), sigma) * ds + problem.pen / h * inner(imposed_value_phi, mu) * ds #inner(outer(imposed_value_phi,n), mu) * ds
 
     L = assemble(nitsche + pen).get_local()
     

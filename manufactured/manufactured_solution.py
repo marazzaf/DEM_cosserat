@@ -23,12 +23,12 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 10
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
 cte = 4
-problem = DEMProblem(mesh, cte*G, cte*G, 1e2)
+problem = DEMProblem(mesh, cte*G, cte*G, 1e2) #plus de pen?
 #problem = DEMProblem(mesh, 8*G, 8*G*l*l)
 #print('nb_dof: %i' % problem.nb_dof_DEM)
 #print(mesh.hmax())
@@ -54,7 +54,7 @@ lhs = elas
 #inner_pen = inner_penalty_light(problem) #usual
 inner_pen = inner_penalty(problem) #test
 lhs += inner_pen
-lhs += inner_consistency(problem)
+#lhs += inner_consistency(problem)
 
 #rhs
 t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1] )*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
@@ -67,7 +67,7 @@ rhs += rhs_load
 bc = [[0,u_D[0],0], [1, u_D[1],0], [2, phi_D,0]]
 
 #Nitsche penalty rhs
-#nitsche_and_bnd = rhs_bnd_penalty_test(problem, u_D, phi_D) 
+#nitsche_and_bnd = rhs_bnd_penalty_test(problem, u_D, phi_D)
 nitsche_and_bnd = rhs_bnd_penalty(problem, boundary_parts, bc) 
 rhs += nitsche_and_bnd
 
@@ -145,12 +145,6 @@ print('Error grad u: %.2e' % (np.sqrt(error_u_grad)))
 error_phi_grad = assemble(inner(grad(diff_phi),grad(diff_phi)) * dx)
 print('Error grad phi: %.2e' % (np.sqrt(error_phi_grad)))
 
-
-#file = File('out.pvd')
-#
-#file << u_h
-#file << phi_h
-#
 ### Stress
 #eps,kappa = problem.strains(u_h, phi_h)
 ##sigma_yy = project(sigma[1])
@@ -167,7 +161,7 @@ print('Error grad phi: %.2e' % (np.sqrt(error_phi_grad)))
 #fig = plot(abs(phi_DG-phi))
 #plt.colorbar(fig)
 #plt.show()
-sys.exit()
+#sys.exit()
 
 
 fig = plot(u_DG1[0])
