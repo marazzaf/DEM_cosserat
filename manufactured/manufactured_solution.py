@@ -8,7 +8,6 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from scipy.sparse.linalg import spsolve,cg,bicgstab
 
 # Parameters
 nu = 0.3 # Poisson's ratio
@@ -24,7 +23,7 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 80
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
@@ -98,23 +97,48 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * vec_DG)
 u_DG1,phi_DG1 = v_DG1.split()
 
-#Bilan d'énergie
-elastic_energy = 0.5*np.dot(vec_DG, elas * vec_DG)
-inner_penalty_energy = 0.5*np.dot(vec_DG, inner_pen * vec_DG)
-bnd_penalty_energy = 0.5*np.dot(vec_DG, bnd * vec_DG)
-work = np.dot(nitsche_and_bnd, vec_DG)
-work_load = np.dot(rhs_load, vec_DG)
-print('Elastic: %.2e' % elastic_energy)
-print('Inner pen: %.2e' % inner_penalty_energy)
-print('Bnd pen: %.2e' % bnd_penalty_energy)
-print('Work rhs bnd pen: %.2e' % work)
-print('Work volume load: %.2e' % work_load)
+##Bilan d'énergie
+#elastic_energy = 0.5*np.dot(vec_DG, elas * vec_DG)
+#inner_penalty_energy = 0.5*np.dot(vec_DG, inner_pen * vec_DG)
+#bnd_penalty_energy = 0.5*np.dot(vec_DG, bnd * vec_DG)
+#work = np.dot(nitsche_and_bnd, vec_DG)
+#work_load = np.dot(rhs_load, vec_DG)
+#print('Elastic: %.2e' % elastic_energy)
+#print('Inner pen: %.2e' % inner_penalty_energy)
+#print('Bnd pen: %.2e' % bnd_penalty_energy)
+#print('Work rhs bnd pen: %.2e' % work)
+#print('Work volume load: %.2e' % work_load)
 
 #solution de ref
 U = VectorFunctionSpace(problem.mesh, 'CG', 2)
 u = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'CG', 1)
 phi = interpolate(phi_D, U)
+
+#Errors
+h = CellDiameter(problem.mesh)
+h_avg = 0.5 * (h('+') + h('-'))
+diff_u = u_DG1 - u
+diff_phi = phi_DG1 - phi
+
+#Bnd error
+error_u_bnd = assemble(inner(diff_u, diff_u) / h * ds)
+print('Error bnd u: %.2e' % (np.sqrt(error_u_bnd)))
+error_phi_bnd = assemble(l*l*inner(diff_phi, diff_phi) / h * ds)
+print('Error bnd phi: %.2e' % (np.sqrt(error_phi_bnd)))
+
+#Inner error
+error_u_inner = assemble(inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
+print('Error inner u: %.2e' % (np.sqrt(error_u_inner)))
+error_phi_inner = assemble(l*l*inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
+print('Error inner phi: %.2e' % (np.sqrt(error_phi_inner)))
+
+#Grad error
+error_u_grad = assemble(inner(grad(diff_u),grad(diff_u)) * dx)
+print('Error grad u: %.2e' % (np.sqrt(error_u_grad)))
+error_phi_grad = assemble(inner(grad(diff_phi),grad(diff_phi)) * dx)
+print('Error grad phi: %.2e' % (np.sqrt(error_phi_grad)))
+
 
 #file = File('out.pvd')
 #
@@ -223,7 +247,6 @@ sys.exit()
 h = CellDiameter(problem.mesh)
 h_avg = 0.5 * (h('+') + h('-'))
 n = FacetNormal(problem.mesh)
-h_avg = 0.5 * (h('+') + h('-'))
 diff_u = u_DG1 - u
 error_u = assemble(inner(diff_u, diff_u) / h * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS + inner(grad(diff_u),grad(diff_u)) * dx)
 #error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_u)), n('+')), dot(avg(grad(diff_u)), n('+'))) * dS)
