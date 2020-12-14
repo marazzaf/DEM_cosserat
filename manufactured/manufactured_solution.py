@@ -23,12 +23,12 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 160
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-cte = 4
-problem = DEMProblem(mesh, cte*G, cte*G, 1e2) #plus de pen?
+cte = 1e3
+problem = DEMProblem(mesh, cte*G, cte*G, 1e3) #1e3 semble bien
 #problem = DEMProblem(mesh, 8*G, 8*G*l*l)
 #print('nb_dof: %i' % problem.nb_dof_DEM)
 #print(mesh.hmax())
@@ -45,6 +45,7 @@ tot_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])', 'B*(x[0
 
 #compliance tensor
 problem.D = problem.D_Matrix(G, nu, N, l)
+#characteristic_length = np.sqrt(4*l*l / max(a,b,c,d))
 
 # Variational problem
 elas = problem.elastic_bilinear_form()
@@ -112,8 +113,12 @@ u_DG1,phi_DG1 = v_DG1.split()
 #solution de ref
 U = VectorFunctionSpace(problem.mesh, 'CG', 2)
 u = interpolate(u_D, U)
-U = FunctionSpace(problem.mesh, 'CG', 1)
-phi = interpolate(phi_D, U)
+S = FunctionSpace(problem.mesh, 'CG', 1)
+phi = interpolate(phi_D, S)
+U = VectorElement('CG', mesh.ufl_cell(), 2)
+S = FiniteElement('CG', mesh.ufl_cell(), 1)
+V = FunctionSpace(mesh, MixedElement(U,S))
+v = project(as_vector((u[0],u[1],phi)), V)
 
 #Paraview output
 rotation = File('out_%i.pvd' % nb_elt)
@@ -164,46 +169,47 @@ print('Error grad phi: %.2e' % (np.sqrt(error_phi_grad)))
 #sys.exit()
 
 
-#fig = plot(u_DG1[0])
-#plt.colorbar(fig)
-##plt.savefig('u_x_80.pdf')
-#plt.show()
-####fig = plot(u[0])
-####plt.colorbar(fig)
-######plt.savefig('ref_u_x_25.pdf')
-####plt.show()
-###fig = plot(u_DG1[0]-u[0])
+fig = plot(u_DG1[0])
+plt.colorbar(fig)
+#plt.savefig('u_x_80.pdf')
+plt.show()
+###fig = plot(u[0])
 ###plt.colorbar(fig)
+#####plt.savefig('ref_u_x_25.pdf')
 ###plt.show()
+##fig = plot(u_DG1[0]-u[0])
+##plt.colorbar(fig)
+##plt.show()
+##
+fig = plot(u_DG1[1])
+plt.colorbar(fig)
+#plt.savefig('u_y_80.pdf')
+plt.show()
+###fig = plot(u[1])
+###plt.colorbar(fig)
+#####plt.savefig('ref_u_y_25.pdf')
+###plt.show()
+##fig = plot(u_DG1[1]-u[1])
+##plt.colorbar(fig)
+##plt.show()
 ###
-#fig = plot(u_DG1[1])
-#plt.colorbar(fig)
-##plt.savefig('u_y_80.pdf')
-#plt.show()
-####fig = plot(u[1])
-####plt.colorbar(fig)
-######plt.savefig('ref_u_y_25.pdf')
-####plt.show()
-###fig = plot(u_DG1[1]-u[1])
+fig = plot(phi_DG1)
+plt.colorbar(fig)
+#plt.savefig('phi_80.pdf')
+plt.show()
+###fig = plot(phi)
 ###plt.colorbar(fig)
+#####plt.savefig('ref_phi_25.pdf')
 ###plt.show()
-####
-#fig = plot(phi_DG1)
-#plt.colorbar(fig)
-##plt.savefig('phi_80.pdf')
-#plt.show()
-####fig = plot(phi)
-####plt.colorbar(fig)
-######plt.savefig('ref_phi_25.pdf')
-####plt.show()
-###fig = plot(phi_DG1-phi)
-###plt.colorbar(fig)
-###plt.show()
-###sys.exit()
+##fig = plot(phi_DG1-phi)
+##plt.colorbar(fig)
+##plt.show()
+##sys.exit()
 
 #DG1 errors
 err_grad = np.sqrt(errornorm(u_DG1, u, 'H10')**2 + errornorm(phi_DG1, phi, 'H10')**2)
-err_L2 = np.sqrt(errornorm(u_DG1, u, 'L2')**2 + errornorm(phi_DG1, phi, 'L2')**2)
+#err_L2 = np.sqrt(errornorm(u_DG1, u, 'L2')**2 + errornorm(phi_DG1, phi, 'L2')**2)
+err_L2 = errornorm(v_DG, v, 'L2')
 print(problem.nb_dof_DEM)
 print('L2 error: %.2e' % err_L2)
 print('H10 error: %.2e' % err_grad)
@@ -254,9 +260,13 @@ error_u = assemble(inner(diff_u, diff_u) / h * ds + inner(jump(diff_u), jump(dif
 #error_u = assemble(inner(diff_u, diff_u) / h * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
 
 diff_phi = phi_DG1 - phi
-error_phi = assemble(l*l*inner(diff_phi, diff_phi) / h * ds + l*l*inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + inner(grad(diff_phi),grad(diff_phi)) * dx)
+error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + inner(grad(diff_phi),grad(diff_phi)) * dx)
+#error_phi = assemble(l*l*inner(diff_phi, diff_phi) / h * ds + l*l*inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + inner(grad(diff_phi),grad(diff_phi)) * dx)
 #error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_phi)), n('+')), dot(avg(grad(diff_phi)), n('+'))) * dS)
 #error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
 #error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
-print('Error in energy norm: %.2e' % (np.sqrt(error_u + error_phi)))
+energy_error = np.sqrt(error_u + error_phi)
+print('Error in energy norm: %.2e' % energy_error)
+print('%i %.2e %.2e %.2e' % (problem.nb_dof_DEM, err_L2, err_grad, energy_error))
+
 
