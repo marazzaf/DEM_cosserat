@@ -23,12 +23,12 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 80
+nb_elt = 160
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
 cte = 4
-problem = DEMProblem(mesh, cte*G, cte*G*l*l, 1e2) #1e2 seems okay. Check if more is too much?
+problem = DEMProblem(mesh, cte*G, cte*G, 1e2)
 #problem = DEMProblem(mesh, 8*G, 8*G*l*l)
 #print('nb_dof: %i' % problem.nb_dof_DEM)
 #print(mesh.hmax())
@@ -115,6 +115,12 @@ u = interpolate(u_D, U)
 U = FunctionSpace(problem.mesh, 'CG', 1)
 phi = interpolate(phi_D, U)
 
+#Paraview output
+rotation = File('out_%i.pvd' % nb_elt)
+rotation << phi_DG
+rotation << phi_DG1
+rotation << phi
+
 #Errors
 h = CellDiameter(problem.mesh)
 h_avg = 0.5 * (h('+') + h('-'))
@@ -161,7 +167,7 @@ print('Error grad phi: %.2e' % (np.sqrt(error_phi_grad)))
 #fig = plot(abs(phi_DG-phi))
 #plt.colorbar(fig)
 #plt.show()
-#sys.exit()
+sys.exit()
 
 
 fig = plot(u_DG1[0])
