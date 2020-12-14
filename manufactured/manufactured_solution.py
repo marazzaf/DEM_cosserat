@@ -23,12 +23,12 @@ d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
-nb_elt = 160
+nb_elt = 10
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 #Creating the DEM problem
-cte = 1e3
-problem = DEMProblem(mesh, cte*G, cte*G, 1e3) #1e3 semble bien
+cte = 1e2
+problem = DEMProblem(mesh, cte*G, cte*G, cte) #1e3 semble bien
 #problem = DEMProblem(mesh, 8*G, 8*G*l*l)
 #print('nb_dof: %i' % problem.nb_dof_DEM)
 #print(mesh.hmax())
@@ -169,42 +169,42 @@ print('Error grad phi: %.2e' % (np.sqrt(error_phi_grad)))
 #sys.exit()
 
 
-fig = plot(u_DG1[0])
-plt.colorbar(fig)
-#plt.savefig('u_x_80.pdf')
-plt.show()
-###fig = plot(u[0])
+#fig = plot(u_DG1[0])
+#plt.colorbar(fig)
+##plt.savefig('u_x_80.pdf')
+#plt.show()
+####fig = plot(u[0])
+####plt.colorbar(fig)
+######plt.savefig('ref_u_x_25.pdf')
+####plt.show()
+###fig = plot(u_DG1[0]-u[0])
 ###plt.colorbar(fig)
-#####plt.savefig('ref_u_x_25.pdf')
 ###plt.show()
-##fig = plot(u_DG1[0]-u[0])
-##plt.colorbar(fig)
-##plt.show()
-##
-fig = plot(u_DG1[1])
-plt.colorbar(fig)
-#plt.savefig('u_y_80.pdf')
-plt.show()
-###fig = plot(u[1])
-###plt.colorbar(fig)
-#####plt.savefig('ref_u_y_25.pdf')
-###plt.show()
-##fig = plot(u_DG1[1]-u[1])
-##plt.colorbar(fig)
-##plt.show()
 ###
-fig = plot(phi_DG1)
-plt.colorbar(fig)
-#plt.savefig('phi_80.pdf')
-plt.show()
-###fig = plot(phi)
+#fig = plot(u_DG1[1])
+#plt.colorbar(fig)
+##plt.savefig('u_y_80.pdf')
+#plt.show()
+####fig = plot(u[1])
+####plt.colorbar(fig)
+######plt.savefig('ref_u_y_25.pdf')
+####plt.show()
+###fig = plot(u_DG1[1]-u[1])
 ###plt.colorbar(fig)
-#####plt.savefig('ref_phi_25.pdf')
 ###plt.show()
-##fig = plot(phi_DG1-phi)
-##plt.colorbar(fig)
-##plt.show()
-##sys.exit()
+####
+#fig = plot(phi_DG1)
+#plt.colorbar(fig)
+##plt.savefig('phi_80.pdf')
+#plt.show()
+####fig = plot(phi)
+####plt.colorbar(fig)
+######plt.savefig('ref_phi_25.pdf')
+####plt.show()
+###fig = plot(phi_DG1-phi)
+###plt.colorbar(fig)
+###plt.show()
+###sys.exit()
 
 #DG1 errors
 err_grad = np.sqrt(errornorm(u_DG1, u, 'H10')**2 + errornorm(phi_DG1, phi, 'H10')**2)
