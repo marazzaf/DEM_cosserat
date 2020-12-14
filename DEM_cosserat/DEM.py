@@ -14,7 +14,7 @@ class DEMProblem:
         self.dim = self.mesh.geometric_dimension()
         self.penalty_u = penalty_u
         self.penalty_phi = penalty_phi
-        self.pen_u = penalty #For test...
+        self.pen = penalty #For test...
 
         #Rotation is a scalar in 3d and a vector in 3d
         U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
@@ -238,8 +238,8 @@ def inner_penalty(problem):
     te_mu = 4*problem.G*problem.l*problem.l * outer(jump(psi), n('+'))
 
     #penalty bilinear form
-    pen_phi = problem.pen_u * problem.l * problem.l
-    a_pen = problem.pen_u / h_avg * inner(outer(jump(u),n('+')), te_sigma) * dS + pen_phi / h_avg * inner(outer(jump(phi),n('+')), te_mu) * dS
+    #pen_phi = problem.pen_u * problem.l * problem.l
+    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), te_sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), te_mu) * dS
 
     #Assembling matrix
     A = assemble(a_pen)
