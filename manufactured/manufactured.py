@@ -8,31 +8,20 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-
-# Parameters
-nu = 0.3 # Poisson's ratio
-l = 0.2 # intrinsic length scale
-N = 0.8 # coupling parameter
-G = 100
-
-#Parameters for D_Matrix
-a = 2*(1-nu)/(1-2*nu)
-b = 2*nu/(1-2*nu)
-c = 1/(1-N*N)
-d = (1-2*N*N)/(1-N*N)
     
 # Mesh
 L = 0.5
 nb_elt = 10
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
+# Parameters
+nu = 0.3 # Poisson's ratio
+E = 1 #Young Modulus
+l = L # intrinsic length scale
+
 #Creating the DEM problem
 cte = 1e2
-problem = DEMProblem(mesh, cte*G, cte*G, cte) #1e3 semble bien
-#problem = DEMProblem(mesh, 8*G, 8*G*l*l)
-#print('nb_dof: %i' % problem.nb_dof_DEM)
-#print(mesh.hmax())
-#sys.exit()
+problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
@@ -44,8 +33,7 @@ phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
 tot_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])', 'B*(x[0]-x[1])'), A=A, B=B, degree=2)
 
 #compliance tensor
-problem.D = problem.D_Matrix(G, nu, N, l)
-#characteristic_length = np.sqrt(4*l*l / max(a,b,c,d))
+problem.micropolar_constants(E, nu, l)
 
 # Variational problem
 elas = problem.elastic_bilinear_form()
@@ -121,7 +109,7 @@ V = FunctionSpace(mesh, MixedElement(U,S))
 v = project(as_vector((u[0],u[1],phi)), V)
 
 #Paraview output
-rotation = File('out_%i.pvd' % nb_elt)
+rotation = File('test/out_%i.pvd' % nb_elt)
 rotation << phi_DG
 rotation << phi_DG1
 rotation << phi

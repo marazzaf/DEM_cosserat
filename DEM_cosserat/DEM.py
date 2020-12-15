@@ -80,27 +80,43 @@ class DEMProblem:
         d = (1-2*N*N)/(1-N*N)
         return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]])
 
-    def micropolar_constants(self, nu, mu, lmbda, l, N):
-        self.mu = mu
+    def micropolar_constants(self, E, nu, l, L=0, Mc=0):
+        self.E = E
         self.nu = nu
-        self.lmbda = lmbda
         self.l = l
-        self.N = N
-        self.alpha = ( mu * N*N ) / (N*N - 1)
-        self.beta = mu * l
-        self.gamma = mu * l*l
-        self.kappa = self.gamma
+        #used in material law
+        self.lamda = E*nu / (1+nu) / (1-2*nu)
+        self.G = 0.5*E/(1+nu)
+        self.Gc = self.G
+        self.M = self.G*l*l
+        #for 3d case
+        if self.dim == 3:
+            self.alpha = ( mu * N*N ) / (N*N - 1)
+            self.beta = mu * l
+            self.gamma = mu * l*l
+            self.kappa = self.gamma
         return 
         
-    def strains_2d(self, v, eta):
-        gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
-        kappa = nabla_grad(eta)
-        return gamma, kappa
+    #def strains_2d(self, v, eta):
+    #    gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
+    #    kappa = nabla_grad(eta)
+    #    return gamma, kappa
+    
+    def strains_2d(self, v, psi): #conserver le nabla_grad ??? Pas sûr...
+        e = grad(v) + as_tensor(((0, -1), (1, 0))) * psi
+        kappa = grad(eta)
+        return e,kappa
+
+    #def stresses_2d(self, strains):
+    #    gamma,kappa = strains
+    #    sigma = dot(self.D, gamma)
+    #    mu = 4*self.G*self.l*self.l * kappa
+    #    return sigma, mu
 
     def stresses_2d(self, strains):
-        gamma,kappa = strains
-        sigma = dot(self.D, gamma)
-        mu = 4*self.G*self.l*self.l * kappa
+        e,kappa = strains
+        sigma = self.lamda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
+        mu = self.M * kappa
         return sigma, mu
 
     def strain_3d(self, v, eta):
