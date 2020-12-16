@@ -11,32 +11,25 @@ from DEM_cosserat.miscellaneous import *
 from scipy.sparse.linalg import spsolve
 import pytest #for unit tests
 
-# Parameters
-nu = 0.3 # Poisson's ratio
-l = 0.2 # intrinsic length scale
-N = 0.8 # coupling parameter
-G = 100
-
-#Parameters for D_Matrix
-a = 2*(1-nu)/(1-2*nu)
-b = 2*nu/(1-2*nu)
-c = 1/(1-N*N)
-d = (1-2*N*N)/(1-N*N)
-    
 # Mesh
 L = 0.5
 nb_elt = 10
-#mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
-@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")]) #, BoxMesh(Point(-L, -L, -L), Point(L, L, L), nb_elt, nb_elt, nb_elt)])
 
+# Parameters
+nu = 0.3 # Poisson's ratio
+E = 1 #Young Modulus
+l = L # intrinsic length scale
+pen = 1e2 #penalty parameter
+
+@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")]) #, BoxMesh(Point(-L, -L, -L), Point(L, L, L), nb_elt, nb_elt, nb_elt)])
 def test_pen_bnd(mesh):
 
     #Creating the DEM problem
-    problem = DEMProblem(mesh, 2*G, 2*G*l*l)
+    problem = DEMProblem(mesh, pen)
     boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
     #compliance tensor
-    problem.D = problem.D_Matrix(G, nu, N, l)
+    problem.micropolar_constants(E, nu, l)
 
     # Variational problem
     A = problem.elastic_bilinear_form()
@@ -45,7 +38,7 @@ def test_pen_bnd(mesh):
     A += inner_penalty_light(problem)
 
     #rhs
-    t = Constant((-(a+b),-(a+b),0))
+    t = Constant((-10,-10,0))
     rhs = problem.assemble_volume_load(t)
 
     #Nitsche penalty bilinear form. Homogeneous Dirichlet in this case.
