@@ -8,12 +8,9 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from scipy.sparse.linalg import spsolve,cg
+from ref_2d import computation
 
 # Parameters
-d = 2 #2d problem
-R = 10.0 # radius
-plate = 100.0 # plate dimension
 nu = 0.3 # Poisson's ratio
 G = 1000.0 # shear modulus
 Gc = G
@@ -48,7 +45,7 @@ class LeftBoundary(SubDomain):
 class TopBoundary(SubDomain):
     def inside(self,x,on_boundary):
         tol = 1e-6
-        return on_boundary and abs(x[1] - plate) < tol
+        return on_boundary and abs(x[1] - 100) < tol
 
 t = Constant((0.0, T))
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
@@ -117,25 +114,22 @@ plt.colorbar(fig)
 plt.savefig('DEM/phi.pdf')
 plt.show()
 
-#Coder la solution de ref pour calculer les erreurs!
+#Computing errors
+v_ref = computation(mesh, T, E, nu, l)
+#err_L2_u = errornorm(u_DG1, u_ref, 'L2')#, degree_rise=0)
+##print(err_L2_u)
+#err_L2_phi = errornorm(phi_DG1, phi_ref, 'L2')#, degree_rise=0)
+##print(err_L2_phi)
+#tot_l2 = np.sqrt(err_L2_u**2+err_L2_phi**2)
+err_L2 = errornorm(v_DG1, v_ref, 'L2')
+print('Error L2: %.3e' % err_l2)
 
-## Stress
-#strains = problem.strains(u_DG1, psi_DG1)
-#sigma,mu = problem.stresses(strains)
-##U = FunctionSpace(mesh, 'DG', 0)
-#sigma_yy = project(sigma[1]) #, U)
-#
-#
-#error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-#        
-#print("Analytical SCF: %.5e" % SCF)
-#print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
-#print(error)
-#
-#
-#file = File("DEM/sigma.pvd")
-#file << sigma_yy
-#file << u_DG
-#file << u_DG1
-#file << psi_DG
-#file << psi_DG1
+#err_H10_u = errornorm(u_DG1, u_ref, 'H10')#, degree_rise=0)
+#print(err_H10_u)
+#err_H10_phi = errornorm(phi_DG1, phi_ref, 'H10')#, degree_rise=0)
+#print(err_H10_phi)
+#tot_H10 = np.sqrt(err_H10_u**2+err_H10_phi**2)
+err_H10 = errornorm(v_DG1, v_ref, 'H10')
+print('Error H10: %.3e' % err_H10)
+
+#Erreur H10 donne ce qu'il faut dans le cas de Cosserat ?
