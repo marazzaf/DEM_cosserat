@@ -9,12 +9,12 @@ from DEM_cosserat.miscellaneous import gradient_matrix
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh, penalty_u=1., penalty_phi=1., penalty=1.):
+    def __init__(self, mesh, penalty, penalty_u=1., penalty_phi=1.):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
         self.penalty_u = penalty_u
         self.penalty_phi = penalty_phi
-        self.pen = penalty #For test...
+        self.pen = penalty
 
         #Rotation is a scalar in 3d and a vector in 3d
         U_DG = VectorElement('DG', self.mesh.ufl_cell(), 0)
@@ -104,7 +104,7 @@ class DEMProblem:
     
     def strains_2d(self, v, psi): #conserver le nabla_grad ??? Pas sûr...
         e = grad(v) + as_tensor(((0, -1), (1, 0))) * psi
-        kappa = grad(eta)
+        kappa = grad(psi)
         return e,kappa
 
     #def stresses_2d(self, strains):
@@ -247,11 +247,11 @@ def inner_penalty(problem):
     v,psi = TestFunctions(problem.V_DG1)
 
     #stresses
-    aux = outer(jump(v),n('+'))
-    aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0])) #ref: aux[0,1], aux[1,0])
-    te_sigma = dot(problem.D, aux)
-    te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
-    te_mu = 4*problem.G*problem.l*problem.l * outer(jump(psi), n('+'))
+    aux = (outer(jump(v),n('+')),outer(jump(psi), n('+')))
+    #aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0])) #ref: aux[0,1], aux[1,0])
+    #te_sigma = dot(problem.D, aux)
+    #te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
+    te_sigma,te_mu = problem.stresses_2d(aux)
 
     #penalty bilinear form
     #pen_phi = problem.pen_u * problem.l * problem.l
