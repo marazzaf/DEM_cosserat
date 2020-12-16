@@ -20,7 +20,7 @@ E = 1 #Young Modulus
 l = L # intrinsic length scale
 
 #Creating the DEM problem
-cte = 1e2
+cte = 10 #1e2
 problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
