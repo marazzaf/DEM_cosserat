@@ -103,7 +103,7 @@ class DEMProblem:
     #    return gamma, kappa
     
     def strains_2d(self, v, psi): #conserver le nabla_grad ??? Pas sûr...
-        e = grad(v) + as_tensor(((0, -1), (1, 0))) * psi
+        e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
         kappa = grad(psi)
         return e,kappa
 

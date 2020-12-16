@@ -11,7 +11,7 @@ from DEM_cosserat.miscellaneous import *
     
 # Mesh
 L = 0.5
-nb_elt = 20
+nb_elt = 40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
@@ -47,6 +47,7 @@ lhs += inner_pen
 
 #rhs
 #t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1] )*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
+#lambda+4G ???
 t = Expression(('-(lamda+2*G)','-(lamda+2*G)','2*(x[0]-x[1])*G'), G=problem.G, A=A, B=B, lamda=problem.lamda, degree = 1)
 rhs_load = problem.assemble_volume_load(t)
 rhs = np.zeros_like(rhs_load)
