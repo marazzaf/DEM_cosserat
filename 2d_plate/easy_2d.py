@@ -20,9 +20,9 @@ T = 1.0 # load
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("hole_plate.xdmf") as infile:
+#with XDMFFile("hole_plate.xdmf") as infile:
 #with XDMFFile("hole_plate_fine.xdmf") as infile:
-#with XDMFFile("hole_plate_very_fine.xdmf") as infile:
+with XDMFFile("hole_plate_very_fine.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem

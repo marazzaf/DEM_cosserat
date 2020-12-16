@@ -3,6 +3,7 @@
 # Computation of the solution in the plate for different meshes
 from dolfin import *
 import matplotlib.pyplot as plt
+import sys
 
 def strain(v,psi):
     e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
@@ -82,9 +83,6 @@ def computation(mesh, T, E, nu, l):
     solver.solve()
     u_h, psi_h = U_h.split()
 
-    ##plot(mesh)
-    ##plt.show()
-    ##sys.exit()
     #img = plot(u_h[0])
     #plt.colorbar(img)
     #plt.savefig('FEM/ref_u_x.pdf')
