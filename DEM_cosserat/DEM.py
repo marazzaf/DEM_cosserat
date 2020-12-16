@@ -116,7 +116,7 @@ class DEMProblem:
     def stresses_2d(self, strains):
         e,kappa = strains
         sigma = self.lamda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
-        mu = self.M * kappa
+        mu = 2*self.M * kappa
         return sigma, mu
 
     def strain_3d(self, v, eta):
