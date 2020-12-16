@@ -17,15 +17,14 @@ orders_energy = 2 * np.log(res[:-1,3] / res[1:,3]) / np.log(res[1:, 0] / res[:-1
 orders_l2 = 2 * np.log(res[:-1,1] / res[1:,1]) / np.log(res[1:, 0] / res[:-1,0])
 orders_grad = 2 * np.log(res[:-1,2] / res[1:,2]) / np.log(res[1:, 0] / res[:-1,0])
 
-print(1/orders_l2) #1
-print(1/orders_grad) #2
-#print(np.mean(1/orders_l2))
-print(1/orders_energy) #3
+print(orders_l2) #1
+print(orders_grad) #2
+print(orders_energy) #3
 
 #Linear regression
 #slope, intercept, r_value, p_value, std_err = linregress(np.log(res[:,1]), -np.log(res[:,0]))
 #print(slope/2)
-slope, intercept, r_value, p_value, std_err = linregress(np.log(res[:,3]), np.log(h))
+slope, intercept, r_value, p_value, std_err = linregress(np.log(res[:,2]), np.log(h))
 print(slope)
 print(r_value*r_value)
 

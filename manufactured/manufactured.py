@@ -11,7 +11,7 @@ from DEM_cosserat.miscellaneous import *
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 160
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
