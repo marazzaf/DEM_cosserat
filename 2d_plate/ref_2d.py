@@ -2,6 +2,7 @@
 
 # Computation of the solution in the plate for different meshes
 from dolfin import *
+import matplotlib.pyplot as plt
 
 def strain(v,psi):
     e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
@@ -18,7 +19,7 @@ def computation(mesh, T, E, nu, l):
     #Computation of stresses
     def stress(e, kappa):
         sigma = lamda * tr(e) * Identity(2) + 2*G * sym(e) + 2*Gc * skew(e)
-        mu = 2*self.M * kappa
+        mu = 2*M * kappa
         return sigma, mu
 
     #Functionnal spaces
@@ -67,10 +68,11 @@ def computation(mesh, T, E, nu, l):
     # Variational problem
     u, phi = TrialFunctions(V)
     v, psi = TestFunctions(V)
-    trial = stress(u,phi)
-    test = strain(v,psi)
+    e,kappa = strain(u,phi)
+    sigma,mu = stress(e,kappa)
+    e,kappa = strain(v,psi)
     
-    a = inner(trial[0], test[0])*dx + inner(trial[1], test[1])*dx
+    a = inner(sigma, e)*dx + inner(mu, kappa)*dx
     L = inner(t, v)*ds(1)
 
     #Solving problem
@@ -80,21 +82,21 @@ def computation(mesh, T, E, nu, l):
     solver.solve()
     u_h, psi_h = U_h.split()
 
-    #plot(mesh)
+    ##plot(mesh)
+    ##plt.show()
+    ##sys.exit()
+    #img = plot(u_h[0])
+    #plt.colorbar(img)
+    #plt.savefig('FEM/ref_u_x.pdf')
     #plt.show()
-    #sys.exit()
-    img = plot(u_h[0])
-    plt.colorbar(img)
-    plt.savefig('FEM/ref_u_x.pdf')
-    plt.show()
-    img = plot(u_h[1])
-    plt.colorbar(img)
-    plt.savefig('FEM/ref_u_y.pdf')
-    plt.show()
-    img = plot(psi_h)
-    plt.colorbar(img)
-    plt.savefig('FEM/ref_phi.pdf')
-    plt.show()
+    #img = plot(u_h[1])
+    #plt.colorbar(img)
+    #plt.savefig('FEM/ref_u_y.pdf')
+    #plt.show()
+    #img = plot(psi_h)
+    #plt.colorbar(img)
+    #plt.savefig('FEM/ref_phi.pdf')
+    #plt.show()
 
     return U_h
 
