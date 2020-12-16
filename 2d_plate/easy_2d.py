@@ -16,36 +16,22 @@ R = 10.0 # radius
 plate = 100.0 # plate dimension
 nu = 0.3 # Poisson's ratio
 G = 1000.0 # shear modulus
-
+Gc = G
+E = 2*G*(1+nu)
 l = 0.2 # intrinsic length scale
-N = 0.8 # coupling parameter
 T = 1.0 # load
-c = l/N
-
-# Analytical solution
-def AnalyticalSolution(nu, l, c, R):
-    
-    # Modified Bessel function of the second kind of real order v :
-    from scipy.special import kv
-    F = 8.0*(1.0-nu)*((l**2)/(c**2)) * \
-        1.0 / (( 4.0 + ((R**2)/(c**2)) + \
-        ((2.0*R)/c) * kv(0,R/c)/kv(1,R/c) ))
-    
-    SCF = (3.0 + F) / (1.0 + F) # stress concentration factor
-
-    return SCF
-
-SCF = AnalyticalSolution(nu, l, c, R)
     
 # Mesh
 mesh = Mesh()
-#with XDMFFile("hole_plate.xdmf") as infile: #fine
-#with XDMFFile("hole_plate_fine.xdmf") as infile: #fine
-with XDMFFile("hole_plate_very_fine.xdmf") as infile:
+with XDMFFile("hole_plate.xdmf") as infile:
+#with XDMFFile("hole_plate_fine.xdmf") as infile:
+#with XDMFFile("hole_plate_very_fine.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
-problem = DEMProblem(mesh, 4*G, 4*G*l*l) #sure about second penalty term?
+#Creating the DEM problem
+cte = 10 #10
+problem = DEMProblem(mesh, cte) #1e3 semble bien
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 # Boundary conditions
@@ -68,6 +54,7 @@ t = Constant((0.0, T))
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
+#For BC
 bot_boundary = BotBoundary()
 bot_boundary.mark(boundary_parts, 2)
 left_boundary = LeftBoundary()
@@ -75,12 +62,10 @@ left_boundary.mark(boundary_parts, 3)
 top_boundary = TopBoundary()
 top_boundary.mark(boundary_parts, 1)
 
-#ds = Measure('ds')(subdomain_data=boundary_parts)
-
 bc = [[0, Constant(0), 3], [2, Constant(0), 3], [1, Constant(0), 2], [2, Constant(0), 2]]
 
-#compliance tensor
-problem.D = problem.D_Matrix(G, nu, N, l)
+#For compliance tensor
+problem.micropolar_constants(E, nu, l)
 
 # Variational problem
 A = problem.elastic_bilinear_form()
@@ -95,19 +80,29 @@ b += rhs_bnd_penalty(problem, boundary_parts, bc)
 A += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Penalty matrix
-A += inner_penalty_light(problem)
+A += inner_penalty(problem) #light
 #A += inner_consistency(problem)
 
+#Converting matrix
+from petsc4py import PETSc
+A = A.tocsr()
+petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
+A = PETScMatrix(petsc_mat)
+bb = Function(problem.V_DG)
+bb.vector().set_local(b)
+b = bb.vector()
+
 #Solving linear problem
-v = spsolve(A,b)
-#v,info = cg(A,b)
-#assert info == 0
 v_DG = Function(problem.V_DG)
-v_DG.vector().set_local(v)
-u_DG, psi_DG = v_DG.split()
+print('Solve!')
+solve(A, v_DG.vector(), b, 'mumps')
+u_DG,phi_DG = v_DG.split()
+vec_DG = v_DG.vector().get_local()
+
+#Computing reconstruction
 v_DG1 = Function(problem.V_DG1)
-v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
-u_DG1, psi_DG1 = v_DG1.split()
+v_DG1.vector().set_local(problem.DEM_to_DG1 * vec_DG)
+u_DG1,phi_DG1 = v_DG1.split()
 
 fig = plot(u_DG1[0])
 plt.colorbar(fig)
@@ -117,28 +112,30 @@ fig = plot(u_DG1[1])
 plt.colorbar(fig)
 plt.savefig('DEM/u_y.pdf')
 plt.show()
-fig = plot(psi_DG1)
+fig = plot(phi_DG1)
 plt.colorbar(fig)
 plt.savefig('DEM/phi.pdf')
 plt.show()
 
-# Stress
-strains = problem.strains(u_DG1, psi_DG1)
-sigma,mu = problem.stresses(strains)
-#U = FunctionSpace(mesh, 'DG', 0)
-sigma_yy = project(sigma[1]) #, U)
+#Coder la solution de ref pour calculer les erreurs!
 
-
-error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
-        
-print("Analytical SCF: %.5e" % SCF)
-print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
-print(error)
-
-
-file = File("DEM/sigma.pvd")
-file << sigma_yy
-file << u_DG
-file << u_DG1
-file << psi_DG
-file << psi_DG1
+## Stress
+#strains = problem.strains(u_DG1, psi_DG1)
+#sigma,mu = problem.stresses(strains)
+##U = FunctionSpace(mesh, 'DG', 0)
+#sigma_yy = project(sigma[1]) #, U)
+#
+#
+#error = abs((sigma_yy(10.0, 1e-6) - SCF) / SCF)
+#        
+#print("Analytical SCF: %.5e" % SCF)
+#print('Computed SCF: %.5e' % sigma_yy(10.0, 1e-6))
+#print(error)
+#
+#
+#file = File("DEM/sigma.pvd")
+#file << sigma_yy
+#file << u_DG
+#file << u_DG1
+#file << psi_DG
+#file << psi_DG1
