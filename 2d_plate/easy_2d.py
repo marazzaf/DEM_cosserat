@@ -71,7 +71,7 @@ A = problem.elastic_bilinear_form()
 b = assemble_boundary_load(problem, 1, boundary_parts, t)
 
 #Imposing weakly the BC!
-b += rhs_bnd_penalty(problem, boundary_parts, bc)
+#b += rhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Nitsche penalty bilinear form
 A += lhs_bnd_penalty(problem, boundary_parts, bc)

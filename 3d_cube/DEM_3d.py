@@ -18,15 +18,14 @@ T = 1.0 # traction force
 
 nu = 0.3 #0.49 #0.3 # Poisson's ratio
 G = 10e6 # shear modulus
+Gc = 5e6 #other shear modulus
 E = 2*G*(1+nu) #Yound Modulus
 #lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
-#l = 0.2 # intrinsic length scale
+l = 10 # intrinsic length scale
 #N = 0.93 # coupling parameter
 h3 = 2/5
-R = 0.01e-3 #equivalent of l...
-M = G * R*R/h3
-h = 1e-3 #refaire les maillages pour avoir un cube de cette taille-là.
+M = G * l*l/h3
 
 #Loading mesh
 mesh = Mesh()
@@ -42,7 +41,7 @@ problem = DEMProblem(mesh, cte)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 #Computing coefficients for Cosserat material
-problem.micropolar_constants(E, nu, -1, -1, M) #C'est tout?
+problem.micropolar_constants(E, nu, l, Gc, M)
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -98,12 +97,7 @@ A = problem.elastic_bilinear_form()
 #Nitsche penalty bilinear form
 A += lhs_bnd_penalty(problem, boundary_parts, bcs)
 #Penalty matrix
-A += inner_penalty_light(problem)
-
-##test conditioning
-#cond_numb = np.linalg.cond(A.todense())
-#print('Cond: %.3e' % cond_numb)
-#sys.exit()
+A += inner_penalty(problem) #light
 
 #rhs
 t = Constant((0.0, T, 0.0))
@@ -116,7 +110,6 @@ from petsc4py import PETSc
 A = A.tocsr()
 petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
 A_aux = PETScMatrix(petsc_mat)
-#truc = LinearOperator(A_aux)
 x = Function(problem.V_DG)
 x.vector().set_local(b)
 xx = x.vector()
@@ -124,27 +117,8 @@ v_DG = Function(problem.V_DG)
 print('Solve!')
 solve(A_aux, v_DG.vector(), xx, 'mumps')
 
-##test conditionning
-#eigenSolver = SLEPcEigenSolver(A_aux)
-#eigenSolver.parameters["spectrum"]="smallest magnitude"
-#eigenSolver.solve(5)
-#print(eigenSolver.get_number_converged())
-#eigen_min = eigenSolver.get_eigenvalue(0)[0]
-#eigenSolver.parameters["spectrum"]="largest magnitude"
-#eigenSolver.solve(1)
-#eigen_max = eigenSolver.get_eigenvalue(0)[0]
-#print("Condition number {0:.2e}".format(eigen_max/eigen_min))
-
-
-###Solving linear problem
-#print('Solve!')
-#v = spsolve(A,b)
-#v_DG = Function(problem.V_DG)
-#v_DG.vector().set_local(v)
-
 u_DG, phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
-#v_DG1.vector().set_local(problem.DEM_to_DG1 * v)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
@@ -154,19 +128,19 @@ file << u_DG1
 file << phi_DG
 file << phi_DG1
 
-epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
-sigma_u_h = problem.stress_3d(epsilon_u_h)
-#U = FunctionSpace(problem.mesh, 'DG', 0)
-U = FunctionSpace(problem.mesh, 'CG', 1)
-sigma_yy = local_project(sigma_u_h[1,1], U)
-file << sigma_yy
-
-#Comparing SCF
-SCF = sigma_yy(R, 0, 0)
-e = abs(SCF - SCF_a) / SCF_a
-print('Ref: %.5e' % SCF_a)
-print('Computed: %.5e' % SCF)
-print('Error: %.2f' % (100*e))
+#epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
+#sigma_u_h = problem.stress_3d(epsilon_u_h)
+##U = FunctionSpace(problem.mesh, 'DG', 0)
+#U = FunctionSpace(problem.mesh, 'CG', 1)
+#sigma_yy = local_project(sigma_u_h[1,1], U)
+#file << sigma_yy
+#
+##Comparing SCF
+#SCF = sigma_yy(R, 0, 0)
+#e = abs(SCF - SCF_a) / SCF_a
+#print('Ref: %.5e' % SCF_a)
+#print('Computed: %.5e' % SCF)
+#print('Error: %.2f' % (100*e))
 
 #Computing errors
 u_ref,phi_ref = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)

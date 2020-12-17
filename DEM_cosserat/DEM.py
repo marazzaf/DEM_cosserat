@@ -80,14 +80,17 @@ class DEMProblem:
 #        d = (1-2*N*N)/(1-N*N)
 #        return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]])
 
-    def micropolar_constants(self, E, nu, l, L=0, Mc=0):
+    def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0):
         self.E = E
         self.nu = nu
         self.l = l
         #used in material law
         self.lamda = E*nu / (1+nu) / (1-2*nu)
         self.G = 0.5*E/(1+nu)
-        self.Gc = self.G
+        if Gc > 0:
+            self.Gc = Gc
+        else:
+            self.Gc = self.G
         self.M = self.G*l*l
         #for 3d case
         if self.dim == 3:
