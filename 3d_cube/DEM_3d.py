@@ -17,40 +17,32 @@ cube = 100.0 # dim
 T = 1.0 # traction force
 
 nu = 0.3 #0.49 #0.3 # Poisson's ratio
-mu = 1000.0 # shear modulus G
-lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
+G = 10e6 # shear modulus
+E = 2*G*(1+nu) #Yound Modulus
+#lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
-l = 0.2 # intrinsic length scale
-N = 0.93 # coupling parameter
-
-# Analytical solution
-def AnalyticalSolution(R, l, nu):
-    k = R / l
-    eta = 0.2 # ratio of the transverse curvature to the principal curvature
-    k_1 = (3.0+eta) / ( 9.0 + 9.0*k + 4.0*k**2 + eta*(3.0 + 3.0*k + k**2) )
-    SCF = ( 3.0*(9.0 - 5.0*nu + 6.0*k_1*(1.0-nu)*(1.0+k)) ) / \
-          ( 2.0*(7.0 - 5.0*nu + 18.0*k_1*(1.0-nu)*(1.0+k)) )
-    return SCF
-
-SCF_a = AnalyticalSolution(R, l, nu)
+#l = 0.2 # intrinsic length scale
+#N = 0.93 # coupling parameter
+h3 = 2/5
+R = 0.01e-3 #equivalent of l...
+M = G * R*R/h3
+h = 1e-3 #refaire les maillages pour avoir un cube de cette taille-là.
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 3
+mesh_num = 1
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
 print(hm)
-sys.exit()
 
 #Creating the DEM problem
-cte = 2
-problem = DEMProblem(mesh, cte*mu, cte*mu*l*l)
+cte = 10
+problem = DEMProblem(mesh, cte)
 print('nb dof DEM: %i' % problem.nb_dof_DEM)
-sys.exit()
 
 #Computing coefficients for Cosserat material
-problem.micropolar_constants(nu, mu, lmbda, l, N)
+problem.micropolar_constants(E, nu, -1, -1, M) #C'est tout?
 
 # Boundary conditions
 class BotBoundary(SubDomain):

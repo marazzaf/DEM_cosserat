@@ -71,14 +71,14 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
-    def D_Matrix(self, G, nu, N, l):
-        self.G = G
-        self.l = l
-        a = 2*(1-nu)/(1-2*nu)
-        b = 2*nu/(1-2*nu)
-        c = 1/(1-N*N)
-        d = (1-2*N*N)/(1-N*N)
-        return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]])
+#    def D_Matrix(self, G, nu, N, l):
+#        self.G = G
+#        self.l = l
+#        a = 2*(1-nu)/(1-2*nu)
+#        b = 2*nu/(1-2*nu)
+#        c = 1/(1-N*N)
+#        d = (1-2*N*N)/(1-N*N)
+#        return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]])
 
     def micropolar_constants(self, E, nu, l, L=0, Mc=0):
         self.E = E
@@ -158,38 +158,37 @@ class DEMProblem:
         A = csr_matrix((val, col, row))
         return self.DEM_to_CR.T * A * self.DEM_to_CR
 
-def inner_consistency(problem):
-    """Creates the penalty matrix on inner facets to stabilize the DEM."""
-    
-    #assembling penalty factor
-    h = CellDiameter(problem.mesh)
-    h_avg = 0.5 * (h('+') + h('-'))
-    n = FacetNormal(problem.mesh)
-
-    #Writing penalty bilinear form
-    u,phi = TrialFunctions(problem.V_DG1)
-    v,psi = TestFunctions(problem.V_DG1)
-    #u,phi = TrialFunctions(problem.V_CR)
-    #v,psi = TestFunctions(problem.V_CR)
-
-    #stresses
-    tr_strains = problem.strains_2d(u,phi)
-    tr_sigma,tr_mu = problem.stresses_2d(tr_strains)
-    tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1]))) #2d
-    te_strains = problem.strains_2d(v,psi)
-    te_sigma,te_mu = problem.stresses_2d(te_strains)
-    te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
-    
-    #a_pen = problem.penalty_u / h_avg * inner(jump(u), jump(v)) * dS + problem.penalty_phi / h_avg * inner(jump(phi), jump(psi)) * dS
-    a_pen = - inner(dot(avg(tr_sigma), n('+')), jump(v)) * dS - inner(dot(avg(tr_mu), n('+')), jump(psi)) * dS - inner(dot(avg(te_mu), n('+')), jump(phi)) * dS - inner(dot(avg(te_sigma), n('+')), jump(u)) * dS
-
-    #Assembling matrix
-    A = assemble(a_pen)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    A = csr_matrix((val, col, row))
-
-    return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
-    #return problem.DEM_to_CR.T * A * problem.DEM_to_CR
+#def inner_consistency(problem):
+#    """Creates the penalty matrix on inner facets to stabilize the DEM."""
+#    
+#    #assembling penalty factor
+#    h = CellDiameter(problem.mesh)
+#    h_avg = 0.5 * (h('+') + h('-'))
+#    n = FacetNormal(problem.mesh)
+#
+#    #Writing penalty bilinear form
+#    u,phi = TrialFunctions(problem.V_DG1)
+#    v,psi = TestFunctions(problem.V_DG1)
+#    #u,phi = TrialFunctions(problem.V_CR)
+#    #v,psi = TestFunctions(problem.V_CR)
+#
+#    #stresses
+#    tr_strains = problem.strains_2d(u,phi)
+#    tr_sigma,tr_mu = problem.stresses_2d(tr_strains)
+#    tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1]))) #2d
+#    te_strains = problem.strains_2d(v,psi)
+#    te_sigma,te_mu = problem.stresses_2d(te_strains)
+#    te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
+#    
+#    a_pen = - inner(dot(avg(tr_sigma), n('+')), jump(v)) * dS - inner(dot(avg(tr_mu), n('+')), jump(psi)) * dS - inner(dot(avg(te_mu), n('+')), jump(phi)) * dS - inner(dot(avg(te_sigma), n('+')), jump(u)) * dS
+#
+#    #Assembling matrix
+#    A = assemble(a_pen)
+#    row,col,val = as_backend_type(A).mat().getValuesCSR()
+#    A = csr_matrix((val, col, row))
+#
+#    return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
+#    #return problem.DEM_to_CR.T * A * problem.DEM_to_CR
 
 def inner_penalty_light(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
@@ -222,14 +221,16 @@ def inner_penalty(problem):
 
     #stresses
     aux = (outer(jump(v),n('+')),outer(jump(psi), n('+')))
-    #aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0])) #ref: aux[0,1], aux[1,0])
-    #te_sigma = dot(problem.D, aux)
-    #te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
-    te_sigma,te_mu = problem.stresses_2d(aux)
+    if self.dim == 2:
+        sigma,mu = problem.stresses_2d(aux)
+    elif self.dim == 3:
+        e = problem.strain_3d(aux)
+        kappa = problem.torsion_3d(aux[1])
+        sigma = problem.stress_3d(e)
+        mu = problem.torque_3d(kappa)
 
     #penalty bilinear form
-    #pen_phi = problem.pen_u * problem.l * problem.l
-    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), te_sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), te_mu) * dS
+    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
 
     #Assembling matrix
     A = assemble(a_pen)
