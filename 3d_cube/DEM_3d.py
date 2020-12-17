@@ -14,7 +14,7 @@ from solver_3D import computation
 R = 10.0 # radius
 cube = 100.0 # dim
 
-T = 1.0 # traction force
+T = 1e6 # traction force
 
 nu = 0.3 #0.49 #0.3 # Poisson's ratio
 G = 10e6 # shear modulus
@@ -142,8 +142,14 @@ file << phi_DG1
 #print('Computed: %.5e' % SCF)
 #print('Error: %.2f' % (100*e))
 
-#Computing errors
+#Computing CG ref solution
 u_ref,phi_ref = computation(mesh, cube, T, nu, G, Gc, l)
+
+#soring results from ref
+file << u_ref
+file << phi_ref
+
+#Computing errors
 err_L2_u = errornorm(u_DG1, u_ref, 'L2', degree_rise=0)
 #print(err_L2_u)
 err_L2_phi = errornorm(phi_DG1, phi_ref, 'L2', degree_rise=0)
