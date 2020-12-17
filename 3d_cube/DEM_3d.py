@@ -29,7 +29,7 @@ M = G * l*l/h3
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 1
+mesh_num = 3
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
