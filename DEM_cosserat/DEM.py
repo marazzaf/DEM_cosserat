@@ -91,27 +91,23 @@ class DEMProblem:
         self.M = self.G*l*l
         #for 3d case
         if self.dim == 3:
-            self.alpha = ( mu * N*N ) / (N*N - 1)
-            self.beta = mu * l
-            self.gamma = mu * l*l
-            self.kappa = self.gamma
-        return 
+            #self.L = ( mu * N*N ) / (N*N - 1)
+            if L > 0:
+                self.L = L
+            else:
+                self.L = self.M #best solution?
+            if Mc > 0:
+                self.Mc = Mc
+            else:
+                self.Mc = self.M
+            return 
         
-    #def strains_2d(self, v, eta):
-    #    gamma = as_vector([v[0].dx(0), v[1].dx(1), v[1].dx(0) - eta, v[0].dx(1) + eta])
-    #    kappa = nabla_grad(eta)
-    #    return gamma, kappa
     
     def strains_2d(self, v, psi): #conserver le nabla_grad ??? Pas sûr...
-        e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
+        #e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
+        e = nabla_grad(v) + as_tensor(((0, -1), (1, 0))) * psi
         kappa = grad(psi)
         return e,kappa
-
-    #def stresses_2d(self, strains):
-    #    gamma,kappa = strains
-    #    sigma = dot(self.D, gamma)
-    #    mu = 4*self.G*self.l*self.l * kappa
-    #    return sigma, mu
 
     def stresses_2d(self, strains):
         e,kappa = strains
