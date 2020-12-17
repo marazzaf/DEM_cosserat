@@ -71,15 +71,6 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
-#    def D_Matrix(self, G, nu, N, l):
-#        self.G = G
-#        self.l = l
-#        a = 2*(1-nu)/(1-2*nu)
-#        b = 2*nu/(1-2*nu)
-#        c = 1/(1-N*N)
-#        d = (1-2*N*N)/(1-N*N)
-#        return G * as_matrix([[a,b,0,0], [b,a,0,0], [0,0,c,d], [0,0,d,c]])
-
     def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0):
         self.E = E
         self.nu = nu
@@ -224,13 +215,11 @@ def inner_penalty(problem):
 
     #stresses
     aux = (outer(jump(v),n('+')),outer(jump(psi), n('+')))
-    if self.dim == 2:
+    if problem.dim == 2:
         sigma,mu = problem.stresses_2d(aux)
-    elif self.dim == 3:
-        e = problem.strain_3d(aux)
-        kappa = problem.torsion_3d(aux[1])
-        sigma = problem.stress_3d(e)
-        mu = problem.torque_3d(kappa)
+    elif problem.dim == 3:
+        sigma = problem.stress_3d(aux[0])
+        mu = problem.torque_3d(aux[1])
 
     #penalty bilinear form
     a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS

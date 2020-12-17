@@ -3,64 +3,31 @@
 # Computation of the solution in Cosserat elasticity
 from dolfin import *
 
-def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
+def computation(mesh, cube, T, nu, mu, Gc, l):
     # Micropolar elastic constants
-    alpha = ( mu * N**2 ) / (N**2 - 1.0)
-    beta = mu * l
-    gamma = mu * l**2
-    kappa = gamma
+    lamda = 2*mu*nu / (1-2*nu)
+    #torque
+    h3 = 2/5
+    M = mu * l*l/h3
+    L = M
+    Mc = M
+    #Change these.
 
     # Strain and torsion
     def strain(v, eta):
-        strain = as_tensor([ \
-                             [ v[0].dx(0), \
-                               v[1].dx(0) - eta[2], \
-                               v[2].dx(0) + eta[1] ] , \
-                             [ v[0].dx(1) + eta[2], \
-                               v[1].dx(1), \
-                               v[2].dx(1) - eta[0] ] , \
-                             [ v[0].dx(2) - eta[1], \
-                               v[1].dx(2) + eta[0], \
-                               v[2].dx(2) ] ] )
+        strain = nabla_grad(v)
+        strain += as_tensor([ [ 0, -eta[2], eta[1] ] , [ eta[2], 0, -eta[0] ] , [ -eta[1], eta[0], 0 ] ] )
         return strain
 
     def torsion(eta):
-        torsion = as_tensor([ \
-                              [ eta[0].dx(0), eta[1].dx(0), eta[2].dx(0) ], \
-                            [ eta[0].dx(1), eta[1].dx(1), eta[2].dx(1) ], \
-                            [ eta[0].dx(2), eta[1].dx(2), eta[2].dx(2) ] ])
-                            
-        return torsion
+        return nabla_grad(eta)
 
     # Stress and couple stress
-    def stress(lmbda, mu, kappa, epsilon):
-        stress = as_tensor([ \
-                             [lmbda*epsilon[0,0]+(mu+kappa)*epsilon[0,0]+ mu*epsilon[0,0],
-                              \
-                              (mu+kappa)*epsilon[0,1] + mu*epsilon[1,0], \
-                              (mu+kappa)*epsilon[0,2] + mu*epsilon[2,0] ], \
-                            [ (mu+kappa)*epsilon[1,0] + mu*epsilon[0,1], \
-                              lmbda*epsilon[1,1] + (mu+kappa)*epsilon[1,1] +
-                            mu*epsilon[1,1], \
-                              (mu+kappa)*epsilon[1,2] + mu*epsilon[2,1] ], \
-                            [ (mu+kappa)*epsilon[2,0] + mu*epsilon[0,2], \
-                              (mu+kappa)*epsilon[2,1] + mu*epsilon[1,2], \
-                              lmbda*epsilon[2,2] + (mu+kappa)*epsilon[2,2] +
-                              mu*epsilon[2,2]] ])
-        return stress
+    def stress(e):
+        return lamda * tr(e) * Identity(3) + 2*mu * sym(e) + 2*Gc * skew(e)
 
-    def couple(alpha, beta, gamma, chi):
-        couple = as_tensor([ \
-                             [ (alpha + beta + gamma)*chi[0,0], \
-                               beta*chi[1,0] + gamma*chi[0,1], \
-                               beta*chi[2,0] + gamma*chi[0,2] ], \
-                             [ beta*chi[0,1] + gamma*chi[1,0], \
-                               (alpha + beta + gamma)*chi[1,1], \
-                               beta*chi[2,1] + gamma*chi[1,2] ], \
-                             [ beta*chi[0,2] + gamma*chi[2,0], \
-                               beta*chi[1,2] + gamma*chi[2,1], \
-                               (alpha + beta + gamma)*chi[2,2]] ])
-        return couple
+    def couple(kappa):
+        return L * tr(kappa) * Identity(3) + 2*M * sym(kappa) + 2*Mc * skew(kappa)
 
     # Function Space
     U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
@@ -128,10 +95,10 @@ def computation(mesh, R, cube, T, nu, mu, lmbda, l, N):
     chi_u = torsion(phi)
     chi_v = torsion(eta)
 
-    sigma_u = stress(lmbda, mu, kappa, epsilon_u)
-    sigma_v = stress(lmbda, mu, kappa, epsilon_v)
-    m_u = couple(alpha, beta, gamma, chi_u)
-    m_v = couple(alpha, beta, gamma, chi_v)
+    sigma_u = stress(epsilon_u)
+    sigma_v = stress(epsilon_v)
+    m_u = couple(chi_u)
+    m_v = couple(chi_v)
 
     t = Constant((0.0, T, 0.0))
     a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx

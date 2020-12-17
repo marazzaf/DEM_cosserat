@@ -143,7 +143,7 @@ file << phi_DG1
 #print('Error: %.2f' % (100*e))
 
 #Computing errors
-u_ref,phi_ref = computation(mesh, R, cube, T, nu, mu, lmbda, l, N)
+u_ref,phi_ref = computation(mesh, cube, T, nu, G, Gc, l)
 err_L2_u = errornorm(u_DG1, u_ref, 'L2', degree_rise=0)
 #print(err_L2_u)
 err_L2_phi = errornorm(phi_DG1, phi_ref, 'L2', degree_rise=0)
