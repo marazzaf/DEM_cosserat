@@ -27,9 +27,20 @@ l = 10 # intrinsic length scale
 h3 = 2/5
 M = G * l*l/h3
 
+# Analytical solution
+def AnalyticalSolution(R, l, nu):
+    k = R / l
+    eta = 0.2 # ratio of the transverse curvature to the principal curvature
+    k_1 = (3.0+eta) / ( 9.0 + 9.0*k + 4.0*k**2 + eta*(3.0 + 3.0*k + k**2) )
+    SCF = ( 3.0*(9.0 - 5.0*nu + 6.0*k_1*(1.0-nu)*(1.0+k)) ) / \
+          ( 2.0*(7.0 - 5.0*nu + 18.0*k_1*(1.0-nu)*(1.0+k)) )
+    return SCF
+
+SCF_a = AnalyticalSolution(R, l, nu)*T
+
 #Loading mesh
 mesh = Mesh()
-mesh_num = 3
+mesh_num = 1
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -38,7 +49,6 @@ print(hm)
 #Creating the DEM problem
 cte = 10
 problem = DEMProblem(mesh, cte)
-print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 #Computing coefficients for Cosserat material
 problem.micropolar_constants(E, nu, l, Gc, M)
@@ -128,38 +138,34 @@ file << u_DG1
 file << phi_DG
 file << phi_DG1
 
-#epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
-#sigma_u_h = problem.stress_3d(epsilon_u_h)
-##U = FunctionSpace(problem.mesh, 'DG', 0)
+epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
+sigma_u_h = problem.stress_3d(epsilon_u_h)
+U = FunctionSpace(problem.mesh, 'DG', 0)
 #U = FunctionSpace(problem.mesh, 'CG', 1)
-#sigma_yy = local_project(sigma_u_h[1,1], U)
-#file << sigma_yy
-#
-##Comparing SCF
-#SCF = sigma_yy(R, 0, 0)
-#e = abs(SCF - SCF_a) / SCF_a
-#print('Ref: %.5e' % SCF_a)
-#print('Computed: %.5e' % SCF)
-#print('Error: %.2f' % (100*e))
+sigma_yy = local_project(sigma_u_h[1,1], U)
+file << sigma_yy
+
+#Comparing SCF
+SCF = sigma_yy(R, 0, 0)
+e = abs(SCF - SCF_a) / SCF_a
+print('Ref: %.5e' % SCF_a)
+print('Computed: %.5e' % SCF)
+print('Error: %.2f' % (100*e))
 
 #Computing CG ref solution
 u_ref,phi_ref = computation(mesh, cube, T, nu, G, Gc, l)
 
-#soring results from ref
-file << u_ref
-file << phi_ref
-
 #Computing errors
-err_L2_u = errornorm(u_DG1, u_ref, 'L2', degree_rise=0)
-#print(err_L2_u)
-err_L2_phi = errornorm(phi_DG1, phi_ref, 'L2', degree_rise=0)
-#print(err_L2_phi)
+err_L2_u = errornorm(u_DG1, u_ref, 'L2') #, degree_rise=0)
+print(err_L2_u)
+err_L2_phi = errornorm(phi_DG1, phi_ref, 'L2') #, degree_rise=0)
+print(err_L2_phi)
 tot_l2 = np.sqrt(err_L2_u**2+err_L2_phi**2)
 print('Tot L2: %.3e' % tot_l2)
 
-err_H10_u = errornorm(u_DG1, u_ref, 'H10', degree_rise=0)
+err_H10_u = errornorm(u_DG1, u_ref, 'H10') #, degree_rise=0)
 print(err_H10_u)
-err_H10_phi = errornorm(phi_DG1, phi_ref, 'H10', degree_rise=0)
+err_H10_phi = errornorm(phi_DG1, phi_ref, 'H10') #, degree_rise=0)
 print(err_H10_phi)
 tot_H10 = np.sqrt(err_H10_u**2+err_H10_phi**2)
 print('Tot H10: %.3e' % tot_H10)

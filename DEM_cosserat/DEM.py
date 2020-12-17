@@ -37,6 +37,7 @@ class DEMProblem:
         self.V_DG = FunctionSpace(self.mesh, MixedElement(U_DG,PHI_DG))
         self.U_DG,self.PHI_DG = self.V_DG.split()
         self.nb_dof_DEM = self.V_DG.dofmap().global_dimension()
+        print('nb dof DEM: %i' % self.nb_dof_DEM)
 
         #Dimension of Approximation space
         u = Function(self.V_DG)

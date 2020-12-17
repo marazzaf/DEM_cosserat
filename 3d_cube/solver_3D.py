@@ -33,7 +33,7 @@ def computation(mesh, cube, T, nu, mu, Gc, l):
     U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
     S = VectorElement("CG", mesh.ufl_cell(), 1) # micro rotation space
     V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
-    print('nb dofs DEM: %i' % V.dofmap().global_dimension())
+    print('nb dofs FEM: %i' % V.dofmap().global_dimension())
     U, S = V.split()
     U_1, U_2, U_3 = U.split()
     S_1, S_2, S_3 = S.split()
@@ -107,7 +107,21 @@ def computation(mesh, cube, T, nu, mu, Gc, l):
     U_h = Function(V)
     problem = LinearVariationalProblem(a, L, U_h, bcs)
     solver = LinearVariationalSolver(problem)
+    solver.parameters['linear_solver'] = 'cg'
+    solver.parameters['preconditioner'] = 'hypre_amg'
     solver.solve()
     u_h, phi_h = U_h.split()
+
+    #output ref
+    file = File('ref_no_locking.pvd')
+    file << u_h
+    file << phi_h
+
+    #output stress
+    epsilon_u_h = strain(u_h, phi_h)
+    sigma_u = stress(epsilon_u_h)
+    U = FunctionSpace(mesh, 'CG', 1)
+    sigma_yy = project(sigma_u[1,1], U)
+    file << sigma_yy
 
     return u_h,phi_h
