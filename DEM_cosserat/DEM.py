@@ -103,8 +103,7 @@ class DEMProblem:
             return 
         
     
-    def strains_2d(self, v, psi): #conserver le nabla_grad ??? Pas sûr...
-        #e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
+    def strains_2d(self, v, psi):
         e = nabla_grad(v) + as_tensor(((0, -1), (1, 0))) * psi
         kappa = grad(psi)
         return e,kappa
@@ -116,41 +115,18 @@ class DEMProblem:
         return sigma, mu
 
     def strain_3d(self, v, eta):
-        strain = nabla_grad(v) #nabla
+        strain = nabla_grad(v)
         strain += as_tensor([ [ 0, -eta[2], eta[1] ] , [ eta[2], 0, -eta[0] ] , [ -eta[1], eta[0], 0 ] ] )
         return strain
     
     def torsion_3d(self, eta):
-        return nabla_grad(eta) #nabla
+        return nabla_grad(eta)
 
-    def stress_3d(self, epsilon):
-        stress = as_tensor([ \
-                             [self.lmbda*epsilon[0,0]+(self.mu+self.kappa)*epsilon[0,0]+ self.mu*epsilon[0,0],
-                              \
-                              (self.mu+self.kappa)*epsilon[0,1] + self.mu*epsilon[1,0], \
-                              (self.mu+self.kappa)*epsilon[0,2] + self.mu*epsilon[2,0] ], \
-                            [ (self.mu+self.kappa)*epsilon[1,0] + self.mu*epsilon[0,1], \
-                              self.lmbda*epsilon[1,1] + (self.mu+self.kappa)*epsilon[1,1] +
-                            self.mu*epsilon[1,1], \
-                              (self.mu+self.kappa)*epsilon[1,2] + self.mu*epsilon[2,1] ], \
-                            [ (self.mu+self.kappa)*epsilon[2,0] + self.mu*epsilon[0,2], \
-                              (self.mu+self.kappa)*epsilon[2,1] + self.mu*epsilon[1,2], \
-                              self.lmbda*epsilon[2,2] + (self.mu+self.kappa)*epsilon[2,2] +
-                              self.mu*epsilon[2,2]] ])
-        return stress
+    def stress_3d(self, e):
+        return self.lamda * tr(e) * Identity(3) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
 
-    def torque_3d(self, chi):
-        torque = as_tensor([ \
-                             [ (self.alpha + self.beta + self.gamma)*chi[0,0], \
-                               self.beta*chi[1,0] + self.gamma*chi[0,1], \
-                               self.beta*chi[2,0] + self.gamma*chi[0,2] ], \
-                             [ self.beta*chi[0,1] + self.gamma*chi[1,0], \
-                               (self.alpha + self.beta + self.gamma)*chi[1,1], \
-                               self.beta*chi[2,1] + self.gamma*chi[1,2] ], \
-                             [ self.beta*chi[0,2] + self.gamma*chi[2,0], \
-                               self.beta*chi[1,2] + self.gamma*chi[2,1], \
-                               (self.alpha + self.beta + self.gamma)*chi[2,2]] ])
-        return torque
+    def torque_3d(self, kappa):
+        return self.L * tr(kappa) * Identity(3) + 2*self.M * sym(kappa) + 2*self.Mc * skew(kappa)      
 
     def elastic_bilinear_form(self): #, strain, stress):
         u_CR,psi_CR = TrialFunctions(self.V_CR)
@@ -161,7 +137,9 @@ class DEMProblem:
             def_test = self.strains_2d(v_CR,eta_CR)
             def_trial = self.strains_2d(u_CR, psi_CR)
             stress_trial = self.stresses_2d(def_trial)
+            
             a = (inner(def_test[0],stress_trial[0]) + inner(def_test[1],stress_trial[1])) * dx
+            
         elif self.dim == 3:
             epsilon_u = self.strain_3d(u_CR, psi_CR)
             epsilon_v = self.strain_3d(v_CR, eta_CR)
