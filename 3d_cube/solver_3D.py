@@ -3,12 +3,12 @@
 # Computation of the solution in Cosserat elasticity
 from dolfin import *
 
-def computation(mesh, cube, T, nu, mu, Gc, l):
+def computation(mesh, cube, T, nu, mu, Gc, l, num_mesh):
     # Micropolar elastic constants
     lamda = 2*mu*nu / (1-2*nu)
     #torque
-    h3 = 2/5
-    M = mu * l*l/h3
+    #h3 = 2/5
+    M = mu * l*l#/h3
     L = M
     Mc = M
     #Change these.
@@ -113,7 +113,7 @@ def computation(mesh, cube, T, nu, mu, Gc, l):
     u_h, phi_h = U_h.split()
 
     #output ref
-    file = File('ref_no_locking.pvd')
+    file = File('results/ref_locking_%i_.pvd' % num_mesh)
     file << u_h
     file << phi_h
 

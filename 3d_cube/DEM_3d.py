@@ -16,7 +16,7 @@ cube = 100.0 # dim
 
 T = 1e6 # traction force
 
-nu = 0.3 #0.49 #0.3 # Poisson's ratio
+nu = 0.499 #0.49 #0.3 # Poisson's ratio
 G = 10e6 # shear modulus
 Gc = 5e6 #other shear modulus
 E = 2*G*(1+nu) #Yound Modulus
@@ -24,8 +24,8 @@ E = 2*G*(1+nu) #Yound Modulus
 
 l = 10 # intrinsic length scale
 #N = 0.93 # coupling parameter
-h3 = 2/5
-M = G * l*l/h3
+#h3 = 2/5
+M = G * l*l#/h3
 
 # Analytical solution
 def AnalyticalSolution(R, l, nu):
@@ -40,7 +40,7 @@ SCF_a = AnalyticalSolution(R, l, nu)*T
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 1
+mesh_num = 3
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -132,7 +132,7 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('no_locking_%i_.pvd' % mesh_num)
+file = File('results/locking_%i_.pvd' % mesh_num)
 file << u_DG
 file << u_DG1
 file << phi_DG
@@ -153,7 +153,7 @@ print('Computed: %.5e' % SCF)
 print('Error: %.2f' % (100*e))
 
 #Computing CG ref solution
-u_ref,phi_ref = computation(mesh, cube, T, nu, G, Gc, l)
+u_ref,phi_ref = computation(mesh, cube, T, nu, G, Gc, l, mesh_num)
 
 #Computing errors
 err_L2_u = errornorm(u_DG1, u_ref, 'L2') #, degree_rise=0)
