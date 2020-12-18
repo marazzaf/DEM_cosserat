@@ -22,7 +22,7 @@ Gc = 5e6 #other shear modulus
 E = 2*G*(1+nu) #Yound Modulus
 #lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
 
-l = 10 # intrinsic length scale
+l = 0.2 #10 # intrinsic length scale
 #N = 0.93 # coupling parameter
 #h3 = 2/5
 M = G * l*l#/h3
@@ -40,7 +40,7 @@ SCF_a = AnalyticalSolution(R, l, nu)*T
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 3
+mesh_num = 1
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
