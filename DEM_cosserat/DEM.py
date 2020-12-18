@@ -72,7 +72,7 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
-    def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0):
+    def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0, incompressible=False):
         self.E = E
         self.nu = nu
         self.l = l
@@ -95,7 +95,13 @@ class DEMProblem:
                 self.Mc = Mc
             else:
                 self.Mc = self.M
-            return 
+        if incompressible:
+            self.L = ( mu * N**2 ) / (N**2 - 1.0)
+            self.M = mu * l
+            self.Mc = mu * l**2
+            self.Gc = self.G
+            self.G += self.Mc
+        return 
         
     
     def strains_2d(self, v, psi):

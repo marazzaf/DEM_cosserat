@@ -10,8 +10,8 @@ cube = 100.0 # dim
 
 T = 1.0 # traction force
 
-#nu = 0.499 # Poisson's ratio
-nu = 0.3
+nu = 0.49 # Poisson's ratio
+#nu = 0.3
 mu = 1000.0 # shear modulus G
 lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
 
@@ -86,7 +86,6 @@ U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
 S = VectorElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
 print('nb dof FEM: %i' % V.dofmap().global_dimension())
-sys.exit()
 U, S = V.split()
 U_1, U_2, U_3 = U.split()
 S_1, S_2, S_3 = S.split()
@@ -165,22 +164,22 @@ solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, phi_h = U_h.split()
 
-#file = File('locking_%i_.pvd' % mesh_num)
-#file << u_h
-#file << phi_h
+file = File('locking_%i_.pvd' % mesh_num)
+file << u_h
+file << phi_h
 
 epsilon_u_h = strain(u_h, phi_h)
 sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)
 U = FunctionSpace(mesh, 'CG', 1)
 sigma_yy = project(sigma_u_h[1,1], U)
-#file << sigma_yy
+file << sigma_yy
 SCF = sigma_yy(R, 0, 0)
 
-file = XDMFFile('ref_%i_.xdmf' % mesh_num)
-u_h.name = 'disp'
-file.write(u_h)
-phi_h.name = 'rot'
-file.write(phi_h)
+#file = XDMFFile('ref_%i_.xdmf' % mesh_num)
+#u_h.name = 'disp'
+#file.write(u_h)
+#phi_h.name = 'rot'
+#file.write(phi_h)
 
 e = abs(SCF - SCF_a) / SCF_a
 print('Ref: %.5e' % SCF_a)

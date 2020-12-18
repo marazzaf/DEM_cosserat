@@ -14,18 +14,25 @@ from solver_3D import computation
 R = 10.0 # radius
 cube = 100.0 # dim
 
+#compressible
 T = 1e6 # traction force
-
-nu = 0.499 #0.49 #0.3 # Poisson's ratio
+nu = 0.3 # Poisson's ratio
 G = 10e6 # shear modulus
 Gc = 5e6 #other shear modulus
 E = 2*G*(1+nu) #Yound Modulus
 #lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
-
 l = 0.2 #10 # intrinsic length scale
 #N = 0.93 # coupling parameter
 #h3 = 2/5
 M = G * l*l#/h3
+
+##incompressible
+#T = 1
+#nu = 0.49
+#G = 1e3
+#lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
+#l = 0.2 # intrinsic length scale
+#N = 0.93 # coupling parameter
 
 # Analytical solution
 def AnalyticalSolution(R, l, nu):
@@ -133,9 +140,9 @@ v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
 file = File('results/locking_%i_.pvd' % mesh_num)
-file << u_DG
+#file << u_DG
 file << u_DG1
-file << phi_DG
+#file << phi_DG
 file << phi_DG1
 
 epsilon_u_h = problem.strain_3d(u_DG1, phi_DG1)
@@ -151,6 +158,7 @@ e = abs(SCF - SCF_a) / SCF_a
 print('Ref: %.5e' % SCF_a)
 print('Computed: %.5e' % SCF)
 print('Error: %.2f' % (100*e))
+sys.exit()
 
 #Computing CG ref solution
 u_ref,phi_ref = computation(mesh, cube, T, nu, G, Gc, l, mesh_num)
