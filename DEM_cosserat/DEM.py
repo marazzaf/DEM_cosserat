@@ -97,7 +97,7 @@ class DEMProblem:
                 self.Mc = self.M
         if incompressible:
             N = 0.93
-            self.lamda = ( 2.0 * self.G * self.nu ) / (1.0-2.0*self.nu)
+            self.lamda = ( 2*self.G*self.nu ) / (1-2*self.nu)
             self.alpha = ( self.G * N**2 ) / (N**2 - 1.0)
             self.beta = self.G * self.l
             self.gamma = self.G * self.l**2
@@ -152,31 +152,31 @@ class DEMProblem:
                 sigma_u = self.stress_3d(epsilon_u)
                 mu_u = self.torque_3d(chi_u)
             else:
-                sigma_u = as_tensor([ \
-                         [self.lamda*epsilon_u[0,0]+(self.G+self.kappa)*epsilon_u[0,0]+ self.G*epsilon_u[0,0],
-                          \
-                          (self.G+self.kappa)*epsilon_u[0,1] + self.G*epsilon_u[1,0], \
-                          (self.G+self.kappa)*epsilon_u[0,2] + self.G*epsilon_u[2,0] ], \
-                         [ (self.G+self.kappa)*epsilon_u[1,0] + self.G*epsilon_u[0,1], \
-                           self.lamda*epsilon_u[1,1] + (self.G+self.kappa)*epsilon_u[1,1] +
-                           self.G*epsilon_u[1,1], \
-                           (self.G+self.kappa)*epsilon_u[1,2] + self.G*epsilon_u[2,1] ], \
-                         [ (self.G+self.kappa)*epsilon_u[2,0] + self.G*epsilon_u[0,2], \
-                           (self.G+self.kappa)*epsilon_u[2,1] + self.G*epsilon_u[1,2], \
-                           self.lamda*epsilon_u[2,2] + (self.G+self.kappa)*epsilon_u[2,2] +
-                           self.G*epsilon_u[2,2]] ])
-                mu_u = as_tensor([ \
-                         [ (self.alpha + self.beta + self.gamma)*chi_u[0,0], \
-                           self.beta*chi_u[1,0] + self.gamma*chi_u[0,1], \
-                           self.beta*chi_u[2,0] + self.gamma*chi_u[0,2] ], \
-                         [ self.beta*chi_u[0,1] + self.gamma*chi_u[1,0], \
-                           (self.alpha + self.beta + self.gamma)*chi_u[1,1], \
-                           self.beta*chi_u[2,1] + self.gamma*chi_u[1,2] ], \
-                         [ self.beta*chi_u[0,2] + self.gamma*chi_u[2,0], \
-                           self.beta*chi_u[1,2] + self.gamma*chi_u[2,1], \
-                           (self.alpha + self.beta + self.gamma)*chi_u[2,2]] ])
-                #sigma_u = self.lamda * tr(epsilon_u) * Identity(3) + (self.G+self.kappa) * epsilon_u + self.G * epsilon_u.T
-                #mu_u = self.alpha * tr(chi_u) * Identity(3) + self.beta * chi_u + self.gamma * chi_u.T
+#                sigma_u = as_tensor([ \
+#                         [self.lamda*epsilon_u[0,0]+(self.G+self.kappa)*epsilon_u[0,0]+ self.G*epsilon_u[0,0],
+#                          \
+#                          (self.G+self.kappa)*epsilon_u[0,1] + self.G*epsilon_u[1,0], \
+#                          (self.G+self.kappa)*epsilon_u[0,2] + self.G*epsilon_u[2,0] ], \
+#                         [ (self.G+self.kappa)*epsilon_u[1,0] + self.G*epsilon_u[0,1], \
+#                           self.lamda*epsilon_u[1,1] + (self.G+self.kappa)*epsilon_u[1,1] +
+#                           self.G*epsilon_u[1,1], \
+#                           (self.G+self.kappa)*epsilon_u[1,2] + self.G*epsilon_u[2,1] ], \
+#                         [ (self.G+self.kappa)*epsilon_u[2,0] + self.G*epsilon_u[0,2], \
+#                           (self.G+self.kappa)*epsilon_u[2,1] + self.G*epsilon_u[1,2], \
+#                           self.lamda*epsilon_u[2,2] + (self.G+self.kappa)*epsilon_u[2,2] +
+#                           self.G*epsilon_u[2,2]] ])
+#                mu_u = as_tensor([ \
+#                         [ (self.alpha + self.beta + self.gamma)*chi_u[0,0], \
+#                           self.beta*chi_u[1,0] + self.gamma*chi_u[0,1], \
+#                           self.beta*chi_u[2,0] + self.gamma*chi_u[0,2] ], \
+#                         [ self.beta*chi_u[0,1] + self.gamma*chi_u[1,0], \
+#                           (self.alpha + self.beta + self.gamma)*chi_u[1,1], \
+#                           self.beta*chi_u[2,1] + self.gamma*chi_u[1,2] ], \
+#                         [ self.beta*chi_u[0,2] + self.gamma*chi_u[2,0], \
+#                           self.beta*chi_u[1,2] + self.gamma*chi_u[2,1], \
+#                           (self.alpha + self.beta + self.gamma)*chi_u[2,2]] ])
+                sigma_u = self.lamda * tr(epsilon_u) * Identity(3) + (self.G+self.kappa) * epsilon_u + self.G * epsilon_u.T
+                mu_u = self.alpha * tr(chi_u) * Identity(3) + self.beta * chi_u + self.gamma * chi_u.T
 
             a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, mu_u)*dx
 

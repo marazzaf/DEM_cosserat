@@ -16,7 +16,7 @@ cube = 100.0 # dim
 
 #incompressible
 T = 1
-nu = 0.3
+nu = 0.49
 G = 1e3
 E = 2*G*(1+nu)
 l = 0.2 # intrinsic length scale
@@ -35,7 +35,7 @@ SCF_a = AnalyticalSolution(R, l, nu)*T
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 2
+mesh_num = 3
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
