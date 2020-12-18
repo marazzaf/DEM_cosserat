@@ -96,11 +96,12 @@ class DEMProblem:
             else:
                 self.Mc = self.M
         if incompressible:
-            self.L = ( mu * N**2 ) / (N**2 - 1.0)
-            self.M = mu * l
-            self.Mc = mu * l**2
-            self.Gc = self.G
-            self.G += self.Mc
+            N = 0.93
+            self.lamda = ( 2.0 * self.G * self.nu ) / (1.0-2.0*self.nu)
+            self.alpha = ( self.G * N**2 ) / (N**2 - 1.0)
+            self.beta = self.G * self.l
+            self.gamma = self.G * self.l**2
+            self.kappa = self.gamma
         return 
         
     
@@ -129,7 +130,7 @@ class DEMProblem:
     def torque_3d(self, kappa):
         return self.L * tr(kappa) * Identity(3) + 2*self.M * sym(kappa) + 2*self.Mc * skew(kappa)      
 
-    def elastic_bilinear_form(self): #, strain, stress):
+    def elastic_bilinear_form(self,incompressible=False): #, strain, stress):
         u_CR,psi_CR = TrialFunctions(self.V_CR)
         v_CR,eta_CR = TestFunctions(self.V_CR)
 
@@ -147,12 +148,37 @@ class DEMProblem:
             chi_u = self.torsion_3d(psi_CR)
             chi_v = self.torsion_3d(eta_CR)
 
-            sigma_u = self.stress_3d(epsilon_u)
-            sigma_v = self.stress_3d(epsilon_v)
-            m_u = self.torque_3d(chi_u)
-            m_v = self.torque_3d(chi_v)
+            if not incompressible:
+                sigma_u = self.stress_3d(epsilon_u)
+                mu_u = self.torque_3d(chi_u)
+            else:
+                sigma_u = as_tensor([ \
+                         [self.lamda*epsilon_u[0,0]+(self.G+self.kappa)*epsilon_u[0,0]+ self.G*epsilon_u[0,0],
+                          \
+                          (self.G+self.kappa)*epsilon_u[0,1] + self.G*epsilon_u[1,0], \
+                          (self.G+self.kappa)*epsilon_u[0,2] + self.G*epsilon_u[2,0] ], \
+                         [ (self.G+self.kappa)*epsilon_u[1,0] + self.G*epsilon_u[0,1], \
+                           self.lamda*epsilon_u[1,1] + (self.G+self.kappa)*epsilon_u[1,1] +
+                           self.G*epsilon_u[1,1], \
+                           (self.G+self.kappa)*epsilon_u[1,2] + self.G*epsilon_u[2,1] ], \
+                         [ (self.G+self.kappa)*epsilon_u[2,0] + self.G*epsilon_u[0,2], \
+                           (self.G+self.kappa)*epsilon_u[2,1] + self.G*epsilon_u[1,2], \
+                           self.lamda*epsilon_u[2,2] + (self.G+self.kappa)*epsilon_u[2,2] +
+                           self.G*epsilon_u[2,2]] ])
+                mu_u = as_tensor([ \
+                         [ (self.alpha + self.beta + self.gamma)*chi_u[0,0], \
+                           self.beta*chi_u[1,0] + self.gamma*chi_u[0,1], \
+                           self.beta*chi_u[2,0] + self.gamma*chi_u[0,2] ], \
+                         [ self.beta*chi_u[0,1] + self.gamma*chi_u[1,0], \
+                           (self.alpha + self.beta + self.gamma)*chi_u[1,1], \
+                           self.beta*chi_u[2,1] + self.gamma*chi_u[1,2] ], \
+                         [ self.beta*chi_u[0,2] + self.gamma*chi_u[2,0], \
+                           self.beta*chi_u[1,2] + self.gamma*chi_u[2,1], \
+                           (self.alpha + self.beta + self.gamma)*chi_u[2,2]] ])
+                #sigma_u = self.lamda * tr(epsilon_u) * Identity(3) + (self.G+self.kappa) * epsilon_u + self.G * epsilon_u.T
+                #mu_u = self.alpha * tr(chi_u) * Identity(3) + self.beta * chi_u + self.gamma * chi_u.T
 
-            a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
+            a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, mu_u)*dx
 
         A = assemble(a)
         row,col,val = as_backend_type(A).mat().getValuesCSR()
