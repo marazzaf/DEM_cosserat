@@ -152,29 +152,6 @@ class DEMProblem:
                 sigma_u = self.stress_3d(epsilon_u)
                 mu_u = self.torque_3d(chi_u)
             else:
-#                sigma_u = as_tensor([ \
-#                         [self.lamda*epsilon_u[0,0]+(self.G+self.kappa)*epsilon_u[0,0]+ self.G*epsilon_u[0,0],
-#                          \
-#                          (self.G+self.kappa)*epsilon_u[0,1] + self.G*epsilon_u[1,0], \
-#                          (self.G+self.kappa)*epsilon_u[0,2] + self.G*epsilon_u[2,0] ], \
-#                         [ (self.G+self.kappa)*epsilon_u[1,0] + self.G*epsilon_u[0,1], \
-#                           self.lamda*epsilon_u[1,1] + (self.G+self.kappa)*epsilon_u[1,1] +
-#                           self.G*epsilon_u[1,1], \
-#                           (self.G+self.kappa)*epsilon_u[1,2] + self.G*epsilon_u[2,1] ], \
-#                         [ (self.G+self.kappa)*epsilon_u[2,0] + self.G*epsilon_u[0,2], \
-#                           (self.G+self.kappa)*epsilon_u[2,1] + self.G*epsilon_u[1,2], \
-#                           self.lamda*epsilon_u[2,2] + (self.G+self.kappa)*epsilon_u[2,2] +
-#                           self.G*epsilon_u[2,2]] ])
-#                mu_u = as_tensor([ \
-#                         [ (self.alpha + self.beta + self.gamma)*chi_u[0,0], \
-#                           self.beta*chi_u[1,0] + self.gamma*chi_u[0,1], \
-#                           self.beta*chi_u[2,0] + self.gamma*chi_u[0,2] ], \
-#                         [ self.beta*chi_u[0,1] + self.gamma*chi_u[1,0], \
-#                           (self.alpha + self.beta + self.gamma)*chi_u[1,1], \
-#                           self.beta*chi_u[2,1] + self.gamma*chi_u[1,2] ], \
-#                         [ self.beta*chi_u[0,2] + self.gamma*chi_u[2,0], \
-#                           self.beta*chi_u[1,2] + self.gamma*chi_u[2,1], \
-#                           (self.alpha + self.beta + self.gamma)*chi_u[2,2]] ])
                 sigma_u = self.lamda * tr(epsilon_u) * Identity(3) + (self.G+self.kappa) * epsilon_u + self.G * epsilon_u.T
                 mu_u = self.alpha * tr(chi_u) * Identity(3) + self.beta * chi_u + self.gamma * chi_u.T
 
@@ -184,38 +161,6 @@ class DEMProblem:
         row,col,val = as_backend_type(A).mat().getValuesCSR()
         A = csr_matrix((val, col, row))
         return self.DEM_to_CR.T * A * self.DEM_to_CR
-
-#def inner_consistency(problem):
-#    """Creates the penalty matrix on inner facets to stabilize the DEM."""
-#    
-#    #assembling penalty factor
-#    h = CellDiameter(problem.mesh)
-#    h_avg = 0.5 * (h('+') + h('-'))
-#    n = FacetNormal(problem.mesh)
-#
-#    #Writing penalty bilinear form
-#    u,phi = TrialFunctions(problem.V_DG1)
-#    v,psi = TestFunctions(problem.V_DG1)
-#    #u,phi = TrialFunctions(problem.V_CR)
-#    #v,psi = TestFunctions(problem.V_CR)
-#
-#    #stresses
-#    tr_strains = problem.strains_2d(u,phi)
-#    tr_sigma,tr_mu = problem.stresses_2d(tr_strains)
-#    tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1]))) #2d
-#    te_strains = problem.strains_2d(v,psi)
-#    te_sigma,te_mu = problem.stresses_2d(te_strains)
-#    te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1]))) #2d
-#    
-#    a_pen = - inner(dot(avg(tr_sigma), n('+')), jump(v)) * dS - inner(dot(avg(tr_mu), n('+')), jump(psi)) * dS - inner(dot(avg(te_mu), n('+')), jump(phi)) * dS - inner(dot(avg(te_sigma), n('+')), jump(u)) * dS
-#
-#    #Assembling matrix
-#    A = assemble(a_pen)
-#    row,col,val = as_backend_type(A).mat().getValuesCSR()
-#    A = csr_matrix((val, col, row))
-#
-#    return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
-#    #return problem.DEM_to_CR.T * A * problem.DEM_to_CR
 
 def inner_penalty_light(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
