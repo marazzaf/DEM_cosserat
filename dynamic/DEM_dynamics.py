@@ -89,8 +89,6 @@ bc = DirichletBC(problem.V_DG, zero, left)
 
 # Mass form
 mass = mass_matrix(problem, rho, I)
-print(type(mass))
-sys.exit()
 
 # Elastic stiffness form
 def k(w, w_):

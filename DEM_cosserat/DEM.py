@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from dolfin import *
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix,diags
 import numpy as np
 from petsc4py import PETSc
 from DEM_cosserat.reconstructions import *
@@ -215,6 +215,8 @@ def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia
     aux = Constant(('1', '1', '1'))
     form = rho * (inner(aux,v) + I*inner(aux,psi)) * dx
     vec = assemble(form)
-    petsc_mat = PETSc.Mat().create()
-    petsc_mat.setDiagonal(vec)
+
+    A = diags(vec.get_local(), 0)
+    A = A.tocsr()
+    petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
     return PETScMatrix(petsc_mat)
