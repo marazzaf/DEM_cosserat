@@ -91,24 +91,15 @@ bc = DirichletBC(problem.V_DG, zero, left)
 mass = mass_matrix(problem, rho, I)
 
 # Elastic stiffness form
-def k(w, w_):
-    du = as_vector((w[0],w[1],w[2]))
-    dphi = as_vector((w[3],w[4],w[5]))
-    u_ = as_vector((w_[0],w_[1],w_[2]))
-    phi_ = as_vector((w_[3],w_[4],w_[5]))
-    epsilon_u = strain(du, dphi)
-    epsilon_v = strain(u_, phi_)
-    chi_u = torsion(dphi)
-    chi_v = torsion(phi_)
-
-    sigma_u = stress(epsilon_u)
-    sigma_v = stress(epsilon_v)
-    m_u = couple(chi_u)
-    m_v = couple(chi_v)
-
-    return inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
+A = problem.elastic_bilinear_form()
+#Nitsche penalty bilinear form
+A += lhs_bnd_penalty(problem, boundary_parts, bcs)
+#Penalty matrix
+A += inner_penalty(problem)
 
 # Work of external forces
+#t = Constant((0.0, T, 0.0))
+#b = assemble_boundary_load(problem, 1, boundary_parts, t)
 def Wext(u_):
     u_aux = as_vector((u_[0],u_[1],u_[2]))
     return dot(u_aux, p)*dss(3)
