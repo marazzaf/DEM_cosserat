@@ -1,6 +1,10 @@
 from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+sys.path.append('../')
+from DEM_cosserat.DEM import *
+from DEM_cosserat.miscellaneous import *
 
 # Form compiler options
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -8,8 +12,8 @@ parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
 Lx,Ly,Lz = 1., 0.1, 0.04
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -64,11 +68,11 @@ problem = DEMProblem(mesh, cte)
 problem.micropolar_constants(E, nu, l, Gc, M)
 
 # Current (unknown) displacement
-u = Function(V)
+u = Function(problem.V_DG)
 # Fields from previous time step (displacement, velocity, acceleration)
-u_old = Function(V)
-v_old = Function(V)
-a_old = Function(V)
+u_old = Function(problem.V_DG)
+v_old = Function(problem.V_DG)
+a_old = Function(problem.V_DG)
 
 # Create mesh function over the cell facets
 boundary_subdomains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
@@ -81,15 +85,12 @@ dss = ds(subdomain_data=boundary_subdomains)
 
 # Set up boundary condition at left end
 zero = Constant((0, 0, 0, 0, 0, 0))
-bc = DirichletBC(V, zero, left)
+bc = DirichletBC(problem.V_DG, zero, left)
 
 # Mass form
-def m(w, w_):
-    u = as_vector((w[0],w[1],w[2]))
-    phi = as_vector((w[3],w[4],w[5]))
-    u_ = as_vector((w_[0],w_[1],w_[2]))
-    phi_ = as_vector((w_[3],w_[4],w_[5]))
-    return rho*inner(u, u_)*dx + rho*I*inner(phi,phi_)*dx 
+mass = mass_matrix(problem, rho, I)
+print(type(mass))
+sys.exit()
 
 # Elastic stiffness form
 def k(w, w_):
@@ -116,24 +117,12 @@ def Wext(u_):
 
 # Update formula for acceleration
 # a = 1/(2*beta)*((u - u0 - v0*dt)/(0.5*dt*dt) - (1-2*beta)*a0)
-def update_a(u, u_old, v_old, a_old, ufl=True):
-    if ufl:
-        dt_ = dt
-        beta_ = beta
-    else:
-        dt_ = float(dt)
-        beta_ = float(beta)
+def update_a(u, u_old, v_old, a_old):
     return (u-u_old-dt_*v_old)/beta_/dt_**2 - (1-2*beta_)/2/beta_*a_old
 
 # Update formula for velocity
 # v = dt * ((1-gamma)*a0 + gamma*a) + v0
-def update_v(a, u_old, v_old, a_old, ufl=True):
-    if ufl:
-        dt_ = dt
-        gamma_ = gamma
-    else:
-        dt_ = float(dt)
-        gamma_ = float(gamma)
+def update_v(a, u_old, v_old, a_old):
     return v_old + dt_*((1-gamma_)*a_old + gamma_*a)
 
 def update_fields(u, u_old, v_old, a_old):
@@ -144,8 +133,8 @@ def update_fields(u, u_old, v_old, a_old):
     v0_vec, a0_vec = v_old.vector(), a_old.vector()
 
     # use update functions using vector arguments
-    a_vec = update_a(u_vec, u0_vec, v0_vec, a0_vec, ufl=False)
-    v_vec = update_v(a_vec, u0_vec, v0_vec, a0_vec, ufl=False)
+    a_vec = update_a(u_vec, u0_vec, v0_vec, a0_vec)
+    v_vec = update_v(a_vec, u0_vec, v0_vec, a0_vec)
 
     # Update (u_old <- u)
     v_old.vector()[:], a_old.vector()[:] = v_vec, a_vec
@@ -155,16 +144,14 @@ def avg(x_old, x_new, alpha):
     return alpha*x_old + (1-alpha)*x_new
 
 # Residual
-a_new = update_a(du, u_old, v_old, a_old, ufl=True)
-v_new = update_v(a_new, u_old, v_old, a_old, ufl=True)
+a_new = update_a(du, u_old, v_old, a_old)
+v_new = update_v(a_new, u_old, v_old, a_old)
 res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
 a_form = lhs(res)
 L_form = rhs(res)
 
 # Define solver for reusing factorization
-K, res = assemble_system(a_form, L_form, bc)
-solver = LUSolver(K, "mumps")
-solver.parameters["symmetric"] = True
+K, res = assemble_system(a_form, L_form)
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
@@ -204,7 +191,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Solve for new displacement
     res = assemble(L_form)
     bc.apply(res)
-    solver.solve(K, u.vector(), res)
+    solve(K, v_DG.vector(), res, 'mumps')
 
 
     # Update old fields with new quantities

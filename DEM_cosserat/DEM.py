@@ -1,8 +1,9 @@
 # coding: utf-8
 
 from dolfin import *
-from scipy.sparse import csr_matrix,dok_matrix
+from scipy.sparse import csr_matrix
 import numpy as np
+from petsc4py import PETSc
 from DEM_cosserat.reconstructions import *
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.miscellaneous import gradient_matrix
@@ -208,3 +209,12 @@ def inner_penalty(problem):
     A = csr_matrix((val, col, row))
 
     return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
+
+def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia scalar matrix
+    v,psi = TestFunctions(problem.V_DG)
+    aux = Constant(('1', '1', '1'))
+    form = rho * (inner(aux,v) + I*inner(aux,psi)) * dx
+    vec = assemble(form)
+    petsc_mat = PETSc.Mat().create()
+    petsc_mat.setDiagonal(vec)
+    return PETScMatrix(petsc_mat)

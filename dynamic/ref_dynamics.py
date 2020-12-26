@@ -239,7 +239,7 @@ for (i, dt) in enumerate(np.diff(time)):
     u_tip[i+1] = u(1., 0.05, 0.)[1]
     E_elas = assemble(0.5*k(u_old, u_old))
     E_kin = assemble(0.5*m(v_old, v_old))
-    E_ext += assemble(Wext(u-u_old))
+    E_ext += assemble(Wext(u-u_old)) #fonctionne pas.
     E_tot = E_elas+E_kin
     energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
 
