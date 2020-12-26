@@ -56,18 +56,13 @@ cutoff_Tc = T/5
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
 
-# Function Space
-U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
-S = VectorElement("CG", mesh.ufl_cell(), 1) # micro rotation space
-V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
-print('nb dofs FEM: %i' % V.dofmap().global_dimension())
-U, S = V.split()
-U_1, U_2, U_3 = U.split()
-S_1, S_2, S_3 = S.split()
+#Creating the DEM problem
+cte = 10
+problem = DEMProblem(mesh, cte)
 
-# Test and trial functions
-du = TrialFunction(V)
-u_ = TestFunction(V)
+#Computing coefficients for Cosserat material
+problem.micropolar_constants(E, nu, l, Gc, M)
+
 # Current (unknown) displacement
 u = Function(V)
 # Fields from previous time step (displacement, velocity, acceleration)
@@ -87,22 +82,6 @@ dss = ds(subdomain_data=boundary_subdomains)
 # Set up boundary condition at left end
 zero = Constant((0, 0, 0, 0, 0, 0))
 bc = DirichletBC(V, zero, left)
-
-# Strain and torsion
-def strain(v, eta):
-    strain = nabla_grad(v)
-    strain += as_tensor([ [ 0, -eta[2], eta[1] ] , [ eta[2], 0, -eta[0] ] , [ -eta[1], eta[0], 0 ] ] )
-    return strain
-
-def torsion(eta):
-    return nabla_grad(eta)
-
-# Stress and couple stress
-def stress(e):
-    return lmbda * tr(e) * Identity(3) + 2*G * sym(e) + 2*Gc * skew(e)
-
-def couple(kappa):
-    return L * tr(kappa) * Identity(3) + 2*M * sym(kappa) + 2*Mc * skew(kappa)
 
 # Mass form
 def m(w, w_):
