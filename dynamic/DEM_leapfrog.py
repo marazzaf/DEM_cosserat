@@ -41,7 +41,7 @@ rho = Constant(1.0)
 I = Constant(2/5*l*l) #Quelle valeur donner à ca ?
 
 # Time-stepping parameters
-T       = 4.
+T       = 1e-3 #4.
 p0 = 1.
 cutoff_Tc = T/5
 # Define the loading as an expression depending on t
@@ -121,8 +121,9 @@ Nsteps = int(T/dt) + 1
 time = np.linspace(0, T, Nsteps+1)
 u_tip = np.zeros((Nsteps+1,))
 energies = np.zeros((Nsteps+1, 4))
+file = open('DEM/energies.txt', 'w')
 E_ext = 0
-xdmf_file = XDMFFile("ref/flexion.xdmf")
+xdmf_file = XDMFFile("DEM/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
@@ -136,9 +137,11 @@ for (i, dt) in enumerate(np.diff(time)):
     p.t = t
 
     # Recompute rhs
+    Wext_old = Wext
     Wext = assemble_boundary_load(problem, 3, boundary_subdomains, p)
 
     # Update fields with new quantities
+    u_old = u.vector()[:]
     update_fields(u, v, v_old, Wext)
 
     # Save solution to XDMF format
@@ -148,24 +151,27 @@ for (i, dt) in enumerate(np.diff(time)):
     u_tip[i+1] = u(1., 0.05, 0.)[1] #Ou reco DG1 ?
     E_elas = 0.5*np.dot(u.vector()[:], K*u.vector()[:])
     E_kin = 0.5**3*np.dot(v_old.vector()[:]+v.vector()[:], mass*(v_old.vector()[:]+v.vector()[:]))
-    #E_ext += assemble(Wext(u-u_old)) #changer ça.
+    E_ext += 0.5*np.dot(Wext+Wext_old, u.vector()[:]-u_old)
     E_tot = E_elas+E_kin
     energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
-    sys.exit()
+    file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
 
-# Plot tip displacement evolution
-plt.figure()
-plt.plot(time, u_tip)
-plt.xlabel("Time")
-plt.ylabel("Tip displacement")
-plt.ylim(-0.5, 0.5)
-plt.show()
-
-# Plot energies evolution
-plt.figure()
-plt.plot(time, energies)
-plt.legend(("elastic", "kinetic", "total", "exterior"))
-plt.xlabel("Time")
-plt.ylabel("Energies")
-plt.ylim(0, 0.0011)
-plt.show()
+file.close()
+    
+## Plot tip displacement evolution
+#plt.figure()
+#plt.plot(time, u_tip)
+#plt.xlabel("Time")
+#plt.ylabel("Tip displacement")
+#plt.ylim(-0.5, 0.5)
+#plt.show()
+#
+## Plot energies evolution
+#plt.figure()
+#plt.plot(time, energies)
+#plt.legend(("elastic", "kinetic", "total", "exterior"))
+#plt.xlabel("Time")
+#plt.ylabel("Energies")
+#plt.ylim(0, 0.0011)
+#plt.show()
+#
