@@ -219,4 +219,4 @@ def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia
     A = diags(vec.get_local(), 0)
     A = A.tocsr()
     petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
-    return PETScMatrix(petsc_mat)
+    return PETScMatrix(petsc_mat),min(vec)

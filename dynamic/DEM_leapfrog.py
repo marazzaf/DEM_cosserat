@@ -42,7 +42,6 @@ I = Constant(2/5*l*l) #Quelle valeur donner à ca ?
 
 # Time-stepping parameters
 T       = 4.
-
 p0 = 1.
 cutoff_Tc = T/5
 # Define the loading as an expression depending on t
@@ -83,7 +82,7 @@ bc_6 = [5, u_0, 1]
 bcs = [bc_1, bc_2, bc_3, bc_4, bc_5, bc_6]
 
 # Mass form
-mass = mass_matrix(problem, rho, I)
+mass,min_mass = mass_matrix(problem, rho, I)
 
 #Rigidity matrix
 K = problem.elastic_bilinear_form()
@@ -95,16 +94,21 @@ K += inner_penalty(problem)
 # Work of external forces
 Wext = assemble_boundary_load(problem, 3, boundary_subdomains, p)
 
+#converting matrix
+A = K.tocsr()
+petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
+K = PETScMatrix(petsc_mat)
+
 #Computing time-step
 E = SLEPc.EPS(); E.create() #creating Eigenvalue solver
-E.setOperators(K)
+E.setOperators(petsc_mat)
 E.setProblemType(SLEPc.EPS.ProblemType.HEP)
 E.setFromOptions()
 E.solve() #solving
 assert E.getConverged() #otherwise did not converge
-vr, wr = A.getVecs()
-vi, wi = A.getVecs()
-dt = 2 * np.sqrt(min(mass) / E.getEigenpair(0, vr, vi))
+vr, wr = petsc_mat.getVecs()
+vi, wi = petsc_mat.getVecs()
+dt = 2 * np.sqrt(min_mass / E.getEigenpair(0, vr, vi).real)
 Nsteps = int(T/dt) + 1
 
 sys.exit()
