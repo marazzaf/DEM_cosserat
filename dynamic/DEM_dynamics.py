@@ -216,7 +216,7 @@ print(type(DEM_to_CR))
 
 #Define solver
 K = K_r.mat().matMult(DEM_to_CR)
-K = PETScMatrix(DEM_to_CR_aux.mat().transpose().matMult(K) + K_m)
+K = PETScMatrix(DEM_to_CR_aux.mat().transpose().matMult(K) + K_m) #ajouter les matrices de pénalisation
 print(type(K))
 sys.exit()
 
