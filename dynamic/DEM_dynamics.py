@@ -23,6 +23,9 @@ def left(x, on_boundary):
 def right(x, on_boundary):
     return near(x[0], Lx) and on_boundary
 
+def left(x, on_boundary):
+    return near(x[0], 0) and on_boundary
+
 # Elastic parameters
 E = 1e3
 nu = 0.3
@@ -39,10 +42,6 @@ Mc = M
 # Mass density
 rho = Constant(1.0)
 I = Constant(2/5*l*l) #Quelle valeur donner à ca ?
-
-# Rayleigh damping coefficients
-eta_m = Constant(0.)
-eta_k = Constant(0.)
 
 # Generalized-alpha method parameters
 alpha_m = Constant(0.2)
@@ -79,39 +78,53 @@ boundary_subdomains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_subdomains.set_all(0)
 force_boundary = AutoSubDomain(right)
 force_boundary.mark(boundary_subdomains, 3)
+left_boundary = AutoSubDomain(left)
+left_boundary.mark(boundary_subdomains, 1)
 
 # Define measure for boundary condition integral
 dss = ds(subdomain_data=boundary_subdomains)
 
 # Set up boundary condition at left end
-zero = Constant((0, 0, 0, 0, 0, 0))
-bc = DirichletBC(problem.V_DG, zero, left)
+u_0 = Constant(0.0)
+bc_1 = [0, u_0, 1]
+bc_2 = [1, u_0, 1]
+bc_3 = [2, u_0, 1]
+bc_4 = [3, u_0, 1]
+bc_5 = [4, u_0, 1]
+bc_6 = [5, u_0, 1]
+bcs = [bc_1, bc_2, bc_3, bc_4, bc_5, bc_6]
 
 # Mass form
-mass = mass_matrix(problem, rho, I)
+#mass = mass_matrix(problem, rho, I)
+def m(w, w_):
+    u = as_vector((w[0],w[1],w[2]))
+    phi = as_vector((w[3],w[4],w[5]))
+    u_ = as_vector((w_[0],w_[1],w_[2]))
+    phi_ = as_vector((w_[3],w_[4],w_[5]))
+    return rho*inner(u, u_)*dx + rho*I*inner(phi,phi_)*dx 
 
 # Elastic stiffness form
-A = problem.elastic_bilinear_form()
+K = problem.elastic_bilinear_form()
 #Nitsche penalty bilinear form
-A += lhs_bnd_penalty(problem, boundary_parts, bcs)
+K += lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 #Penalty matrix
-A += inner_penalty(problem)
+K += inner_penalty(problem)
 
 # Work of external forces
-#t = Constant((0.0, T, 0.0))
-#b = assemble_boundary_load(problem, 1, boundary_parts, t)
-def Wext(u_):
-    u_aux = as_vector((u_[0],u_[1],u_[2]))
-    return dot(u_aux, p)*dss(3)
+Wext = assemble_boundary_load(problem, 3, boundary_subdomains, p)
 
 # Update formula for acceleration
 # a = 1/(2*beta)*((u - u0 - v0*dt)/(0.5*dt*dt) - (1-2*beta)*a0)
 def update_a(u, u_old, v_old, a_old):
+    dt_ = float(dt)
+    beta_ = float(beta)
     return (u-u_old-dt_*v_old)/beta_/dt_**2 - (1-2*beta_)/2/beta_*a_old
 
 # Update formula for velocity
 # v = dt * ((1-gamma)*a0 + gamma*a) + v0
 def update_v(a, u_old, v_old, a_old):
+    dt_ = float(dt)
+    gamma_ = float(gamma)
     return v_old + dt_*((1-gamma_)*a_old + gamma_*a)
 
 def update_fields(u, u_old, v_old, a_old):
@@ -133,8 +146,13 @@ def avg(x_old, x_new, alpha):
     return alpha*x_old + (1-alpha)*x_new
 
 # Residual
+du = TrialFunction(problem.V_DG)
+u_ = TestFunction(problem.V_DG)
 a_new = update_a(du, u_old, v_old, a_old)
 v_new = update_v(a_new, u_old, v_old, a_old)
+test = assemble(m(du+a_old, u_))
+sys.exit()
+
 res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
 a_form = lhs(res)
 L_form = rhs(res)
@@ -146,7 +164,6 @@ K, res = assemble_system(a_form, L_form)
 time = np.linspace(0, T, Nsteps+1)
 u_tip = np.zeros((Nsteps+1,))
 energies = np.zeros((Nsteps+1, 4))
-E_damp = 0
 E_ext = 0
 xdmf_file = XDMFFile("ref/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
