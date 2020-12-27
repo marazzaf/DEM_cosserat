@@ -70,6 +70,7 @@ problem.micropolar_constants(E, nu, l, Gc, M)
 u = Function(problem.V_DG)
 # Fields from previous time step (displacement, velocity, acceleration)
 u_old = Function(problem.V_DG)
+u_old_CR = Function(problem.V_CR)
 v_old = Function(problem.V_DG)
 a_old = Function(problem.V_DG)
 
@@ -104,14 +105,53 @@ def m(w, w_):
     return rho*inner(u, u_)*dx + rho*I*inner(phi,phi_)*dx 
 
 # Elastic stiffness form
-K = problem.elastic_bilinear_form()
-#Nitsche penalty bilinear form
-K += lhs_bnd_penalty(problem, boundary_subdomains, bcs)
-#Penalty matrix
-K += inner_penalty(problem)
+A = problem.elastic_bilinear_form()
+##Nitsche penalty bilinear form
+#K += lhs_bnd_penalty(problem, boundary_subdomains, bcs)
+##Penalty matrix
+#K += inner_penalty(problem)
+
+# Strain and torsion
+def strain(v, eta):
+    strain = nabla_grad(v)
+    strain += as_tensor([ [ 0, -eta[2], eta[1] ] , [ eta[2], 0, -eta[0] ] , [ -eta[1], eta[0], 0 ] ] )
+    return strain
+
+def torsion(eta):
+    return nabla_grad(eta)
+
+# Stress and couple stress
+def stress(e):
+    return lmbda * tr(e) * Identity(3) + 2*G * sym(e) + 2*Gc * skew(e)
+
+def couple(kappa):
+    return L * tr(kappa) * Identity(3) + 2*M * sym(kappa) + 2*Mc * skew(kappa)
+
+# Elastic stiffness form
+def k(w, w_):
+    du = as_vector((w[0],w[1],w[2]))
+    dphi = as_vector((w[3],w[4],w[5]))
+    u_ = as_vector((w_[0],w_[1],w_[2]))
+    phi_ = as_vector((w_[3],w_[4],w_[5]))
+    epsilon_u = strain(du, dphi)
+    epsilon_v = strain(u_, phi_)
+    chi_u = torsion(dphi)
+    chi_v = torsion(phi_)
+
+    sigma_u = stress(epsilon_u)
+    sigma_v = stress(epsilon_v)
+    m_u = couple(chi_u)
+    m_v = couple(chi_v)
+
+    return inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
 
 # Work of external forces
-Wext = assemble_boundary_load(problem, 3, boundary_subdomains, p)
+def Wext(u_):
+    u_aux = as_vector((u_[0],u_[1],u_[2]))
+    return dot(u_aux, p)*dss(3)
+
+## Work of external forces
+#Wext = assemble_boundary_load(problem, 3, boundary_subdomains, p)
 
 # Update formula for acceleration
 # a = 1/(2*beta)*((u - u0 - v0*dt)/(0.5*dt*dt) - (1-2*beta)*a0)
@@ -146,19 +186,42 @@ def avg(x_old, x_new, alpha):
     return alpha*x_old + (1-alpha)*x_new
 
 # Residual
-du = TrialFunction(problem.V_DG)
-u_ = TestFunction(problem.V_DG)
-a_new = update_a(du, u_old, v_old, a_old)
+du_DG = TrialFunction(problem.V_DG)
+u_DG = TestFunction(problem.V_DG)
+du_CR = TrialFunction(problem.V_CR)
+u_CR = TestFunction(problem.V_CR)
+a_new = update_a(du_DG, u_old, v_old, a_old)
 v_new = update_v(a_new, u_old, v_old, a_old)
-test = assemble(m(du+a_old, u_))
+
+#res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
+#mass
+res_mass = m(avg(a_old, a_new, alpha_m), u_DG)
+a_form_m = lhs(res_mass)
+L_form_m = rhs(res_mass)
+K_m, res_m = assemble_system(a_form_m, L_form_m)
+row,col,val = as_backend_type(K_m).mat().getValuesCSR()
+K_m = PETSc.Mat().createAIJ(size=(K_m.size(0),K_m.size(1)), csr=(row,col,val))
+print(type(K_m))
+
+#rigidity
+res_rigidity = k(avg(u_old_CR, du_CR, alpha_f), u_CR) - Wext(u_CR)
+a_form_r = lhs(res_rigidity)
+L_form_r = rhs(res_rigidity)
+K_r, res_r = assemble_system(a_form_r, L_form_r)
+K_r = as_backend_type(K_r)
+print(type(K_r))
+
+#Converting a matrix
+DEM_to_CR = PETSc.Mat().createAIJ(size=problem.DEM_to_CR.shape, csr=(problem.DEM_to_CR.indptr, problem.DEM_to_CR.indices,problem.DEM_to_CR.data))
+DEM_to_CR_aux = PETScMatrix(DEM_to_CR)
+print(type(DEM_to_CR))
+
+#Define solver
+#K = DEM_to_CR_aux.mat().transpose().matMult(K_r.mat().matMult(DEM_to_CR)) + K_m
+K = K_r.mat().matMult(DEM_to_CR)
+K = PETScMatrix(DEM_to_CR_aux.mat().transpose().matMult(K) + K_m)
+print(type(K))
 sys.exit()
-
-res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
-a_form = lhs(res)
-L_form = rhs(res)
-
-# Define solver for reusing factorization
-K, res = assemble_system(a_form, L_form)
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
