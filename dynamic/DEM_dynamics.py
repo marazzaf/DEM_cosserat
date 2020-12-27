@@ -104,8 +104,6 @@ def m(w, w_):
     phi_ = as_vector((w_[3],w_[4],w_[5]))
     return rho*inner(u, u_)*dx + rho*I*inner(phi,phi_)*dx 
 
-# Elastic stiffness form
-A = problem.elastic_bilinear_form()
 ##Nitsche penalty bilinear form
 #K += lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 ##Penalty matrix
@@ -217,7 +215,6 @@ DEM_to_CR_aux = PETScMatrix(DEM_to_CR)
 print(type(DEM_to_CR))
 
 #Define solver
-#K = DEM_to_CR_aux.mat().transpose().matMult(K_r.mat().matMult(DEM_to_CR)) + K_m
 K = K_r.mat().matMult(DEM_to_CR)
 K = PETScMatrix(DEM_to_CR_aux.mat().transpose().matMult(K) + K_m)
 print(type(K))
