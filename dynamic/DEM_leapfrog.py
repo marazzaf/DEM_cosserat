@@ -81,8 +81,15 @@ bc_5 = [4, u_0, 1]
 bc_6 = [5, u_0, 1]
 bcs = [bc_1, bc_2, bc_3, bc_4, bc_5, bc_6]
 
+def update_fields(disp, vel, vel_old, b):
+    u.vector()[:] = disp.vector()[:] + dt * vel.vector()[:]
+    F = b - K*u.vector()[:]
+    v_old.vector()[:] = v.vector()[:]
+    v.vector()[:] = vel.vector()[:] + F/mass*dt
+    return
+
 # Mass form
-mass,min_mass = mass_matrix(problem, rho, I)
+mass = mass_matrix(problem, rho, I)
 
 #Rigidity matrix
 K = problem.elastic_bilinear_form()
@@ -97,7 +104,6 @@ Wext = assemble_boundary_load(problem, 3, boundary_subdomains, p)
 #converting matrix
 A = K.tocsr()
 petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
-K = PETScMatrix(petsc_mat)
 
 #Computing time-step
 E = SLEPc.EPS(); E.create() #creating Eigenvalue solver
@@ -108,10 +114,8 @@ E.solve() #solving
 assert E.getConverged() #otherwise did not converge
 vr, wr = petsc_mat.getVecs()
 vi, wi = petsc_mat.getVecs()
-dt = 2 * np.sqrt(min_mass / E.getEigenpair(0, vr, vi).real)
+dt = 2 * np.sqrt(min(mass) / E.getEigenpair(0, vr, vi).real)
 Nsteps = int(T/dt) + 1
-
-sys.exit()
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
@@ -123,43 +127,23 @@ xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
 
-def local_project(v, V, u=None):
-    """Element-wise projection using LocalSolver"""
-    dv = TrialFunction(V)
-    v_ = TestFunction(V)
-    a_proj = inner(dv, v_)*dx
-    b_proj = inner(v, v_)*dx
-    solver = LocalSolver(a_proj, b_proj)
-    solver.factorize()
-    if u is None:
-        u = Function(V)
-        solver.solve_local_rhs(u)
-        return u
-    else:
-        solver.solve_local_rhs(u)
-        return
-
 for (i, dt) in enumerate(np.diff(time)):
 
     t = time[i+1]
     print("Time: ", t)
 
-    # Forces are evaluated at t_{n+1-alpha_f}=t_{n+1}-alpha_f*dt
-    p.t = t-float(alpha_f*dt)
+    # Forces are evaluated at t_{n+1}
+    p.t = t
 
-    # Solve for new displacement
-    res = assemble(L_form)
-    bc.apply(res)
-    solve(K, v_DG.vector(), res, 'mumps')
+    # Recompute rhs
+    Wext = assemble_boundary_load(problem, 3, boundary_subdomains, p)
 
-
-    # Update old fields with new quantities
-    update_fields(u, u_old, v_old, a_old)
+    # Update fields with new quantities
+    update_fields(u, v, v_old, Wext)
 
     # Save solution to XDMF format
     xdmf_file.write(u, t)
 
-    p.t = t
     # Record tip displacement and compute energies
     u_tip[i+1] = u(1., 0.05, 0.)[1]
     E_elas = assemble(0.5*k(u_old, u_old))
@@ -167,6 +151,7 @@ for (i, dt) in enumerate(np.diff(time)):
     E_ext += assemble(Wext(u-u_old))
     E_tot = E_elas+E_kin
     energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
+    sys.exit()
 
 # Plot tip displacement evolution
 plt.figure()
