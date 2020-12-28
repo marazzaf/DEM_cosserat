@@ -9,7 +9,9 @@ parameters["form_compiler"]["optimize"] = True
 # Define mesh
 Lx,Ly,Lz = 1., 0.1, 0.04
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
+#computation = 'test'
 mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+computation = 'fine'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -41,13 +43,13 @@ eta_m = Constant(0.)
 eta_k = Constant(0.)
 
 # Generalized-alpha method parameters
-alpha_m = Constant(0.2)
-alpha_f = Constant(0.4)
+alpha_m = Constant(0) #Constant(0.2)
+alpha_f = Constant(0) #Constant(0.4)
 gamma   = Constant(0.5+alpha_f-alpha_m)
 beta    = Constant((gamma+0.5)**2/4.)
 
 # Time-stepping parameters
-T       = 4.0
+T       = 1 #4
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
@@ -170,7 +172,7 @@ def update_fields(u, u_old, v_old, a_old):
 
     # Update (u_old <- u)
     v_old.vector()[:], a_old.vector()[:] = v_vec, a_vec
-    u_old.vector()[:] = u.vector()
+    #u_old.vector()[:] = u.vector()
 
 def avg(x_old, x_new, alpha):
     return alpha*x_old + (1-alpha)*x_new
@@ -193,10 +195,12 @@ u_tip = np.zeros((Nsteps+1,))
 energies = np.zeros((Nsteps+1, 4))
 E_damp = 0
 E_ext = 0
-xdmf_file = XDMFFile("ref/flexion.xdmf")
+xdmf_file = XDMFFile("ref/flexion_fine.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
+file = open('ref/energies_%s.txt' % computation, 'w')
+file_disp = open('ref/disp_%s.txt' % computation, 'w')
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -239,23 +243,30 @@ for (i, dt) in enumerate(np.diff(time)):
     u_tip[i+1] = u(1., 0.05, 0.)[1]
     E_elas = assemble(0.5*k(u_old, u_old))
     E_kin = assemble(0.5*m(v_old, v_old))
-    E_ext += assemble(Wext(u-u_old)) #fonctionne pas.
+    E_ext += assemble(Wext(u-u_old))
+    u_old.vector()[:] = u.vector()
+    
     E_tot = E_elas+E_kin
     energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
+    file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
+    file_disp.write('%.2e %.2e\n' % (t, u_tip[i+1]))
 
-# Plot tip displacement evolution
-plt.figure()
-plt.plot(time, u_tip)
-plt.xlabel("Time")
-plt.ylabel("Tip displacement")
-plt.ylim(-0.5, 0.5)
-plt.show()
+file.close()
+file_disp.close()
 
-# Plot energies evolution
-plt.figure()
-plt.plot(time, energies)
-plt.legend(("elastic", "kinetic", "total", "exterior"))
-plt.xlabel("Time")
-plt.ylabel("Energies")
-plt.ylim(0, 0.0011)
-plt.show()
+## Plot tip displacement evolution
+#plt.figure()
+#plt.plot(time, u_tip)
+#plt.xlabel("Time")
+#plt.ylabel("Tip displacement")
+#plt.ylim(-0.5, 0.5)
+#plt.show()
+#
+## Plot energies evolution
+#plt.figure()
+#plt.plot(time, energies)
+#plt.legend(("elastic", "kinetic", "total", "exterior"))
+#plt.xlabel("Time")
+#plt.ylabel("Energies")
+#plt.ylim(0, 0.0011)
+#plt.show()

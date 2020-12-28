@@ -13,8 +13,10 @@ parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
 Lx,Ly,Lz = 1., 0.1, 0.04
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
+#computation = 'test'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+computation = 'fine'
 
 # Sub domain for rotation at right end
 def right(x, on_boundary):
@@ -41,7 +43,7 @@ rho = Constant(1.0)
 I = Constant(2/5*l*l) #Quelle valeur donner à ca ?
 
 # Time-stepping parameters
-T       = 1e-3 #4.
+T       = 1 #4.
 p0 = 1.
 cutoff_Tc = T/5
 # Define the loading as an expression depending on t
@@ -121,12 +123,13 @@ Nsteps = int(T/dt) + 1
 time = np.linspace(0, T, Nsteps+1)
 u_tip = np.zeros((Nsteps+1,))
 energies = np.zeros((Nsteps+1, 4))
-file = open('DEM/energies.txt', 'w')
+file = open('DEM/energies_%s.txt' % computation, 'w')
 E_ext = 0
-xdmf_file = XDMFFile("DEM/flexion.xdmf")
+xdmf_file = XDMFFile("DEM/flexion_%s.xdmf" % computation)
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
+file_disp = open('DEM/disp_%s.txt' % computation, 'w')
 
 for (i, dt) in enumerate(np.diff(time)):
 
@@ -145,7 +148,9 @@ for (i, dt) in enumerate(np.diff(time)):
     update_fields(u, v, v_old, Wext)
 
     # Save solution to XDMF format
-    xdmf_file.write(u, t)
+    if i % 100 == 0:
+        xdmf_file.write(u, t)
+        xdmf_file.write(v, t)
 
     # Record tip displacement and compute energies
     u_tip[i+1] = u(1., 0.05, 0.)[1] #Ou reco DG1 ?
@@ -155,8 +160,10 @@ for (i, dt) in enumerate(np.diff(time)):
     E_tot = E_elas+E_kin
     energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
     file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
+    file_disp.write('%.2e %.2e\n' % (t, u_tip[i+1]))
 
 file.close()
+file_disp.close()
     
 ## Plot tip displacement evolution
 #plt.figure()
