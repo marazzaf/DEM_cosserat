@@ -3,7 +3,8 @@
 # Plot the error in SCF depending on the elements size
 from dolfin import *
 import matplotlib.pyplot as plt
-#from solver_3D import computation
+import sys
+
 # Parameters
 R = 10.0 # radius
 cube = 100.0 # dim
@@ -31,7 +32,7 @@ SCF_a = AnalyticalSolution(R, l, nu)
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 3
+mesh_num = 1
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -164,9 +165,10 @@ solver = LinearVariationalSolver(problem)
 solver.solve()
 u_h, phi_h = U_h.split()
 
-file = File('locking_%i_.pvd' % mesh_num)
+file = File('test_locking_%i_.pvd' % mesh_num)
 file << u_h
 file << phi_h
+sys.exit()
 
 epsilon_u_h = strain(u_h, phi_h)
 sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)

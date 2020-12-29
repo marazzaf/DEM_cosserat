@@ -66,6 +66,7 @@ print('nb dofs FEM: %i' % V.dofmap().global_dimension())
 U, S = V.split()
 U_1, U_2, U_3 = U.split()
 S_1, S_2, S_3 = S.split()
+sys.exit()
 
 # Test and trial functions
 du = TrialFunction(V)

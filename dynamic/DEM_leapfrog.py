@@ -117,6 +117,8 @@ assert E.getConverged() #otherwise did not converge
 vr, wr = petsc_mat.getVecs()
 vi, wi = petsc_mat.getVecs()
 dt = 2 * np.sqrt(min(mass) / E.getEigenpair(0, vr, vi).real)
+print(dt)
+sys.exit()
 Nsteps = int(T/dt) + 1
 
 # Time-stepping
