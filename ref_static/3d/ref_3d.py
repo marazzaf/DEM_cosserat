@@ -168,11 +168,13 @@ u_h, phi_h = U_h.split()
 file = File('test_locking_%i_.pvd' % mesh_num)
 file << u_h
 file << phi_h
-sys.exit()
 
 epsilon_u_h = strain(u_h, phi_h)
 sigma_u_h = stress(lmbda, mu, kappa, epsilon_u_h)
 U = FunctionSpace(mesh, 'CG', 1)
+tr_sigma = project(tr(sigma_u_h), U)
+file << tr_sigma
+sys.exit()
 sigma_yy = project(sigma_u_h[1,1], U)
 file << sigma_yy
 SCF = sigma_yy(R, 0, 0)
