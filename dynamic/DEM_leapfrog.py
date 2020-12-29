@@ -117,8 +117,6 @@ assert E.getConverged() #otherwise did not converge
 vr, wr = petsc_mat.getVecs()
 vi, wi = petsc_mat.getVecs()
 dt = 2 * np.sqrt(min(mass) / E.getEigenpair(0, vr, vi).real)
-print(dt)
-sys.exit()
 Nsteps = int(T/dt) + 1
 
 # Time-stepping
@@ -136,7 +134,8 @@ file_disp = open('DEM/disp_%s.txt' % computation, 'w')
 for (i, dt) in enumerate(np.diff(time)):
 
     t = time[i+1]
-    print("Time: ", t)
+    if i % int(1e4) == 0:
+        print("Time: ", t)
 
     # Forces are evaluated at t_{n+1}
     p.t = t
@@ -150,19 +149,19 @@ for (i, dt) in enumerate(np.diff(time)):
     update_fields(u, v, v_old, Wext)
 
     # Save solution to XDMF format
-    if i % 100 == 0:
+    if i % int(1e4) == 0:
         xdmf_file.write(u, t)
         xdmf_file.write(v, t)
 
-    # Record tip displacement and compute energies
-    u_tip[i+1] = u(1., 0.05, 0.)[1] #Ou reco DG1 ?
-    E_elas = 0.5*np.dot(u.vector()[:], K*u.vector()[:])
-    E_kin = 0.5**3*np.dot(v_old.vector()[:]+v.vector()[:], mass*(v_old.vector()[:]+v.vector()[:]))
-    E_ext += 0.5*np.dot(Wext+Wext_old, u.vector()[:]-u_old)
-    E_tot = E_elas+E_kin
-    energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
-    file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
-    file_disp.write('%.2e %.2e\n' % (t, u_tip[i+1]))
+        # Record tip displacement and compute energies
+        u_tip[i+1] = u(1., 0.05, 0.)[1] #Ou reco DG1 ?
+        E_elas = 0.5*np.dot(u.vector()[:], K*u.vector()[:])
+        E_kin = 0.5**3*np.dot(v_old.vector()[:]+v.vector()[:], mass*(v_old.vector()[:]+v.vector()[:]))
+        E_ext += 0.5*np.dot(Wext+Wext_old, u.vector()[:]-u_old)
+        E_tot = E_elas+E_kin
+        energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
+        file.write('%.5e %.5e %.5e %.5e %.5e\n' % (t, E_elas, E_kin, E_tot, E_ext))
+        file_disp.write('%.5e %.5e\n' % (t, u_tip[i+1]))
 
 file.close()
 file_disp.close()
