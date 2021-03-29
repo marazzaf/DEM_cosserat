@@ -23,14 +23,13 @@ def local_project(v, V, u=None):
 def DEM_interpolation(func, problem):
     """Interpolates a function or expression to return a DEM vector containg the interpolation."""
 
-    tot = local_project(func, problem.V_DG).vector().get_local()
+    tot = local_project(func, problem.V_DG).vector()
     if problem.dim == 2:
-        aux = tot.reshape((problem.V_DG.dim() // 3, 3))
-        return aux[:,:2].flatten(),aux[:,2],tot
-        #return tot
+        aux = tot.get_local().reshape((problem.V_DG.dim() // 3, 3))
+        return aux[:,:2].flatten(),aux[:,2],tot.vec()
     elif problem.dim == 3:
-        aux = tot.reshape((problem.V_DG.dim() // 6, 6))
-        return aux[:,:3].flatten(),aux[:,3:].flatten(),tot
+        aux = tot.get_local().reshape((problem.V_DG.dim() // 6, 6))
+        return aux[:,:3].flatten(),aux[:,3:].flatten(),tot.vec()
     else:
         ValueError('Problem with dimension')
 
@@ -65,8 +64,10 @@ def gradient_matrix(problem):
     Dv_DG,Dphi_DG = TestFunctions(problem.W)
     a = inner(grad(u_CR), Dv_DG) / vol * dx + inner(grad(phi_CR), Dphi_DG) / vol * dx
     A = assemble(a)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    return csr_matrix((val, col, row))
+    return as_backend_type(A).mat() #PETSc
+
+    #row,col,val = as_backend_type(A).mat().getValuesCSR()
+    #return csr_matrix((val, col, row)) #scipy.sparse
 
 def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     u,phi = TrialFunctions(problem.V_CR) #V_DG1

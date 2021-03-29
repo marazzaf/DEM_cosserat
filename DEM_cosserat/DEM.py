@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from dolfin import *
-from scipy.sparse import csr_matrix,diags
+#from scipy.sparse import csr_matrix,diags
 import numpy as np
 from petsc4py import PETSc
 from DEM_cosserat.reconstructions import *
@@ -10,7 +10,7 @@ from DEM_cosserat.miscellaneous import gradient_matrix
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh, penalty, penalty_u=1., penalty_phi=1.):
+    def __init__(self, mesh, penalty=1., penalty_u=1., penalty_phi=1.):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
         self.penalty_u = penalty_u
@@ -159,26 +159,30 @@ class DEMProblem:
             a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, mu_u)*dx
 
         A = assemble(a)
-        row,col,val = as_backend_type(A).mat().getValuesCSR()
-        A = csr_matrix((val, col, row))
-        return self.DEM_to_CR.T * A * self.DEM_to_CR
+        #PETSc mat
+        A = as_backend_type(A).mat()
+        return self.DEM_to_CR.transpose(PETSc.Mat()) * A * self.DEM_to_CR
+        #scipy.sparse mat
+        #row,col,val = as_backend_type(A).mat().getValuesCSR()
+        #A = csr_matrix((val, col, row))
+        #return self.DEM_to_CR.T * A * self.DEM_to_CR
 
-def inner_penalty_light(problem):
-    """Creates the penalty matrix on inner facets to stabilize the DEM."""
-    h = CellDiameter(problem.mesh)
-    h_avg = 0.5 * (h('+') + h('-'))
-    F = FacetArea(problem.mesh)
-
-    #Average facet jump bilinear form
-    u_DG,phi_DG = TrialFunctions(problem.V_DG1)
-    v_CR,psi_CR = TestFunctions(problem.V_CR)
-    F = FacetArea(problem.mesh)
-    a_jump = sqrt(problem.penalty_u / h_avg / F('+')) * inner(jump(u_DG), v_CR('+')) * dS + sqrt(problem.penalty_phi / h_avg / F('+')) * inner(jump(phi_DG), psi_CR('+')) * dS
-    A = assemble(a_jump)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    A = csr_matrix((val, col, row))
-
-    return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1
+#def inner_penalty_light(problem):
+#    """Creates the penalty matrix on inner facets to stabilize the DEM."""
+#    h = CellDiameter(problem.mesh)
+#    h_avg = 0.5 * (h('+') + h('-'))
+#    F = FacetArea(problem.mesh)
+#
+#    #Average facet jump bilinear form
+#    u_DG,phi_DG = TrialFunctions(problem.V_DG1)
+#    v_CR,psi_CR = TestFunctions(problem.V_CR)
+#    F = FacetArea(problem.mesh)
+#    a_jump = sqrt(problem.penalty_u / h_avg / F('+')) * inner(jump(u_DG), v_CR('+')) * dS + sqrt(problem.penalty_phi / h_avg / F('+')) * inner(jump(phi_DG), psi_CR('+')) * dS
+#    A = assemble(a_jump)
+#    row,col,val = as_backend_type(A).mat().getValuesCSR()
+#    A = csr_matrix((val, col, row))
+#
+#    return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1
 
 def inner_penalty(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
