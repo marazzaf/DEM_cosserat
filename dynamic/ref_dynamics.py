@@ -11,7 +11,7 @@ Lx,Ly,Lz = 1., 0.1, 0.04
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
 #computation = 'test'
 mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-computation = 'fine'
+computation = 'fine_bis'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -50,7 +50,7 @@ beta    = Constant((gamma+0.5)**2/4.)
 
 # Time-stepping parameters
 T       = 1 #4
-Nsteps  = 50
+Nsteps  = int(5e3)
 dt = Constant(T/Nsteps)
 
 p0 = 1.
@@ -66,7 +66,6 @@ print('nb dofs FEM: %i' % V.dofmap().global_dimension())
 U, S = V.split()
 U_1, U_2, U_3 = U.split()
 S_1, S_2, S_3 = S.split()
-sys.exit()
 
 # Test and trial functions
 du = TrialFunction(V)
@@ -237,7 +236,8 @@ for (i, dt) in enumerate(np.diff(time)):
     update_fields(u, u_old, v_old, a_old)
 
     # Save solution to XDMF format
-    xdmf_file.write(u, t)
+    if i % 100 == 0:
+        xdmf_file.write(u, t)
 
     p.t = t
     # Record tip displacement and compute energies
