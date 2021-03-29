@@ -205,18 +205,33 @@ def inner_penalty(problem):
 
     #Assembling matrix
     A = assemble(a_pen)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    A = csr_matrix((val, col, row))
+    #PETSc mat
+    A = as_backend_type(A).mat()
+    return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
 
-    return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
+    #scipy.sparse mat
+    #row,col,val = as_backend_type(A).mat().getValuesCSR()
+    #A = csr_matrix((val, col, row))
+    #return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
 
 def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia scalar matrix
     v,psi = TestFunctions(problem.V_DG)
     aux = Constant(('1', '1', '1'))
     form = rho * (inner(aux,v) + I*inner(aux,psi)) * dx
-    vec = assemble(form)
+    vec = as_backend_type(assemble(form)).vec()
+    #sys.exit()
 
-    return vec.get_local()
+    #creating PETSc mat
+    res = PETSc.Mat().create()
+    res.setSizes((problem.nb_dof_DEM,problem.nb_dof_DEM))
+    res.setUp()
+    res.setDiagonal(vec)
+    res.assemble() #needed for multiplications
+
+    return res
+
+    #np.array
+    #return vec.get_local()
 
     #A = diags(vec.get_local(), 0)
     #A = A.tocsr()
