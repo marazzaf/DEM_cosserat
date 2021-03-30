@@ -1,6 +1,6 @@
 # coding: utf-8
 from dolfin import *
-from scipy.sparse import csr_matrix
+from petsc4py import PETSc
 import ufl
 import sys
 
@@ -52,8 +52,12 @@ def assemble_boundary_load(problem, domain=None, subdomain_data=None, bnd_stress
     else:
         ds = Measure('ds')(subdomain_data=subdomain_data)
         form = (inner(bnd_torque, eta) + inner(bnd_stress, v)) * ds(domain)
-    L = assemble(form)
-    return problem.DEM_to_CR.T * L.get_local()
+    #scipy.sparse
+    #L = assemble(form)
+    #return problem.DEM_to_CR.T * L.get_local()
+    #PETSc
+    L = as_backend_type(assemble(form))
+    return problem.DEM_to_CR.transpose(PETSc.Mat()) * L.vec()
 
 
 def gradient_matrix(problem):
@@ -94,7 +98,6 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
         te_torsion = problem.torsion_3d(psi)
         te_sigma = problem.stress_3d(te_strain)
         te_mu = problem.torque_3d(te_torsion)       
-
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
         bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds - inner(dot(tr_sigma, n), v) * ds - inner(dot(te_sigma, n), u) * ds
@@ -124,12 +127,8 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
 
     #Assembling matrix
     Mat = assemble(bilinear)
-    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
-    #Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
-    
-    return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
-    #return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
+    Mat = as_backend_type(Mat).mat()
+    return problem.DEM_to_CR.transpose(PETSc.Mat()) * Mat * problem.DEM_to_CR
 
 def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
     #For rhs penalty term computation
@@ -170,10 +169,9 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
                 form_pen = problem.pen*2*problem.M / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
-    L = assemble(L).get_local()
+    L = as_backend_type(assemble(L))
     
-    return problem.DEM_to_CR.T * L
-    #return problem.DEM_to_DG1.T * L
+    return problem.DEM_to_CR.transpose(PETSc.Mat()) * L.vec()
 
 def energy_error_matrix(problem, subdomain_data):
     ds = Measure('ds')(subdomain_data=subdomain_data)
