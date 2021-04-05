@@ -73,6 +73,17 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
+    def micropolar_constants(self, E, nu, l, a):
+        self.E = E
+        self.nu = nu
+        self.l = l
+        self.a = a
+
+        #computing other parameters
+        self.G = 0.5*E/(1+nu)
+        return
+
+        
     def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0, incompressible=False):
         self.E = E
         self.nu = nu
@@ -113,8 +124,15 @@ class DEMProblem:
 
     def stresses_2d(self, strains):
         e,kappa = strains
-        sigma = self.lamda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
-        mu = 2*self.M * kappa
+        if hasattr(self, 'a'):
+            aux_1 = 2*(1-self.nu)/(1-2*self.nu)
+            aux_2 = 2*self.nu/(1-2*self.nu)
+            Mat = G * as_tensor(((aux_1,aux_2,0,0), (0,0,1+self.a,1-self.a), (0,0,1-self.a,1+self.a), (aux_2, aux_1,0,0))) #check if correct
+            sigma = dot(Mat, e)
+            mu = 4*self.G*self.l*self.l * kappa
+        else:
+            sigma = self.lamda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
+            mu = 2*self.M * kappa
         return sigma, mu
 
     def strain_3d(self, v, eta):
