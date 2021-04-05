@@ -36,7 +36,7 @@ def DEM_interpolation(func, problem):
 def assemble_volume_load(self, load):
     v = TestFunction(self.V_DG)
     form = inner(load, v) * dx
-    return assemble(form).get_local()
+    return as_backend_type(assemble(form)).vec()
 
 def assemble_boundary_load(problem, domain=None, subdomain_data=None, bnd_stress=None, bnd_torque=None):
     v,eta = TestFunctions(problem.V_CR)

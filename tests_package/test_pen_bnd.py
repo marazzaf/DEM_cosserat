@@ -2,13 +2,11 @@
 
 # Computation of the solution in the plate for different meshes
 from dolfin import *
-import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from scipy.sparse.linalg import spsolve
 import pytest #for unit tests
 
 # Mesh
@@ -50,11 +48,10 @@ def test_pen_bnd(mesh):
     #A += lhs_bnd_penalty(problem)
 
     #Solving linear problem
-    #v = spsolve(A,rhs)
     v_DG = Function(problem.V_DG)
     solve(PETScMatrix(A), v_DG.vector(), PETScVector(rhs), 'mumps')
     v_h = Function(problem.V_DG1)
-    v_h.vector().set_local(problem.DEM_to_DG1 * v_DG)
+    v_h.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
     u_h, phi_h = v_h.split()
 
     F = FacetArea(problem.mesh)
