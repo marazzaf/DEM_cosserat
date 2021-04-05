@@ -53,13 +53,20 @@ def test_patch1(mesh):
     v_h.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
     u_h, phi_h = v_h.split()
 
+    #Computing stresses
+    strains = problem.strains_2d(u_h, phi_h)
+    sigma,mu = problem.stresses_2d(strains)
+
     #Test
-    sys.exit()
-    F = FacetArea(problem.mesh)
-    W = FunctionSpace(problem.mesh, 'CR', 1)
+    W = FunctionSpace(problem.mesh, 'DG', 0)
     w = TestFunction(W)
-    aire = sum(assemble(w * ds).get_local())
-    assert round(assemble(u_h[0] / aire * ds), 2) == 0
-    assert round(assemble(u_h[1] / aire * ds), 2) == 0
-    assert round(assemble(phi_h / aire * ds), 2) == 0
+    volume = sum(assemble(w * dx).get_local())
+    #Testing stresses
+    assert round(assemble(sigma[0,0] / volume * dx), 8) == 4
+    assert round(assemble(sigma[1,1] / volume * dx), 8) == 4
+    assert round(assemble(sigma[1,0] / volume * dx), 8) == 1.5
+    assert round(assemble(sigma[0,1] / volume * dx), 8) == 1.5
+    #Testing moments
+    assert round(assemble(mu[0] / volume * dx), 8) == 0
+    assert round(assemble(mu[1] / volume * dx), 8) == 0
 
