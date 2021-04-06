@@ -30,6 +30,7 @@ def test_patch1(mesh):
 
     #compliance tensor
     problem.micropolar_constants(E, nu, l, a)
+    print(hasattr(problem, 'a'))
 
     # Variational problem
     A = problem.elastic_bilinear_form()
@@ -37,14 +38,18 @@ def test_patch1(mesh):
     #Penalty matrix
     A += inner_penalty(problem) #_light
 
+    #Volume load
+    q = Constant((0,0,1))
+    rhs = problem.assemble_volume_load(q)
+
     #BC
     u_D = Expression('1e-3*(x[0]+0.5*x[1])', degree=1)
     v_D = Expression('1e-3*(x[0]+x[1])', degree=1)
-    phi_D = Constant(0.25e-3)
+    phi_D = Constant(0.25e-3*(1+problem.a))
     bc = [[0, u_D], [1, v_D], [2, phi_D]]
     #Assembling
     A += lhs_bnd_penalty(problem, boundary_parts, bc)
-    rhs = rhs_bnd_penalty(problem, boundary_parts, bc)
+    rhs += rhs_bnd_penalty(problem, boundary_parts, bc)
 
     #Solving linear problem
     v_DG = Function(problem.V_DG)
@@ -66,9 +71,9 @@ def test_patch1(mesh):
     sigma_11 = local_project(sigma[1,1], W).vector().get_local()
     assert (np.round(sigma_11, 8) == 4).all()
     sigma_01 = local_project(sigma[0,1], W).vector().get_local()
-    assert (np.round(sigma_01, 8) == 1.5).all()
+    assert (np.round(sigma_01, 8) == 2).all()
     sigma_10 = local_project(sigma[1,0], W).vector().get_local()
-    assert (np.round(sigma_10, 8) == 1.5).all()
+    assert (np.round(sigma_10, 8) == 2).all()
     #Testing moments
     mu_0 = local_project(mu[0], W).vector().get_local()
     assert (np.round(mu_0, 8)  == 0).all()

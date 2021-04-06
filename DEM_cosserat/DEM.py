@@ -78,6 +78,7 @@ class DEMProblem:
         self.nu = nu
         self.l = l
         self.a = a
+        sys.exit()
 
         #computing other parameters
         self.G = 0.5*E/(1+nu)
