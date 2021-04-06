@@ -78,44 +78,43 @@ class DEMProblem:
         self.nu = nu
         self.l = l
         self.a = a
-        sys.exit()
 
         #computing other parameters
         self.G = 0.5*E/(1+nu)
         return
 
         
-    def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0, incompressible=False):
-        self.E = E
-        self.nu = nu
-        self.l = l
-        #used in material law
-        self.lamda = E*nu / (1+nu) / (1-2*nu)
-        self.G = 0.5*E/(1+nu)
-        if Gc > 0:
-            self.Gc = Gc
-        else:
-            self.Gc = self.G
-        self.M = self.G*l*l
-        #for 3d case
-        if self.dim == 3:
-            #self.L = ( mu * N*N ) / (N*N - 1)
-            if L > 0:
-                self.L = L
-            else:
-                self.L = self.M #best solution?
-            if Mc > 0:
-                self.Mc = Mc
-            else:
-                self.Mc = self.M
-        if incompressible:
-            N = 0.93
-            self.lamda = ( 2*self.G*self.nu ) / (1-2*self.nu)
-            self.alpha = ( self.G * N**2 ) / (N**2 - 1.0)
-            self.beta = self.G * self.l
-            self.gamma = self.G * self.l**2
-            self.kappa = self.gamma
-        return 
+    #def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0, incompressible=False):
+    #    self.E = E
+    #    self.nu = nu
+    #    self.l = l
+    #    #used in material law
+    #    self.lamda = E*nu / (1+nu) / (1-2*nu)
+    #    self.G = 0.5*E/(1+nu)
+    #    if Gc > 0:
+    #        self.Gc = Gc
+    #    else:
+    #        self.Gc = self.G
+    #    self.M = self.G*l*l
+    #    #for 3d case
+    #    if self.dim == 3:
+    #        #self.L = ( mu * N*N ) / (N*N - 1)
+    #        if L > 0:
+    #            self.L = L
+    #        else:
+    #            self.L = self.M #best solution?
+    #        if Mc > 0:
+    #            self.Mc = Mc
+    #        else:
+    #            self.Mc = self.M
+    #    if incompressible:
+    #        N = 0.93
+    #        self.lamda = ( 2*self.G*self.nu ) / (1-2*self.nu)
+    #        self.alpha = ( self.G * N**2 ) / (N**2 - 1.0)
+    #        self.beta = self.G * self.l
+    #        self.gamma = self.G * self.l**2
+    #        self.kappa = self.gamma
+    #    return 
         
     
     def strains_2d(self, v, psi):
@@ -125,11 +124,13 @@ class DEMProblem:
 
     def stresses_2d(self, strains):
         e,kappa = strains
+        eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
         if hasattr(self, 'a'):
             aux_1 = 2*(1-self.nu)/(1-2*self.nu)
             aux_2 = 2*self.nu/(1-2*self.nu)
-            Mat = G * as_tensor(((aux_1,aux_2,0,0), (0,0,1+self.a,1-self.a), (0,0,1-self.a,1+self.a), (aux_2, aux_1,0,0))) #check if correct
-            sigma = dot(Mat, e)
+            Mat = self.G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+self.a,1-self.a), (0,0,1-self.a,1+self.a))) #check if correct
+            sig = dot(Mat, eps)
+            sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
             mu = 4*self.G*self.l*self.l * kappa
         else:
             sigma = self.lamda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
