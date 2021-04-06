@@ -44,8 +44,8 @@ def test_patch1(mesh):
     #BC
     u_D = Expression('1e-3*(x[0]+0.5*x[1])', degree=1)
     v_D = Expression('1e-3*(x[0]+x[1])', degree=1)
-    alpha=2
-    phi_D = Constant(0.25e-3*(1+2))
+    alpha = 2
+    phi_D = Constant(0.25e-3*(1+alpha))
     bc = [[0, u_D], [1, v_D], [2, phi_D]]
     #Assembling
     A += lhs_bnd_penalty(problem, boundary_parts, bc)
