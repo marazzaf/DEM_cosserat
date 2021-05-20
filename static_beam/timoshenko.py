@@ -4,7 +4,7 @@ from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-L = 10.
+L = 1.
 thick = Constant(0.03)
 width = Constant(0.01)
 E = Constant(70e3)
