@@ -11,39 +11,17 @@ from DEM_cosserat.miscellaneous import *
 from solver_3D import computation
 
 # Parameters
-R = 10.0 # radius
-cube = 100.0 # dim
+R = 0.5e-2 # radius
+cube = 5e-2 # dim
 
 #compressible
 T = 1e6 # traction force
 nu = 0.3 # Poisson's ratio
-G = 10e6 # shear modulus
-Gc = 5e6 #other shear modulus
-E = 2*G*(1+nu) #Yound Modulus
-#lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
-l = 0.2 #10 # intrinsic length scale
-#N = 0.93 # coupling parameter
-#h3 = 2/5
-M = G * l*l#/h3
-
-##incompressible
-#T = 1
-#nu = 0.49
-#G = 1e3
-#lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
-#l = 0.2 # intrinsic length scale
-#N = 0.93 # coupling parameter
-
-# Analytical solution
-def AnalyticalSolution(R, l, nu):
-    k = R / l
-    eta = 0.2 # ratio of the transverse curvature to the principal curvature
-    k_1 = (3.0+eta) / ( 9.0 + 9.0*k + 4.0*k**2 + eta*(3.0 + 3.0*k + k**2) )
-    SCF = ( 3.0*(9.0 - 5.0*nu + 6.0*k_1*(1.0-nu)*(1.0+k)) ) / \
-          ( 2.0*(7.0 - 5.0*nu + 18.0*k_1*(1.0-nu)*(1.0+k)) )
-    return SCF
-
-SCF_a = AnalyticalSolution(R, l, nu)*T
+E = 3e9 #Young Modulus
+G = 0.5*E/(1+nu) #Shear modulus
+Gc = 0.84e9 # Second shear modulus
+lmbda = 2*G*nu / (1-2*nu) # 1st Lame constant
+l = 1e-3 #intrinsic length
 
 #Loading mesh
 mesh = Mesh()
@@ -139,7 +117,7 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('results/locking_%i_.pvd' % mesh_num)
+file = File('results/compressible_%i_.pvd' % mesh_num)
 #file << u_DG
 file << u_DG1
 #file << phi_DG
@@ -151,6 +129,7 @@ U = FunctionSpace(problem.mesh, 'DG', 0)
 #U = FunctionSpace(problem.mesh, 'CG', 1)
 sigma_yy = local_project(sigma_u_h[1,1], U)
 file << sigma_yy
+sys.exit()
 
 #Comparing SCF
 SCF = sigma_yy(R, 0, 0)

@@ -182,10 +182,6 @@ class DEMProblem:
         #PETSc mat
         A = as_backend_type(A).mat()
         return self.DEM_to_CR.transpose(PETSc.Mat()) * A * self.DEM_to_CR
-        #scipy.sparse mat
-        #row,col,val = as_backend_type(A).mat().getValuesCSR()
-        #A = csr_matrix((val, col, row))
-        #return self.DEM_to_CR.T * A * self.DEM_to_CR
 
 #def inner_penalty_light(problem):
 #    """Creates the penalty matrix on inner facets to stabilize the DEM."""
@@ -203,6 +199,10 @@ class DEMProblem:
 #    A = csr_matrix((val, col, row))
 #
 #    return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1
+
+def elastic_bilinear_form_cube(E, nu, mu_c, l):
+    mu = 0.5*E/(1+nu) #Shear modulus
+    lmbda = 2*mu*nu / (1-2*nu) # 1st Lame constant
 
 def inner_penalty(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
