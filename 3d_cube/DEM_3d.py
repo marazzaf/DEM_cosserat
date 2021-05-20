@@ -15,13 +15,16 @@ R = 0.5e-2 # radius
 cube = 5e-2 # dim
 
 #compressible
-T = 1e6 # traction force
+T = 5e9 # traction force
 nu = 0.3 # Poisson's ratio
 E = 3e9 #Young Modulus
 G = 0.5*E/(1+nu) #Shear modulus
 Gc = 0.84e9 # Second shear modulus
 lmbda = 2*G*nu / (1-2*nu) # 1st Lame constant
 l = 1e-3 #intrinsic length
+M = 2*G*l*l
+L = 2/3*M
+Mc = M
 
 #Loading mesh
 mesh = Mesh()
@@ -36,7 +39,7 @@ cte = 10
 problem = DEMProblem(mesh, cte)
 
 #Computing coefficients for Cosserat material
-problem.micropolar_constants(E, nu, l, Gc, M)
+problem.micropolar_constants_3d(E, nu, Gc, L, M, Mc)
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -100,21 +103,12 @@ b = assemble_boundary_load(problem, 1, boundary_parts, t)
 #Imposing weakly the BC!
 #b += rhs_bnd_penalty(problem, boundary_parts, bcs)
 
-#test
-from petsc4py import PETSc
-A = A.tocsr()
-petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
-A_aux = PETScMatrix(petsc_mat)
-x = Function(problem.V_DG)
-x.vector().set_local(b)
-xx = x.vector()
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), xx, 'mumps')
-
+solve(PETScMatrix(A), v_DG.vector(), PETScVector(b), 'mumps')
 u_DG, phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
-v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
+v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1, phi_DG1 = v_DG1.split()
 
 file = File('results/compressible_%i_.pvd' % mesh_num)

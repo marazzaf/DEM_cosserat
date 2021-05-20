@@ -83,39 +83,16 @@ class DEMProblem:
         self.G = 0.5*E/(1+nu)
         return
 
-        
-    #def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0, incompressible=False):
-    #    self.E = E
-    #    self.nu = nu
-    #    self.l = l
-    #    #used in material law
-    #    self.lamda = E*nu / (1+nu) / (1-2*nu)
-    #    self.G = 0.5*E/(1+nu)
-    #    if Gc > 0:
-    #        self.Gc = Gc
-    #    else:
-    #        self.Gc = self.G
-    #    self.M = self.G*l*l
-    #    #for 3d case
-    #    if self.dim == 3:
-    #        #self.L = ( mu * N*N ) / (N*N - 1)
-    #        if L > 0:
-    #            self.L = L
-    #        else:
-    #            self.L = self.M #best solution?
-    #        if Mc > 0:
-    #            self.Mc = Mc
-    #        else:
-    #            self.Mc = self.M
-    #    if incompressible:
-    #        N = 0.93
-    #        self.lamda = ( 2*self.G*self.nu ) / (1-2*self.nu)
-    #        self.alpha = ( self.G * N**2 ) / (N**2 - 1.0)
-    #        self.beta = self.G * self.l
-    #        self.gamma = self.G * self.l**2
-    #        self.kappa = self.gamma
-    #    return 
-        
+    def micropolar_constants_3d(self, E, nu, Gc, L, M, Mc):
+        self.Gc = Gc
+        self.L = L
+        self.M = M
+        self.Mc = Mc
+
+        #computing other parameters
+        self.G = 0.5*E/(1+nu)
+        self.lmbda = 2*self.G*nu / (1-2*nu)
+        return      
     
     def strains_2d(self, v, psi):
         e = nabla_grad(v) + as_tensor(((0, -1), (1, 0))) * psi
@@ -133,7 +110,7 @@ class DEMProblem:
             sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
             mu = 4*self.G*self.l*self.l * kappa
         else:
-            sigma = self.lamda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
+            sigma = self.lmbda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
             mu = 2*self.M * kappa
         return sigma, mu
 
@@ -146,7 +123,7 @@ class DEMProblem:
         return nabla_grad(eta)
 
     def stress_3d(self, e):
-        return self.lamda * tr(e) * Identity(3) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
+        return self.lmbda * tr(e) * Identity(3) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
 
     def torque_3d(self, kappa):
         return self.L * tr(kappa) * Identity(3) + 2*self.M * sym(kappa) + 2*self.Mc * skew(kappa)      
@@ -183,27 +160,6 @@ class DEMProblem:
         A = as_backend_type(A).mat()
         return self.DEM_to_CR.transpose(PETSc.Mat()) * A * self.DEM_to_CR
 
-#def inner_penalty_light(problem):
-#    """Creates the penalty matrix on inner facets to stabilize the DEM."""
-#    h = CellDiameter(problem.mesh)
-#    h_avg = 0.5 * (h('+') + h('-'))
-#    F = FacetArea(problem.mesh)
-#
-#    #Average facet jump bilinear form
-#    u_DG,phi_DG = TrialFunctions(problem.V_DG1)
-#    v_CR,psi_CR = TestFunctions(problem.V_CR)
-#    F = FacetArea(problem.mesh)
-#    a_jump = sqrt(problem.penalty_u / h_avg / F('+')) * inner(jump(u_DG), v_CR('+')) * dS + sqrt(problem.penalty_phi / h_avg / F('+')) * inner(jump(phi_DG), psi_CR('+')) * dS
-#    A = assemble(a_jump)
-#    row,col,val = as_backend_type(A).mat().getValuesCSR()
-#    A = csr_matrix((val, col, row))
-#
-#    return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1
-
-def elastic_bilinear_form_cube(E, nu, mu_c, l):
-    mu = 0.5*E/(1+nu) #Shear modulus
-    lmbda = 2*mu*nu / (1-2*nu) # 1st Lame constant
-
 def inner_penalty(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
     
@@ -233,10 +189,6 @@ def inner_penalty(problem):
     A = as_backend_type(A).mat()
     return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
 
-    #scipy.sparse mat
-    #row,col,val = as_backend_type(A).mat().getValuesCSR()
-    #A = csr_matrix((val, col, row))
-    #return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
 
 def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia scalar matrix
     v,psi = TestFunctions(problem.V_DG)
@@ -253,11 +205,3 @@ def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia
     res.assemble() #needed for multiplications
 
     return res
-
-    #np.array
-    #return vec.get_local()
-
-    #A = diags(vec.get_local(), 0)
-    #A = A.tocsr()
-    #petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
-    #return PETScMatrix(petsc_mat),min(vec)
