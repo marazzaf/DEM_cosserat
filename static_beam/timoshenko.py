@@ -4,11 +4,11 @@ from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-L = 1.
-thick = Constant(0.03)
-width = Constant(0.01)
-E = Constant(70e3)
-nu = Constant(0.)
+L = 6e-2
+thick = Constant(L/10)
+width = Constant(L/10)
+E = Constant(3e9)
+nu = Constant(0.3)
 
 EI = E*width*thick**3/12
 GS = E/2/(1+nu)*thick*width
@@ -36,7 +36,7 @@ def right_end(x, on_boundary):
 def left_end(x, on_boundary):
     return near(x[0], 0) and on_boundary
 
-bc = [DirichletBC(V.sub(0), Constant(0.), left_end), DirichletBC(V.sub(1), Constant(0.), left_end), DirichletBC(V.sub(0), Constant(1.), right_end)] #change bc
+bc = [DirichletBC(V.sub(0), Constant(0.), left_end), DirichletBC(V.sub(1), Constant(0.), left_end), DirichletBC(V.sub(0), Constant(L/10), right_end)] #change bc
 
 u = Function(V)
 solve(k_form == l_form, u, bc)
