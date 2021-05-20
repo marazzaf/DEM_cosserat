@@ -8,7 +8,6 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from solver_3D import computation
 
 # Parameters
 R = 0.5e-2 # radius
@@ -16,7 +15,7 @@ cube = 5e-2 # dim
 
 #compressible
 T = 5e9 # traction force
-nu = 0.3 # Poisson's ratio
+nu = 0.499999 # Poisson's ratio
 E = 3e9 #Young Modulus
 G = 0.5*E/(1+nu) #Shear modulus
 Gc = 0.84e9 # Second shear modulus
@@ -27,16 +26,13 @@ L = 2/3*M
 Mc = M
 
 #Loading mesh
-mesh = Mesh()
-mesh_num = 1
-with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
-    infile.read(mesh)
-hm = mesh.hmax()
-print(hm)
+mesh_num = 10
+mesh = BoxMesh(Point(0., 0., 0.), Point(cube, cube, cube), mesh_num, mesh_num, mesh_num)
 
 #Creating the DEM problem
-cte = 10
+cte = 100
 problem = DEMProblem(mesh, cte)
+print('nb dofs: %i' % problem.nb_dof_DEM)
 
 #Computing coefficients for Cosserat material
 problem.micropolar_constants_3d(E, nu, Gc, L, M, Mc)
@@ -111,7 +107,7 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('results/compressible_%i_.pvd' % mesh_num)
+file = File('DEM/locking_%i_.pvd' % mesh_num)
 #file << u_DG
 file << u_DG1
 #file << phi_DG
