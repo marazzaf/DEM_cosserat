@@ -99,7 +99,7 @@ m_v = couple(chi_v)
 
 t = Constant((0.0, T, 0.0))
 a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
-L = inner(t, eta)*ds(1) #change that for a flexion. Put a momentum.
+L = inner(t, eta)*ds(1)
 
 U_h = Function(V)
 problem = LinearVariationalProblem(a, L, U_h, bcs)
