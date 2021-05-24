@@ -8,16 +8,18 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
+from petsc4py import PETSc
     
 # Mesh
 L = 0.5
-nb_elt = 40
+nb_elt = 10 #40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
 nu = 0.3 # Poisson's ratio
 E = 1 #Young Modulus
 l = L # intrinsic length scale
+a = 0.5
 
 #Creating the DEM problem
 cte = 10 #1e2
@@ -33,7 +35,7 @@ phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
 tot_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])', 'B*(x[0]-x[1])'), A=A, B=B, degree=2)
 
 #compliance tensor
-problem.micropolar_constants(E, nu, l)
+problem.micropolar_constants(E, nu, l, a)
 
 # Variational problem
 elas = problem.elastic_bilinear_form()
@@ -46,9 +48,7 @@ lhs += inner_pen
 #lhs += inner_consistency(problem)
 
 #rhs
-#t = Expression(('-G*(2*A*(a+c)+B*(d-c))','-G*(2*A*(a+c)+B*(d-c))','-2*(x[0]-x[1] )*(d-c)*(B-A)*G'), G=G, A=A, B=B, a=a, b=b, c=c, d=d, degree = 1)
-#lambda+4G ???
-t = Expression(('-(lamda+2*G)','-(lamda+2*G)','2*(x[0]-x[1])*G'), G=problem.G, A=A, B=B, lamda=problem.lamda, degree = 1)
+t = Expression(('-G*(2*(1-nu)/(1-2*nu)+1-3*a)','-G*(2*(1-nu)/(1-2*nu)+1-3*a)','6*a*(x[1]-x[0])*G'), G=problem.G, nu=nu, a=a, degree = 1)
 rhs_load = problem.assemble_volume_load(t)
 rhs = np.zeros_like(rhs_load)
 rhs += rhs_load
@@ -66,25 +66,24 @@ bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
 #bnd = lhs_bnd_penalty_test(problem)
 lhs += bnd
 
-#Converting matrix
-from petsc4py import PETSc
-lhs = lhs.tocsr()
-petsc_mat = PETSc.Mat().createAIJ(size=lhs.shape, csr=(lhs.indptr, lhs.indices,lhs.data))
-lhs = PETScMatrix(petsc_mat)
-bb = Function(problem.V_DG)
-bb.vector().set_local(rhs)
-rhs = bb.vector()
+##Converting matrix
+#lhs = lhs.tocsr()
+#petsc_mat = PETSc.Mat().createAIJ(size=lhs.shape, csr=(lhs.indptr, lhs.indices,lhs.data))
+#lhs = PETScMatrix(petsc_mat)
+#bb = Function(problem.V_DG)
+#bb.vector().set_local(rhs)
+#rhs = bb.vector()
 
 #Solving linear problem
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(lhs, v_DG.vector(), rhs, 'mumps')
+solve(PETScMatrix(lhs), v_DG.vector(), PETScVector(rhs), 'mumps')
 u_DG,phi_DG = v_DG.split()
 vec_DG = v_DG.vector().get_local()
 
 #Computing reconstruction
 v_DG1 = Function(problem.V_DG1)
-v_DG1.vector().set_local(problem.DEM_to_DG1 * vec_DG)
+v_DG1.vector()[:] = problem.DEM_to_DG1 * vec_DG.vector().vec()
 u_DG1,phi_DG1 = v_DG1.split()
 
 ##plot
