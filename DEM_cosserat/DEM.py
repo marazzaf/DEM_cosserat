@@ -95,7 +95,7 @@ class DEMProblem:
         return      
     
     def strains_2d(self, v, psi):
-        e = nabla_grad(v) + as_tensor(((0, -1), (1, 0))) * psi
+        e = nabla_grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
         kappa = grad(psi)
         return e,kappa
 

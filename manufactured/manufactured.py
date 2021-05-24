@@ -22,7 +22,7 @@ l = L/100 # intrinsic length scale
 a = 0.5
 
 #Creating the DEM problem
-cte = 5e2 #1e2
+cte = 1e3 #1e2
 problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
@@ -96,7 +96,7 @@ U = FunctionSpace(mesh, 'DG', 1)
 #plt.colorbar(fig)
 #plt.show()
 
-#plot
+#plot errors
 fig = plot(u_DG1[0] - project(u_D[0], U))
 plt.colorbar(fig)
 plt.show()
