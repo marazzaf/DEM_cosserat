@@ -95,7 +95,7 @@ class DEMProblem:
         return      
     
     def strains_2d(self, v, psi):
-        e = nabla_grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
+        e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
         kappa = grad(psi)
         return e,kappa
 
@@ -109,9 +109,6 @@ class DEMProblem:
         sig = dot(Mat, eps)
         sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
         mu = 4*self.G*self.l*self.l * kappa
-        #else:
-        #    sigma = self.lmbda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
-        #    mu = 2*self.M * kappa
         return sigma, mu
 
     def strain_3d(self, v, eta):

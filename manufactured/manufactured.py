@@ -29,8 +29,8 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
 u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degree=2)
-phi_D = Expression('(x[1]-x[0])', degree=1)
-tot_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])', '(x[1]-x[0])'), degree=2)
+phi_D = Expression('(x[0]-x[1])', degree=1)
+tot_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])', '(x[0]-x[1])'), degree=2)
 
 #compliance tensor
 problem.micropolar_constants(E, nu, l, a)
@@ -72,9 +72,13 @@ u_DG,phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
 v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1,phi_DG1 = v_DG1.split()
+strains = problem.strains_2d(u_DG1, phi_DG1)
+sig,mu = problem.stresses_2d(strains)
+deff,kappa = strains
 
 #ref
 U = FunctionSpace(mesh, 'DG', 1)
+
 
 ##plot
 #fig = plot(u_DG1[0])
@@ -96,16 +100,22 @@ U = FunctionSpace(mesh, 'DG', 1)
 #plt.colorbar(fig)
 #plt.show()
 
-#plot errors
-fig = plot(u_DG1[0] - project(u_D[0], U))
-plt.colorbar(fig)
-plt.show()
-fig = plot(u_DG1[1] - project(u_D[1], U))
-plt.colorbar(fig)
-plt.show()
-fig = plot(phi_DG1 - project(phi_D, U))
-plt.colorbar(fig)
-plt.show()
+##test defs
+#fig = plot(kappa[1])
+#plt.colorbar(fig)
+#plt.show()
+#sys.exit()
+
+##plot errors
+#fig = plot(u_DG1[0] - project(u_D[0], U))
+#plt.colorbar(fig)
+#plt.show()
+#fig = plot(u_DG1[1] - project(u_D[1], U))
+#plt.colorbar(fig)
+#plt.show()
+#fig = plot(phi_DG1 - project(phi_D, U))
+#plt.colorbar(fig)
+#plt.show()
 
 #solution de ref
 U = VectorFunctionSpace(problem.mesh, 'CG', 2)
