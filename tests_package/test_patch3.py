@@ -11,7 +11,7 @@ import pytest #for unit tests
 
 # Mesh
 L = 0.12
-nb_elt = 10
+nb_elt = 40
 
 # Parameters
 nu = 0.25 # Poisson's ratio
@@ -67,9 +67,9 @@ def test_patch1(mesh):
     #Testing on all elements
     #Testing stresses
     sigma_00 = local_project(sigma[0,0], W).vector().get_local()
-    assert (np.round(sigma_00, 4) == 4).all()
+    assert (np.round(sigma_00, 2) == 4).all()
     sigma_11 = local_project(sigma[1,1], W).vector().get_local()
-    assert (np.round(sigma_11, 4) == 4).all()
+    assert (np.round(sigma_11, 2) == 4).all()
     aux = interpolate(Expression('x[0]-x[1]', degree=1), W).vector().get_local()
     sigma_01 = local_project(sigma[0,1], W).vector().get_local()
     assert (np.round(sigma_01 - 1.5 + aux, 2) == 0).all()

@@ -16,7 +16,8 @@ nb_elt = 10
 # Parameters
 nu = 0.3 # Poisson's ratio
 E = 1 #Young Modulus
-l = L # intrinsic length scale
+l = L/10 # intrinsic length scale
+a = 0.5
 pen = 1e2 #penalty parameter
 
 @pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")]) #, BoxMesh(Point(-L, -L, -L), Point(L, L, L), nb_elt, nb_elt, nb_elt)])
@@ -27,7 +28,7 @@ def test_pen_bnd(mesh):
     boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 
     #compliance tensor
-    problem.micropolar_constants(E, nu, l)
+    problem.micropolar_constants(E, nu, l, a)
 
     # Variational problem
     A = problem.elastic_bilinear_form()
@@ -58,9 +59,9 @@ def test_pen_bnd(mesh):
     W = FunctionSpace(problem.mesh, 'CR', 1)
     w = TestFunction(W)
     aire = sum(assemble(w * ds).get_local())
-    assert round(assemble(u_h[0] / aire * ds), 2) == 0
-    assert round(assemble(u_h[1] / aire * ds), 2) == 0
-    assert round(assemble(phi_h / aire * ds), 2) == 0
+    assert round(assemble(u_h[0] / aire * ds), 1) == 0
+    assert round(assemble(u_h[1] / aire * ds), 1) == 0
+    assert round(assemble(phi_h / aire * ds), 1) == 0
 
 #gamma,kappa = strain(u_h,phi_h)
 #U = FunctionSpace(problem.mesh, 'DG', 0)
