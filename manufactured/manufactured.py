@@ -12,27 +12,25 @@ from petsc4py import PETSc
     
 # Mesh
 L = 0.5
-nb_elt = 10 #40
+nb_elt = 80 #40
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
 nu = 0.3 # Poisson's ratio
 E = 1 #Young Modulus
-l = L # intrinsic length scale
+l = L/100 # intrinsic length scale
 a = 0.5
 
 #Creating the DEM problem
-cte = 10 #1e2
+cte = 5e2 #1e2
 problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
-A = 0.5 #What value to put?
-B = 1 #Same question
-u_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])'), A=A, degree=2)
-phi_D = Expression('B*(x[0]-x[1])', B=B, degree=1)
-tot_D = Expression(('A*(x[0]*x[0]+x[1]*x[1])','A*(x[0]*x[0]+x[1]*x[1])', 'B*(x[0]-x[1])'), A=A, B=B, degree=2)
+u_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])'), degree=2)
+phi_D = Expression('(x[1]-x[0])', degree=1)
+tot_D = Expression(('0.5*(x[0]*x[0]+x[1]*x[1])','0.5*(x[0]*x[0]+x[1]*x[1])', '(x[1]-x[0])'), degree=2)
 
 #compliance tensor
 problem.micropolar_constants(E, nu, l, a)
@@ -48,10 +46,8 @@ lhs += inner_pen
 #lhs += inner_consistency(problem)
 
 #rhs
-t = Expression(('-G*(2*(1-nu)/(1-2*nu)+1-3*a)','-G*(2*(1-nu)/(1-2*nu)+1-3*a)','6*a*(x[1]-x[0])*G'), G=problem.G, nu=nu, a=a, degree = 1)
-rhs_load = problem.assemble_volume_load(t)
-rhs = np.zeros_like(rhs_load)
-rhs += rhs_load
+t = Expression(('-G*(2*(1-nu)/(1-2*nu)+1+a)','-G*(2*(1-nu)/(1-2*nu)+1+a)','2*a*(x[0]-x[1])*G'), G=problem.G, nu=nu, a=a, degree = 1)
+Rhs = problem.assemble_volume_load(t)
 
 #Listing Dirichlet BC
 bc = [[0,u_D[0],0], [1, u_D[1],0], [2, phi_D,0]]
@@ -59,56 +55,57 @@ bc = [[0,u_D[0],0], [1, u_D[1],0], [2, phi_D,0]]
 #Nitsche penalty rhs
 #nitsche_and_bnd = rhs_bnd_penalty_test(problem, u_D, phi_D)
 nitsche_and_bnd = rhs_bnd_penalty(problem, boundary_parts, bc) 
-rhs += nitsche_and_bnd
+Rhs += nitsche_and_bnd
 
 #Nitsche penalty bilinear form
 bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
 #bnd = lhs_bnd_penalty_test(problem)
 lhs += bnd
 
-##Converting matrix
-#lhs = lhs.tocsr()
-#petsc_mat = PETSc.Mat().createAIJ(size=lhs.shape, csr=(lhs.indptr, lhs.indices,lhs.data))
-#lhs = PETScMatrix(petsc_mat)
-#bb = Function(problem.V_DG)
-#bb.vector().set_local(rhs)
-#rhs = bb.vector()
-
 #Solving linear problem
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(PETScMatrix(lhs), v_DG.vector(), PETScVector(rhs), 'mumps')
+solve(PETScMatrix(lhs), v_DG.vector(), PETScVector(Rhs), 'mumps')
 u_DG,phi_DG = v_DG.split()
-vec_DG = v_DG.vector().get_local()
 
 #Computing reconstruction
 v_DG1 = Function(problem.V_DG1)
-v_DG1.vector()[:] = problem.DEM_to_DG1 * vec_DG.vector().vec()
+v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1,phi_DG1 = v_DG1.split()
+
+#ref
+U = FunctionSpace(mesh, 'DG', 1)
 
 ##plot
 #fig = plot(u_DG1[0])
 #plt.colorbar(fig)
 #plt.show()
+#fig = plot(project(u_D[0], U))
+#plt.colorbar(fig)
+#plt.show()
 #fig = plot(u_DG1[1])
+#plt.colorbar(fig)
+#plt.show()
+#fig = plot(project(u_D[1], U))
 #plt.colorbar(fig)
 #plt.show()
 #fig = plot(phi_DG1)
 #plt.colorbar(fig)
 #plt.show()
-#sys.exit()
+#fig = plot(project(phi_D, U))
+#plt.colorbar(fig)
+#plt.show()
 
-##Bilan d'énergie
-#elastic_energy = 0.5*np.dot(vec_DG, elas * vec_DG)
-#inner_penalty_energy = 0.5*np.dot(vec_DG, inner_pen * vec_DG)
-#bnd_penalty_energy = 0.5*np.dot(vec_DG, bnd * vec_DG)
-#work = np.dot(nitsche_and_bnd, vec_DG)
-#work_load = np.dot(rhs_load, vec_DG)
-#print('Elastic: %.2e' % elastic_energy)
-#print('Inner pen: %.2e' % inner_penalty_energy)
-#print('Bnd pen: %.2e' % bnd_penalty_energy)
-#print('Work rhs bnd pen: %.2e' % work)
-#print('Work volume load: %.2e' % work_load)
+#plot
+fig = plot(u_DG1[0] - project(u_D[0], U))
+plt.colorbar(fig)
+plt.show()
+fig = plot(u_DG1[1] - project(u_D[1], U))
+plt.colorbar(fig)
+plt.show()
+fig = plot(phi_DG1 - project(phi_D, U))
+plt.colorbar(fig)
+plt.show()
 
 #solution de ref
 U = VectorFunctionSpace(problem.mesh, 'CG', 2)

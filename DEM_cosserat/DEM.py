@@ -102,16 +102,16 @@ class DEMProblem:
     def stresses_2d(self, strains):
         e,kappa = strains
         eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
-        if hasattr(self, 'a'):
-            aux_1 = 2*(1-self.nu)/(1-2*self.nu)
-            aux_2 = 2*self.nu/(1-2*self.nu)
-            Mat = self.G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+self.a,1-self.a), (0,0,1-self.a,1+self.a))) #check if correct
-            sig = dot(Mat, eps)
-            sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
-            mu = 4*self.G*self.l*self.l * kappa
-        else:
-            sigma = self.lmbda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
-            mu = 2*self.M * kappa
+        #if hasattr(self, 'a'):
+        aux_1 = 2*(1-self.nu)/(1-2*self.nu)
+        aux_2 = 2*self.nu/(1-2*self.nu)
+        Mat = self.G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+self.a,1-self.a), (0,0,1-self.a,1+self.a))) #check if correct
+        sig = dot(Mat, eps)
+        sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
+        mu = 4*self.G*self.l*self.l * kappa
+        #else:
+        #    sigma = self.lmbda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
+        #    mu = 2*self.M * kappa
         return sigma, mu
 
     def strain_3d(self, v, eta):
@@ -128,7 +128,7 @@ class DEMProblem:
     def torque_3d(self, kappa):
         return self.L * tr(kappa) * Identity(3) + 2*self.M * sym(kappa) + 2*self.Mc * skew(kappa)      
 
-    def elastic_bilinear_form(self,incompressible=False): #, strain, stress):
+    def elastic_bilinear_form(self):
         u_CR,psi_CR = TrialFunctions(self.V_CR)
         v_CR,eta_CR = TestFunctions(self.V_CR)
 
@@ -145,13 +145,8 @@ class DEMProblem:
             epsilon_v = self.strain_3d(v_CR, eta_CR)
             chi_u = self.torsion_3d(psi_CR)
             chi_v = self.torsion_3d(eta_CR)
-
-            if not incompressible:
-                sigma_u = self.stress_3d(epsilon_u)
-                mu_u = self.torque_3d(chi_u)
-            else:
-                sigma_u = self.lamda * tr(epsilon_u) * Identity(3) + (self.G+self.kappa) * epsilon_u + self.G * epsilon_u.T
-                mu_u = self.alpha * tr(chi_u) * Identity(3) + self.beta * chi_u + self.gamma * chi_u.T
+            sigma_u = self.stress_3d(epsilon_u)
+            mu_u = self.torque_3d(chi_u)
 
             a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, mu_u)*dx
 
@@ -181,7 +176,7 @@ def inner_penalty(problem):
         mu = problem.torque_3d(aux[1])
 
     #penalty bilinear form
-    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
+    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / problem.l**2 / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
 
     #Assembling matrix
     A = assemble(a_pen)
@@ -195,7 +190,6 @@ def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia
     aux = Constant(('1', '1', '1'))
     form = rho * (inner(aux,v) + I*inner(aux,psi)) * dx
     vec = as_backend_type(assemble(form)).vec()
-    #sys.exit()
 
     #creating PETSc mat
     res = PETSc.Mat().create()

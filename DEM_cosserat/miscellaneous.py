@@ -52,9 +52,7 @@ def assemble_boundary_load(problem, domain=None, subdomain_data=None, bnd_stress
     else:
         ds = Measure('ds')(subdomain_data=subdomain_data)
         form = (inner(bnd_torque, eta) + inner(bnd_stress, v)) * ds(domain)
-    #scipy.sparse
-    #L = assemble(form)
-    #return problem.DEM_to_CR.T * L.get_local()
+
     #PETSc
     L = as_backend_type(assemble(form))
     return problem.DEM_to_CR.transpose(PETSc.Mat()) * L.vec()
@@ -70,8 +68,6 @@ def gradient_matrix(problem):
     A = assemble(a)
     return as_backend_type(A).mat() #PETSc
 
-    #row,col,val = as_backend_type(A).mat().getValuesCSR()
-    #return csr_matrix((val, col, row)) #scipy.sparse
 
 def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     u,phi = TrialFunctions(problem.V_CR) #V_DG1
@@ -120,7 +116,7 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
                     form_pen = problem.pen * (problem.G+problem.Gc) / h * phi[component-problem.dim] * psi[component-problem.dim] * dds - dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds - dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
                 elif problem.dim == 2:
                     #form_pen = problem.pen*2*problem.M / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
-                    form_pen = problem.pen*2*problem.G / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
+                    form_pen = problem.pen*4*problem.G / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
@@ -170,7 +166,7 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
                 form_pen = problem.pen* (problem.M+problem.Mc) / h * imposed_value * psi[component-problem.dim] * dds - dot(mu, n)[component-problem.dim] * imposed_value * dds
             elif problem.dim == 2:
                 #form_pen = problem.pen*2*problem.M / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
-                form_pen = problem.pen*2*problem.G / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
+                form_pen = problem.pen*4*problem.G / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = as_backend_type(assemble(L))
