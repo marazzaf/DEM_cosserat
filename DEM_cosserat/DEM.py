@@ -102,12 +102,11 @@ class DEMProblem:
     def stresses_2d(self, strains):
         e,kappa = strains
         eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
-        #if hasattr(self, 'a'):
         aux_1 = 2*(1-self.nu)/(1-2*self.nu)
         aux_2 = 2*self.nu/(1-2*self.nu)
         Mat = self.G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+self.a,1-self.a), (0,0,1-self.a,1+self.a))) #check if correct
         sig = dot(Mat, eps)
-        sigma = as_tensor(((sig[0], sig[3]), (sig[2], sig[1])))
+        sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
         mu = 4*self.G*self.l*self.l * kappa
         return sigma, mu
 

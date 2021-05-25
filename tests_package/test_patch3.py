@@ -44,7 +44,7 @@ def test_patch1(mesh):
     #BC
     u_D = Expression('1e-3*(x[0]+0.5*x[1])', degree=1)
     v_D = Expression('1e-3*(x[0]+x[1])', degree=1)
-    alpha=2
+    alpha = -2
     phi_D = Expression('1e-3*(0.25+0.5*alpha*(x[0]-x[1]))', alpha=alpha, degree=1) #change that
     bc = [[0, u_D], [1, v_D], [2, phi_D]]
     #Assembling
