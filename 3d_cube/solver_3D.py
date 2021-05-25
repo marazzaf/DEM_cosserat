@@ -8,8 +8,8 @@ def computation(mesh, cube, T, nu, mu, Gc, l, num_mesh):
     lamda = 2*mu*nu / (1-2*nu)
     #torque
     #h3 = 2/5
-    M = mu * l*l#/h3
-    L = M
+    M = 2*mu* l*l
+    L = 2/3*M
     Mc = M
     #Change these.
 
@@ -107,13 +107,13 @@ def computation(mesh, cube, T, nu, mu, Gc, l, num_mesh):
     U_h = Function(V)
     problem = LinearVariationalProblem(a, L, U_h, bcs)
     solver = LinearVariationalSolver(problem)
-    solver.parameters['linear_solver'] = 'cg'
-    solver.parameters['preconditioner'] = 'hypre_amg'
+    solver.parameters['linear_solver'] = 'mumps'
+    #solver.parameters['preconditioner'] = 'hypre_amg'
     solver.solve()
     u_h, phi_h = U_h.split()
 
     #output ref
-    file = File('results/ref_locking_%i_.pvd' % num_mesh)
+    file = File('FEM/locking_%i_.pvd' % num_mesh)
     file << u_h
     file << phi_h
 
@@ -125,3 +125,12 @@ def computation(mesh, cube, T, nu, mu, Gc, l, num_mesh):
     file << sigma_yy
 
     return u_h,phi_h
+
+T=5e9
+E = 3e9
+nu = 0.499999
+mu = 0.5*E/(1+nu)
+cube = 5e-2
+mesh_num = 10
+mesh = BoxMesh(Point(0., 0., 0.), Point(cube, cube, cube), mesh_num, mesh_num, mesh_num)
+computation(mesh, 5e-2, T, nu, mu, 8.84e9, 1e-3, mesh_num)

@@ -8,57 +8,34 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
-from solver_3D import computation
 
 # Parameters
-R = 10.0 # radius
-cube = 100.0 # dim
+R = 0.5e-2 # radius
+cube = 5e-2 # dim
 
 #compressible
-T = 1e6 # traction force
-nu = 0.3 # Poisson's ratio
-G = 10e6 # shear modulus
-Gc = 5e6 #other shear modulus
-E = 2*G*(1+nu) #Yound Modulus
-#lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
-l = 0.2 #10 # intrinsic length scale
-#N = 0.93 # coupling parameter
-#h3 = 2/5
-M = G * l*l#/h3
-
-##incompressible
-#T = 1
-#nu = 0.49
-#G = 1e3
-#lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
-#l = 0.2 # intrinsic length scale
-#N = 0.93 # coupling parameter
-
-# Analytical solution
-def AnalyticalSolution(R, l, nu):
-    k = R / l
-    eta = 0.2 # ratio of the transverse curvature to the principal curvature
-    k_1 = (3.0+eta) / ( 9.0 + 9.0*k + 4.0*k**2 + eta*(3.0 + 3.0*k + k**2) )
-    SCF = ( 3.0*(9.0 - 5.0*nu + 6.0*k_1*(1.0-nu)*(1.0+k)) ) / \
-          ( 2.0*(7.0 - 5.0*nu + 18.0*k_1*(1.0-nu)*(1.0+k)) )
-    return SCF
-
-SCF_a = AnalyticalSolution(R, l, nu)*T
+T = 5e9 # traction force
+nu = 0.499999 # Poisson's ratio
+E = 3e9 #Young Modulus
+G = 0.5*E/(1+nu) #Shear modulus
+Gc = 0.84e9 # Second shear modulus
+lmbda = 2*G*nu / (1-2*nu) # 1st Lame constant
+l = 1e-3 #intrinsic length
+M = 2*G*l*l
+L = 2/3*M
+Mc = M
 
 #Loading mesh
-mesh = Mesh()
-mesh_num = 1
-with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
-    infile.read(mesh)
-hm = mesh.hmax()
-print(hm)
+mesh_num = 10
+mesh = BoxMesh(Point(0., 0., 0.), Point(cube, cube, cube), mesh_num, mesh_num, mesh_num)
 
 #Creating the DEM problem
-cte = 10
+cte = 100
 problem = DEMProblem(mesh, cte)
+print('nb dofs: %i' % problem.nb_dof_DEM)
 
 #Computing coefficients for Cosserat material
-problem.micropolar_constants(E, nu, l, Gc, M)
+problem.micropolar_constants_3d(E, nu, Gc, L, M, Mc)
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -122,24 +99,15 @@ b = assemble_boundary_load(problem, 1, boundary_parts, t)
 #Imposing weakly the BC!
 #b += rhs_bnd_penalty(problem, boundary_parts, bcs)
 
-#test
-from petsc4py import PETSc
-A = A.tocsr()
-petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
-A_aux = PETScMatrix(petsc_mat)
-x = Function(problem.V_DG)
-x.vector().set_local(b)
-xx = x.vector()
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(A_aux, v_DG.vector(), xx, 'mumps')
-
+solve(PETScMatrix(A), v_DG.vector(), PETScVector(b), 'mumps')
 u_DG, phi_DG = v_DG.split()
 v_DG1 = Function(problem.V_DG1)
-v_DG1.vector().set_local(problem.DEM_to_DG1 * v_DG.vector())
+v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1, phi_DG1 = v_DG1.split()
 
-file = File('results/locking_%i_.pvd' % mesh_num)
+file = File('DEM/locking_%i_.pvd' % mesh_num)
 #file << u_DG
 file << u_DG1
 #file << phi_DG
@@ -151,6 +119,7 @@ U = FunctionSpace(problem.mesh, 'DG', 0)
 #U = FunctionSpace(problem.mesh, 'CG', 1)
 sigma_yy = local_project(sigma_u_h[1,1], U)
 file << sigma_yy
+sys.exit()
 
 #Comparing SCF
 SCF = sigma_yy(R, 0, 0)

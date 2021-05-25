@@ -236,7 +236,8 @@ for (i, dt) in enumerate(np.diff(time)):
     update_fields(u, u_old, v_old, a_old)
 
     # Save solution to XDMF format
-    xdmf_file.write(u, t)
+    if i % 100 == 0:
+        xdmf_file.write(u, t)
 
     p.t = t
     # Record tip displacement and compute energies

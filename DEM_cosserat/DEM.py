@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from dolfin import *
-from scipy.sparse import csr_matrix,diags
+#from scipy.sparse import csr_matrix,diags
 import numpy as np
 from petsc4py import PETSc
 from DEM_cosserat.reconstructions import *
@@ -10,7 +10,7 @@ from DEM_cosserat.miscellaneous import gradient_matrix
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh, penalty, penalty_u=1., penalty_phi=1.):
+    def __init__(self, mesh, penalty=1., penalty_u=1., penalty_phi=1.):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
         self.penalty_u = penalty_u
@@ -73,48 +73,42 @@ class DEMProblem:
     from DEM_cosserat.miscellaneous import assemble_volume_load
 
     #Defining methods
-    def micropolar_constants(self, E, nu, l, Gc=0, L=0, Mc=0, incompressible=False):
+    def micropolar_constants(self, E, nu, l, a):
         self.E = E
         self.nu = nu
         self.l = l
-        #used in material law
-        self.lamda = E*nu / (1+nu) / (1-2*nu)
+        self.a = a
+
+        #computing other parameters
         self.G = 0.5*E/(1+nu)
-        if Gc > 0:
-            self.Gc = Gc
-        else:
-            self.Gc = self.G
-        self.M = self.G*l*l
-        #for 3d case
-        if self.dim == 3:
-            #self.L = ( mu * N*N ) / (N*N - 1)
-            if L > 0:
-                self.L = L
-            else:
-                self.L = self.M #best solution?
-            if Mc > 0:
-                self.Mc = Mc
-            else:
-                self.Mc = self.M
-        if incompressible:
-            N = 0.93
-            self.lamda = ( 2*self.G*self.nu ) / (1-2*self.nu)
-            self.alpha = ( self.G * N**2 ) / (N**2 - 1.0)
-            self.beta = self.G * self.l
-            self.gamma = self.G * self.l**2
-            self.kappa = self.gamma
-        return 
-        
+        return
+
+    def micropolar_constants_3d(self, E, nu, Gc, L, M, Mc):
+        self.Gc = Gc
+        self.L = L
+        self.M = M
+        self.Mc = Mc
+
+        #computing other parameters
+        self.G = 0.5*E/(1+nu)
+        self.lmbda = 2*self.G*nu / (1-2*nu)
+        return      
     
     def strains_2d(self, v, psi):
-        e = nabla_grad(v) + as_tensor(((0, -1), (1, 0))) * psi
+        e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
         kappa = grad(psi)
         return e,kappa
 
     def stresses_2d(self, strains):
         e,kappa = strains
-        sigma = self.lamda * tr(e) * Identity(2) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
-        mu = 2*self.M * kappa
+        eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
+        #if hasattr(self, 'a'):
+        aux_1 = 2*(1-self.nu)/(1-2*self.nu)
+        aux_2 = 2*self.nu/(1-2*self.nu)
+        Mat = self.G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+self.a,1-self.a), (0,0,1-self.a,1+self.a))) #check if correct
+        sig = dot(Mat, eps)
+        sigma = as_tensor(((sig[0], sig[3]), (sig[2], sig[1])))
+        mu = 4*self.G*self.l*self.l * kappa
         return sigma, mu
 
     def strain_3d(self, v, eta):
@@ -126,12 +120,12 @@ class DEMProblem:
         return nabla_grad(eta)
 
     def stress_3d(self, e):
-        return self.lamda * tr(e) * Identity(3) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
+        return self.lmbda * tr(e) * Identity(3) + 2*self.G * sym(e) + 2*self.Gc * skew(e)
 
     def torque_3d(self, kappa):
         return self.L * tr(kappa) * Identity(3) + 2*self.M * sym(kappa) + 2*self.Mc * skew(kappa)      
 
-    def elastic_bilinear_form(self,incompressible=False): #, strain, stress):
+    def elastic_bilinear_form(self):
         u_CR,psi_CR = TrialFunctions(self.V_CR)
         v_CR,eta_CR = TestFunctions(self.V_CR)
 
@@ -148,37 +142,15 @@ class DEMProblem:
             epsilon_v = self.strain_3d(v_CR, eta_CR)
             chi_u = self.torsion_3d(psi_CR)
             chi_v = self.torsion_3d(eta_CR)
-
-            if not incompressible:
-                sigma_u = self.stress_3d(epsilon_u)
-                mu_u = self.torque_3d(chi_u)
-            else:
-                sigma_u = self.lamda * tr(epsilon_u) * Identity(3) + (self.G+self.kappa) * epsilon_u + self.G * epsilon_u.T
-                mu_u = self.alpha * tr(chi_u) * Identity(3) + self.beta * chi_u + self.gamma * chi_u.T
+            sigma_u = self.stress_3d(epsilon_u)
+            mu_u = self.torque_3d(chi_u)
 
             a = inner(epsilon_v, sigma_u)*dx + inner(chi_v, mu_u)*dx
 
         A = assemble(a)
-        row,col,val = as_backend_type(A).mat().getValuesCSR()
-        A = csr_matrix((val, col, row))
-        return self.DEM_to_CR.T * A * self.DEM_to_CR
-
-def inner_penalty_light(problem):
-    """Creates the penalty matrix on inner facets to stabilize the DEM."""
-    h = CellDiameter(problem.mesh)
-    h_avg = 0.5 * (h('+') + h('-'))
-    F = FacetArea(problem.mesh)
-
-    #Average facet jump bilinear form
-    u_DG,phi_DG = TrialFunctions(problem.V_DG1)
-    v_CR,psi_CR = TestFunctions(problem.V_CR)
-    F = FacetArea(problem.mesh)
-    a_jump = sqrt(problem.penalty_u / h_avg / F('+')) * inner(jump(u_DG), v_CR('+')) * dS + sqrt(problem.penalty_phi / h_avg / F('+')) * inner(jump(phi_DG), psi_CR('+')) * dS
-    A = assemble(a_jump)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    A = csr_matrix((val, col, row))
-
-    return problem.DEM_to_DG1.T * A.T * A * problem.DEM_to_DG1
+        #PETSc mat
+        A = as_backend_type(A).mat()
+        return self.DEM_to_CR.transpose(PETSc.Mat()) * A * self.DEM_to_CR
 
 def inner_penalty(problem):
     """Creates the penalty matrix on inner facets to stabilize the DEM."""
@@ -201,24 +173,26 @@ def inner_penalty(problem):
         mu = problem.torque_3d(aux[1])
 
     #penalty bilinear form
-    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
+    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / problem.l**2 / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
 
     #Assembling matrix
     A = assemble(a_pen)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    A = csr_matrix((val, col, row))
+    #PETSc mat
+    A = as_backend_type(A).mat()
+    return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
 
-    return problem.DEM_to_DG1.T * A * problem.DEM_to_DG1
 
 def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia scalar matrix
     v,psi = TestFunctions(problem.V_DG)
     aux = Constant(('1', '1', '1'))
     form = rho * (inner(aux,v) + I*inner(aux,psi)) * dx
-    vec = assemble(form)
+    vec = as_backend_type(assemble(form)).vec()
 
-    return vec.get_local()
+    #creating PETSc mat
+    res = PETSc.Mat().create()
+    res.setSizes((problem.nb_dof_DEM,problem.nb_dof_DEM))
+    res.setUp()
+    res.setDiagonal(vec)
+    res.assemble() #needed for multiplications
 
-    #A = diags(vec.get_local(), 0)
-    #A = A.tocsr()
-    #petsc_mat = PETSc.Mat().createAIJ(size=A.shape, csr=(A.indptr, A.indices,A.data))
-    #return PETScMatrix(petsc_mat),min(vec)
+    return res

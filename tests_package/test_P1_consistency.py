@@ -33,9 +33,9 @@ def test_reconstruction(mesh):
     #CR interpolation
     test_CR = Function(problem.V_CR)
     reco_CR = problem.DEM_to_CR * tot
-    test_CR.vector().set_local(reco_CR)
-    assert round(max(reco_CR), 15) == L
-    assert round(min(reco_CR), 15) == -L
+    test_CR.vector()[:] = reco_CR
+    assert round(max(test_CR.vector()), 15) == L
+    assert round(min(test_CR.vector()), 15) == -L
 
     #Test on gradient on displacements
     test_CR_u,test_CR_phi = test_CR.split()
@@ -82,43 +82,15 @@ def test_reconstruction(mesh):
         assert round(min(gradient_phi_vec[:,2,0]),13) == 0. and round(max(gradient_phi_vec[:,2,0]),13) == 0.
         assert round(min(gradient_phi_vec[:,2,1]),13) == 0. and round(max(gradient_phi_vec[:,2,1]),13) == 0.
         assert round(min(gradient_phi_vec[:,1,2]),13) == 0. and round(max(gradient_phi_vec[:,1,2]),13) == 0.
-
-    ###test
-    ##func_DG0 = local_project(func,problem.V_DG)
-    ##func_DG1 = local_project(func_DG0, problem.V_DG1)
-    ##print(func_DG1.vector().get_local())
-    #vol = CellVolume(problem.mesh)
-    #test_DG1 = TrialFunction(problem.V_DG1)
-    #trial_DG0 = TestFunction(problem.V_DG)
-    #mat = problem.d * inner(trial_DG0, test_DG1) / vol * dx
-    #Mat = assemble(mat)
-    #row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    #Mat = csr_matrix((val, col, row))
-    #print(Mat)
-    #sys.exit()
     
 
     #test DG1 reconstruction
-    #func = Constant(['1.'] * problem.d )
-    #if problem.dim == 3:
-    #    func = as_vector((0,0,0,0,0,x[2]))
     u,phi,tot = DEM_interpolation(func, problem)
     test_DG1 = Function(problem.V_DG1)
     reco_DG1 = problem.DEM_to_DG1 * tot
-    test_DG1.vector().set_local(reco_DG1)
-    #if problem.dim == 2:
-    #    img = plot(test_DG1[2])
-    #    plt.colorbar(img)
-    #    plt.show()
-    #assert round(max(reco_DG1), 14) == 1
-    #assert round(min(reco_DG1), 14) == 1
-    #print(reco_DG1[reco_DG1 > 1])
-    #print(reco_DG1[reco_DG1 < 1])
-    #print(reco_DG1[reco_DG1 > L])
-    #print(reco_DG1[reco_DG1 < -L])
-    assert round(max(reco_DG1), 14) == L
-    assert round(min(reco_DG1), 14) == -L
-    #sys.exit()
+    test_DG1.vector()[:] = reco_DG1 
+    assert round(max(test_DG1.vector()), 14) == L
+    assert round(min(test_DG1.vector()), 14) == -L
 
     #Test on gradient on displacements
     test_DG1_u,test_DG1_phi = test_DG1.split()

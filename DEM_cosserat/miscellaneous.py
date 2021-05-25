@@ -1,6 +1,6 @@
 # coding: utf-8
 from dolfin import *
-from scipy.sparse import csr_matrix
+from petsc4py import PETSc
 import ufl
 import sys
 
@@ -23,21 +23,20 @@ def local_project(v, V, u=None):
 def DEM_interpolation(func, problem):
     """Interpolates a function or expression to return a DEM vector containg the interpolation."""
 
-    tot = local_project(func, problem.V_DG).vector().get_local()
+    tot = local_project(func, problem.V_DG).vector()
     if problem.dim == 2:
-        aux = tot.reshape((problem.V_DG.dim() // 3, 3))
-        return aux[:,:2].flatten(),aux[:,2],tot
-        #return tot
+        aux = tot.get_local().reshape((problem.V_DG.dim() // 3, 3))
+        return aux[:,:2].flatten(),aux[:,2],tot.vec()
     elif problem.dim == 3:
-        aux = tot.reshape((problem.V_DG.dim() // 6, 6))
-        return aux[:,:3].flatten(),aux[:,3:].flatten(),tot
+        aux = tot.get_local().reshape((problem.V_DG.dim() // 6, 6))
+        return aux[:,:3].flatten(),aux[:,3:].flatten(),tot.vec()
     else:
         ValueError('Problem with dimension')
 
 def assemble_volume_load(self, load):
     v = TestFunction(self.V_DG)
     form = inner(load, v) * dx
-    return assemble(form).get_local()
+    return as_backend_type(assemble(form)).vec()
 
 def assemble_boundary_load(problem, domain=None, subdomain_data=None, bnd_stress=None, bnd_torque=None):
     v,eta = TestFunctions(problem.V_CR)
@@ -53,8 +52,10 @@ def assemble_boundary_load(problem, domain=None, subdomain_data=None, bnd_stress
     else:
         ds = Measure('ds')(subdomain_data=subdomain_data)
         form = (inner(bnd_torque, eta) + inner(bnd_stress, v)) * ds(domain)
-    L = assemble(form)
-    return problem.DEM_to_CR.T * L.get_local()
+
+    #PETSc
+    L = as_backend_type(assemble(form))
+    return problem.DEM_to_CR.transpose(PETSc.Mat()) * L.vec()
 
 
 def gradient_matrix(problem):
@@ -65,8 +66,8 @@ def gradient_matrix(problem):
     Dv_DG,Dphi_DG = TestFunctions(problem.W)
     a = inner(grad(u_CR), Dv_DG) / vol * dx + inner(grad(phi_CR), Dphi_DG) / vol * dx
     A = assemble(a)
-    row,col,val = as_backend_type(A).mat().getValuesCSR()
-    return csr_matrix((val, col, row))
+    return as_backend_type(A).mat() #PETSc
+
 
 def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     u,phi = TrialFunctions(problem.V_CR) #V_DG1
@@ -93,7 +94,6 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
         te_torsion = problem.torsion_3d(psi)
         te_sigma = problem.stress_3d(te_strain)
         te_mu = problem.torque_3d(te_torsion)       
-
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
         bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds - inner(dot(tr_sigma, n), v) * ds - inner(dot(te_sigma, n), u) * ds
@@ -109,12 +109,14 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
             component = BC[0]
 
             if component < problem.dim: #bnd stress
-                form_pen = problem.pen*(problem.G+problem.Gc) / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
+                #form_pen = problem.pen*(problem.G+problem.Gc) / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
+                form_pen = problem.pen*problem.G / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.pen * (problem.G+problem.Gc) / h * phi[component-problem.dim] * psi[component-problem.dim] * dds - dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds - dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
                 elif problem.dim == 2:
-                    form_pen = problem.pen*2*problem.M / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
+                    #form_pen = problem.pen*2*problem.M / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
+                    form_pen = problem.pen*4*problem.G / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
@@ -123,12 +125,8 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
 
     #Assembling matrix
     Mat = assemble(bilinear)
-    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
-    #Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
-    
-    return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
-    #return problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
+    Mat = as_backend_type(Mat).mat()
+    return problem.DEM_to_CR.transpose(PETSc.Mat()) * Mat * problem.DEM_to_CR
 
 def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must contain lists with three parameters: list of components, function (list of components), num_domain
     #For rhs penalty term computation
@@ -161,18 +159,19 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
         
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
-            form_pen = problem.pen*(problem.G+problem.Gc) / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
+            #form_pen = problem.pen*(problem.G+problem.Gc) / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
+            form_pen = problem.pen*problem.G / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
         elif component >= problem.dim: #bnd couple stress
             if problem.dim == 3:
                 form_pen = problem.pen* (problem.M+problem.Mc) / h * imposed_value * psi[component-problem.dim] * dds - dot(mu, n)[component-problem.dim] * imposed_value * dds
             elif problem.dim == 2:
-                form_pen = problem.pen*2*problem.M / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
+                #form_pen = problem.pen*2*problem.M / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
+                form_pen = problem.pen*4*problem.G / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
-    L = assemble(L).get_local()
+    L = as_backend_type(assemble(L))
     
-    return problem.DEM_to_CR.T * L
-    #return problem.DEM_to_DG1.T * L
+    return problem.DEM_to_CR.transpose(PETSc.Mat()) * L.vec()
 
 def energy_error_matrix(problem, subdomain_data):
     ds = Measure('ds')(subdomain_data=subdomain_data)

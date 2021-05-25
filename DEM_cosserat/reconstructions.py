@@ -1,25 +1,31 @@
 # coding: utf-8
-from scipy.sparse import dok_matrix,csr_matrix
+#from scipy.sparse import dok_matrix,csr_matrix
 from dolfin import *
 import numpy as np
 import networkx as nx
 from itertools import combinations
 from DEM_cosserat.mesh_related import *
-from DEM_cosserat.miscellaneous import local_project
 import sys
-import matplotlib.pyplot as plt
+from petsc4py import PETSc
 
 def DEM_to_DG1_matrix(problem):
-    matrice_resultat_2 = dok_matrix((problem.nb_dof_DG1,problem.nb_dof_grad)) #Empty matrix
-
     #P0 part of DG1
     vol = CellVolume(problem.mesh)
     test_DG0 = TrialFunction(problem.V_DG)
     trial_DG1 = TestFunction(problem.V_DG1)
     mat = (problem.dim+1) * inner(test_DG0, trial_DG1) / vol * dx
     Mat = assemble(mat)
-    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    matrice_resultat_1 = csr_matrix((val, col, row))
+    #scipy.sparse
+    #row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+    #matrice_resultat_1 = csr_matrix((val, col, row))
+    #PETSc
+    result_matrix_1 = as_backend_type(Mat).mat()
+
+    #P1 part of DG1
+    result_matrix_2 = PETSc.Mat().create() #Empty matrix
+    result_matrix_2.setSizes((problem.nb_dof_DG1,problem.nb_dof_grad))
+    result_matrix_2.setType('aij')
+    result_matrix_2.setUp()
 
     #Useful in the following
     dofmap_DG_0 = problem.V_DG.dofmap()
@@ -61,10 +67,11 @@ def DEM_to_DG1_matrix(problem):
                     List = [15,16,17]
                     
             for i,j in zip(List,range(problem.dim)):
-                matrice_resultat_2[dof, tens_dof_position[i]] = diff[j]
+                result_matrix_2[dof, tens_dof_position[i]] = diff[j]
         #sys.exit()
 
-    return matrice_resultat_1 + matrice_resultat_2.tocsr() * problem.mat_grad * problem.DEM_to_CR
+    result_matrix_2.assemble() #for mat *
+    return result_matrix_1 + result_matrix_2 * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):
     """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
@@ -179,7 +186,7 @@ def facet_interpolation(problem):
     return res_num,res_num_phi,res_coord
 
 def DEM_to_CR_matrix(problem):
-    #assert isinstance(problem,DEMProblem)
+    """ Matrix used for facet interpolation."""
 
     #dofmaps to fill the matrix
     dofmap_U_CR = problem.U_CR.dofmap()
@@ -189,7 +196,14 @@ def DEM_to_CR_matrix(problem):
     simplex_num,simplex_num_phi,simplex_coord = facet_interpolation(problem)
 
     #Storing the facet reconstructions in a matrix
-    result_matrix = dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
+    #scipy.sparse
+    #result_matrix = dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
+    #PETSc
+    shape = (problem.nb_dof_CR,problem.nb_dof_DEM)
+    result_matrix = PETSc.Mat().create()
+    result_matrix.setSizes(shape)
+    result_matrix.setType('aij')
+    result_matrix.setUp()
     for c1,c2 in problem.Graph.edges():
         num_global_facet = problem.Graph[c1][c2]['num']
         num_global_ddl = problem.Graph[c1][c2]['dof_CR_u']
@@ -208,5 +222,8 @@ def DEM_to_CR_matrix(problem):
                 result_matrix[num_global_ddl[2],i[2]] = j #Disp z
                 result_matrix[num_global_ddl_phi[1],k[1]] = j #Rotation y
                 result_matrix[num_global_ddl_phi[2],k[2]] = j #Rotation z
-        
-    return result_matrix.tocsr()
+
+    #PETSc
+    result_matrix.assemble() #needed for multiplications
+    return result_matrix
+    #return result_matrix.tocsr() #scipy.sparse

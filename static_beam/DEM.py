@@ -14,13 +14,25 @@ from solver_3D import computation
 R = 10.0 # radius
 cube = 100.0 # dim
 
-#incompressible
-T = 1
-nu = 0.49
-G = 1e3
-E = 2*G*(1+nu)
-l = 0.2 # intrinsic length scale
-N = 0.93 # coupling parameter
+#compressible
+T = 1e6 # traction force
+nu = 0.3 # Poisson's ratio
+G = 10e6 # shear modulus
+Gc = 5e6 #other shear modulus
+E = 2*G*(1+nu) #Yound Modulus
+#lmbda = ( 2.*mu*nu ) / (1-2*nu) # 1st Lame constant
+l = 0.2 #10 # intrinsic length scale
+#N = 0.93 # coupling parameter
+#h3 = 2/5
+M = G * l*l#/h3
+
+##incompressible
+#T = 1
+#nu = 0.49
+#G = 1e3
+#lmbda = ( 2.0 * mu * nu ) / (1.0-2.0*nu) # 1st Lame constant
+#l = 0.2 # intrinsic length scale
+#N = 0.93 # coupling parameter
 
 # Analytical solution
 def AnalyticalSolution(R, l, nu):
@@ -35,7 +47,7 @@ SCF_a = AnalyticalSolution(R, l, nu)*T
 
 #Loading mesh
 mesh = Mesh()
-mesh_num = 3
+mesh_num = 1
 with XDMFFile("meshes/cube_%i.xdmf" % mesh_num) as infile:
     infile.read(mesh)
 hm = mesh.hmax()
@@ -46,7 +58,7 @@ cte = 10
 problem = DEMProblem(mesh, cte)
 
 #Computing coefficients for Cosserat material
-problem.micropolar_constants(E, nu, l, -1, -1, -1, True)
+problem.micropolar_constants(E, nu, l, Gc, M)
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -98,7 +110,7 @@ front_S_2 = [4, u_0, 4]
 bcs = [left_U_1, left_S_2, left_S_3, bot_U_2, bot_S_1, bot_S_3, front_U_3, front_S_1, front_S_2]
 
 # Variational problem
-A = problem.elastic_bilinear_form(True)
+A = problem.elastic_bilinear_form()
 #Nitsche penalty bilinear form
 A += lhs_bnd_penalty(problem, boundary_parts, bcs)
 #Penalty matrix
