@@ -9,9 +9,9 @@ parameters["form_compiler"]["optimize"] = True
 # Define mesh
 Lx,Ly,Lz = 1., 0.1, 0.04
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-#computation = 'test'
+#folder = 'test'
 mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-computation = 'fine'
+folder = 'ref'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -50,8 +50,8 @@ beta    = Constant((gamma+0.5)**2/4.)
 
 # Time-stepping parameters
 T       = 1 #4
-Nsteps  = 50
-dt = Constant(T/Nsteps)
+dt = 1e-5
+Nsteps = int(T / dt) + 1
 
 p0 = 1.
 cutoff_Tc = T/5
@@ -66,7 +66,6 @@ print('nb dofs FEM: %i' % V.dofmap().global_dimension())
 U, S = V.split()
 U_1, U_2, U_3 = U.split()
 S_1, S_2, S_3 = S.split()
-sys.exit()
 
 # Test and trial functions
 du = TrialFunction(V)
@@ -196,12 +195,12 @@ u_tip = np.zeros((Nsteps+1,))
 energies = np.zeros((Nsteps+1, 4))
 E_damp = 0
 E_ext = 0
-xdmf_file = XDMFFile("ref/flexion_fine.xdmf")
+xdmf_file = XDMFFile(folder+"/flexion_fine.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open('ref/energies_%s.txt' % computation, 'w')
-file_disp = open('ref/disp_%s.txt' % computation, 'w')
+file = open(folder+'/energies.txt', 'w')
+file_disp = open(folder+'/disp.txt', 'w')
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
