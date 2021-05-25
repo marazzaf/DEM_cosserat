@@ -12,7 +12,7 @@ from petsc4py import PETSc
     
 # Mesh
 L = 0.5
-nb_elt = 40 #40 # 80 #110
+nb_elt = 160 #40 # 80 #110
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
@@ -22,7 +22,7 @@ l = L/100 # intrinsic length scale
 a = 0.5
 
 #Creating the DEM problem
-cte = 1e2 #1e2
+cte = 1e3 #1e2
 problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
@@ -116,13 +116,13 @@ U = FunctionSpace(mesh, 'DG', 1)
 #fig = plot(phi_DG1 - project(phi_D, U))
 #plt.colorbar(fig)
 #plt.show()
-x = SpatialCoordinate(mesh)
-#sigg = problem.G*(2*(1-nu)/(1-2*nu)*x[1] + 2*nu/(1-2*nu)*x[0])
-sigg = problem.G*((1-a)*x[0] + (1+a)*x[1])
-fig = plot(sig[1,0] - project(sigg, U))
-plt.colorbar(fig)
-plt.show()
-sys.exit()
+#x = SpatialCoordinate(mesh)
+##sigg = problem.G*(2*(1-nu)/(1-2*nu)*x[1] + 2*nu/(1-2*nu)*x[0])
+#sigg = problem.G*((1-a)*x[0] + (1+a)*x[1])
+#fig = plot(sig[1,0] - project(sigg, U))
+#plt.colorbar(fig)
+#plt.show()
+#sys.exit()
 
 #solution de ref
 U = VectorFunctionSpace(problem.mesh, 'CG', 2)
