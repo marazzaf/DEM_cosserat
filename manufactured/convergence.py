@@ -24,7 +24,7 @@ print(orders_energy) #3
 #Linear regression
 #slope, intercept, r_value, p_value, std_err = linregress(np.log(res[:,1]), -np.log(res[:,0]))
 #print(slope/2)
-slope, intercept, r_value, p_value, std_err = linregress(np.log(res[:,3]), np.log(h))
+slope, intercept, r_value, p_value, std_err = linregress(np.log(res[:,2]), np.log(h))
 print(slope)
 print(r_value*r_value)
 

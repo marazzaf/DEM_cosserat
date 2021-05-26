@@ -24,7 +24,7 @@ l = L/100 # intrinsic length scale
 a = 0.5
 
 #Creating the DEM problem
-cte = 2e3 #2e3
+cte = 1e2 #2e3
 problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
@@ -69,4 +69,4 @@ Lhs = sp.csr_matrix(lhs.getValuesCSR()[::-1], shape = lhs.size)
 Rhs = Rhs.getArray()
 
 truc = lsmr(Lhs, Rhs)
-print('Condition number: %.5e' % truc[6])
+print('Condition number: %.1f' % truc[6])
