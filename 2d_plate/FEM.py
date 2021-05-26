@@ -28,7 +28,7 @@ def stress(e, kappa):
     return sigma, mu
 
 mesh = Mesh()
-with XDMFFile("mesh/hole_plate.xdmf") as infile:
+with XDMFFile("mesh/hole_plate_4.xdmf") as infile:
     infile.read(mesh)
     
 #Functionnal spaces
