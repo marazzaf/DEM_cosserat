@@ -20,7 +20,7 @@ T = 1.0 # load
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("mesh/hole_plate_4.xdmf") as infile:
+with XDMFFile("mesh/hole_plate_5.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
@@ -95,16 +95,16 @@ W = FunctionSpace(mesh, 'DG', 0)
 sig = project(sigma[1,1], W)
 print(max(sig.vector().get_local()))
 
-##Plot
-#img = plot(sig)
-#plt.colorbar(img)
-#plt.show()
+#Plot
+img = plot(sig)
+plt.colorbar(img)
+plt.show()
 
 #Reconstruction of facets
 U_CR = FunctionSpace(mesh, 'CR', 1)
 h = CellDiameter(mesh)
 v_CR = TestFunction(U_CR)
 
-truc = inner(avg(v_CR), avg(sig)) / h('+') * dS + inner(v_CR, sig) / h * ds
+truc = inner(avg(v_CR), avg(sig)+cte*G/h('+')*jump(u_DG1[1])) / h('+') * dS + inner(v_CR, sig) / h * ds
 sig_avg = as_backend_type(assemble(truc))
 print(max(sig_avg.get_local()))
