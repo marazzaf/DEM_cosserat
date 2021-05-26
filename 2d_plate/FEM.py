@@ -88,6 +88,8 @@ L = inner(t, v)*ds(1)
 U_h = Function(V)
 solve(A == L, U_h, bc)
 u_h, psi_h = U_h.split()
+
+#Computing max stress
 e,kappa = strain(u_h,psi_h)
 sigma,mu = stress(e,kappa)
 W = FunctionSpace(mesh, 'DG', 0)
