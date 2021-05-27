@@ -20,12 +20,12 @@ T = 1.0 # load
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("mesh/hole_plate_6.xdmf") as infile:
+with XDMFFile("mesh/hole_plate_4.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
-cte = 1
-problem = DEMProblem(mesh, cte) #1e3 semble bien
+pen = 1
+problem = DEMProblem(mesh, pen)
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -115,6 +115,6 @@ U_CR = FunctionSpace(mesh, 'CR', 1)
 h = CellDiameter(mesh)
 v_CR = TestFunction(U_CR)
 
-truc = inner(avg(v_CR), avg(sig)+cte*G/h('+')*jump(u_DG1[1])) / h('+') * dS + inner(v_CR, sig) / h * ds
+truc = inner(avg(v_CR), avg(sig)+pen*G/h('+')*jump(u_DG1[1])) / h('+') * dS + inner(v_CR, sig) / h * ds
 sig_avg = as_backend_type(assemble(truc))
 print(max(sig_avg.get_local()))
