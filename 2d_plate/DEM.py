@@ -20,7 +20,7 @@ T = 1.0 # load
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("mesh/hole_plate_4.xdmf") as infile:
+with XDMFFile("mesh/hole_plate_6.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
@@ -87,34 +87,34 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1,phi_DG1 = v_DG1.split()
 
-#Plot
-img = plot(u_DG1[1])
-plt.colorbar(img)
-plt.title('DEM')
-plt.show()
-
-file = File("DEM/u.pvd")
-file << u_DG1
+##Plot
+#img = plot(u_DG1[1])
+#plt.colorbar(img)
+#plt.title('DEM')
+#plt.show()
+#
+#file = File("DEM/u.pvd")
+#file << u_DG1
 
 #Computing max stress
 strains = problem.strains_2d(u_DG1,phi_DG1)
 sigma,mu = problem.stresses_2d(strains)
-W = FunctionSpace(mesh, 'DG', 0)
-sig = project(sigma[1,1], W)
+W = TensorFunctionSpace(mesh, 'DG', 0)
+sig = project(sigma, W)
 print(max(sig.vector().get_local()))
-file = File("DEM/stress.pvd")
-file << sig
+#file = File("DEM/stress.pvd")
+#file << sig
 
-#Plot
-img = plot(sig)
-plt.colorbar(img)
-plt.show()
-
-#Reconstruction of facets
-U_CR = FunctionSpace(mesh, 'CR', 1)
-h = CellDiameter(mesh)
-v_CR = TestFunction(U_CR)
-
-truc = inner(avg(v_CR), avg(sig)+pen*G/h('+')*jump(u_DG1[1])) / h('+') * dS + inner(v_CR, sig) / h * ds
-sig_avg = as_backend_type(assemble(truc))
-print(max(sig_avg.get_local()))
+##Plot
+#img = plot(sig)
+#plt.colorbar(img)
+#plt.show()
+#
+##Reconstruction of facets
+#U_CR = FunctionSpace(mesh, 'CR', 1)
+#h = CellDiameter(mesh)
+#v_CR = TestFunction(U_CR)
+#
+#truc = inner(avg(v_CR), avg(sig)+pen*G/h('+')*jump(u_DG1[1])) / h('+') * dS + inner(v_CR, sig) / h * ds
+#sig_avg = as_backend_type(assemble(truc))
+#print(max(sig_avg.get_local()))
