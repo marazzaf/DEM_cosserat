@@ -24,7 +24,7 @@ l = L/100 # intrinsic length scale
 a = 0.5
 
 #Creating the DEM problem
-cte = 1e2 #2e3
+cte = 2e2 #2e2
 problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)

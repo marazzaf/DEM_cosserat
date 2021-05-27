@@ -20,10 +20,11 @@ nu = 0.3 # Poisson's ratio
 E = 1 #Young Modulus
 l = L/100 # intrinsic length scale
 a = 0.5
+G = 0.5*E/(1+nu)
 
 #Creating the DEM problem
-cte = 2e2 #1e3 in paper
-problem = DEMProblem(mesh, cte) #1e3 semble bien
+pen = 4*G #2e2 in paper
+problem = DEMProblem(mesh, pen) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)

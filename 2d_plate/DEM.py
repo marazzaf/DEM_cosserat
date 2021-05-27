@@ -24,7 +24,7 @@ with XDMFFile("mesh/hole_plate_6.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
-pen = 1
+pen = 1 #2e2
 problem = DEMProblem(mesh, pen)
 
 # Boundary conditions
@@ -79,7 +79,7 @@ A += inner_penalty(problem) #light
 #Solving linear problem
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(PETScMatrix(A), v_DG.vector(), PETScVector(b)) #, 'mumps')
+solve(PETScMatrix(A), v_DG.vector(), PETScVector(b), 'mumps')
 u_DG,phi_DG = v_DG.split()
 
 #Computing reconstruction
@@ -99,16 +99,16 @@ u_DG1,phi_DG1 = v_DG1.split()
 #Computing max stress
 strains = problem.strains_2d(u_DG1,phi_DG1)
 sigma,mu = problem.stresses_2d(strains)
-W = TensorFunctionSpace(mesh, 'DG', 0)
-sig = project(sigma, W)
+W = FunctionSpace(mesh, 'DG', 0)
+sig = project(sigma[1,1], W)
 print(max(sig.vector().get_local()))
 #file = File("DEM/stress.pvd")
 #file << sig
 
-##Plot
-#img = plot(sig)
-#plt.colorbar(img)
-#plt.show()
+#Plot
+img = plot(sig)
+plt.colorbar(img)
+plt.show()
 #
 ##Reconstruction of facets
 #U_CR = FunctionSpace(mesh, 'CR', 1)
