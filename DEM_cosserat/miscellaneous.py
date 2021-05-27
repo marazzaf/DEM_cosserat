@@ -110,14 +110,14 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
             component = BC[0]
 
             if component < problem.dim: #bnd stress
-                #form_pen = problem.pen*(problem.G+problem.Gc) / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
-                form_pen = problem.pen*problem.G / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
+                #form_pen = problem.pen*problem.G / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
+                form_pen = -dot(tr_sigma, n)[component] * v[component] * dds + dot(te_sigma, n)[component] * u[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.pen * (problem.G+problem.Gc) / h * phi[component-problem.dim] * psi[component-problem.dim] * dds - dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds - dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
                 elif problem.dim == 2:
-                    #form_pen = problem.pen*2*problem.M / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
-                    form_pen = problem.pen*4*problem.G / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
+                    #form_pen = problem.pen*4*problem.G / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
+                   form_pen =  -inner(dot(tr_mu, n), psi) * dds + inner(dot(te_mu, n), phi) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
@@ -133,14 +133,12 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
     #For rhs penalty term computation
     h = CellDiameter(problem.mesh)
     v,psi = TestFunctions(problem.V_CR)
-    #v,psi = TestFunctions(problem.V_DG1)
     n = FacetNormal(problem.mesh)
 
     #stresses
     if problem.dim == 2:
         strains = problem.strains_2d(v,psi)
         sigma,mu = problem.stresses_2d(strains)
-        #sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1])))
     elif problem.dim == 3:
         strain = problem.strain_3d(v,psi)
         torsion = problem.torsion_3d(psi)
@@ -160,14 +158,14 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
         
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
-            #form_pen = problem.pen*(problem.G+problem.Gc) / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
-            form_pen = problem.pen*problem.G / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
+            #form_pen = problem.pen*problem.G / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
+            form_pen = dot(sigma, n)[component] * imposed_value * dds
         elif component >= problem.dim: #bnd couple stress
             if problem.dim == 3:
                 form_pen = problem.pen* (problem.M+problem.Mc) / h * imposed_value * psi[component-problem.dim] * dds - dot(mu, n)[component-problem.dim] * imposed_value * dds
             elif problem.dim == 2:
-                #form_pen = problem.pen*2*problem.M / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
-                form_pen = problem.pen*4*problem.G / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
+                #form_pen = problem.pen*4*problem.G / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
+                form_pen = inner(dot(mu, n), imposed_value) * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = as_backend_type(assemble(L))
