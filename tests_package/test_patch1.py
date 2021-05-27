@@ -11,7 +11,7 @@ import pytest #for unit tests
 
 # Mesh
 L = 0.12
-nb_elt = 10
+nb_elt = 50
 
 # Parameters
 nu = 0.25 # Poisson's ratio
@@ -19,7 +19,7 @@ G = 1e3 #Second lamé coefficient
 E = 2*(1+nu)*G #Young Modulus
 l = 0.1 # intrinsic length scale
 a = 0.5 #last param in law
-pen = 1e2 #penalty parameter
+pen = 1 #penalty parameter
 
 @pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L/2),Point(L,L/2),nb_elt,nb_elt,"crossed")])
 def test_patch1(mesh):
@@ -35,7 +35,7 @@ def test_patch1(mesh):
     A = problem.elastic_bilinear_form()
 
     #Penalty matrix
-    A += inner_penalty(problem) #_light
+    A += inner_penalty(problem)
 
     #BC
     u_D = Expression('1e-3*(x[0]+0.5*x[1])', degree=1)

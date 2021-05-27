@@ -117,7 +117,7 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
                     form_pen = problem.pen * (problem.G+problem.Gc) / h * phi[component-problem.dim] * psi[component-problem.dim] * dds - dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds - dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
                 elif problem.dim == 2:
                     #form_pen = problem.pen*4*problem.G / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
-                   form_pen =  -inner(dot(tr_mu, n), psi) * dds + inner(dot(te_mu, n), phi) * dds
+                   form_pen = -inner(dot(tr_mu, n), psi) * dds + inner(dot(te_mu, n), phi) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
@@ -165,7 +165,7 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
                 form_pen = problem.pen* (problem.M+problem.Mc) / h * imposed_value * psi[component-problem.dim] * dds - dot(mu, n)[component-problem.dim] * imposed_value * dds
             elif problem.dim == 2:
                 #form_pen = problem.pen*4*problem.G / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
-                form_pen = inner(dot(mu, n), imposed_value) * dds
+                form_pen = dot(mu, n) * imposed_value * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
     L = as_backend_type(assemble(L))

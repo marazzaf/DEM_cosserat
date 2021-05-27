@@ -8,10 +8,11 @@ from DEM_cosserat.DEM import *
 import numpy as np
 from DEM_cosserat.miscellaneous import *
 import pytest #for unit tests
+import matplotlib.pyplot as plt
 
 # Mesh
 L = 0.12
-nb_elt = 10
+nb_elt = 100
 
 # Parameters
 nu = 0.25 # Poisson's ratio
@@ -19,10 +20,10 @@ G = 1e3 #Second lamé coefficient
 E = 2*(1+nu)*G #Young Modulus
 l = 0.1 # intrinsic length scale
 a = 0.5 #last param in law
-pen = 1e2 #penalty parameter
+pen = 1 #penalty parameter
 
 @pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L/2),Point(L,L/2),nb_elt,nb_elt,"crossed")])
-def test_patch1(mesh):
+def test_patch2(mesh):
 
     #Creating the DEM problem
     problem = DEMProblem(mesh, pen)
@@ -35,7 +36,7 @@ def test_patch1(mesh):
     A = problem.elastic_bilinear_form()
 
     #Penalty matrix
-    A += inner_penalty(problem) #_light
+    A += inner_penalty(problem)
 
     #Volume load
     q = Constant((0,0,1))
@@ -44,7 +45,7 @@ def test_patch1(mesh):
     #BC
     u_D = Expression('1e-3*(x[0]+0.5*x[1])', degree=1)
     v_D = Expression('1e-3*(x[0]+x[1])', degree=1)
-    alpha = -2
+    alpha = -2 #-2
     phi_D = Constant(0.25e-3*(1+alpha))
     bc = [[0, u_D], [1, v_D], [2, phi_D]]
     #Assembling
@@ -70,13 +71,13 @@ def test_patch1(mesh):
     assert (np.round(sigma_00, 1) == 4).all()
     sigma_11 = local_project(sigma[1,1], W).vector().get_local()
     assert (np.round(sigma_11, 1) == 4).all()
-    sigma_01 = local_project(sigma[0,1], W).vector().get_local()
-    assert (np.round(sigma_01, 1) == 1).all()
     sigma_10 = local_project(sigma[1,0], W).vector().get_local()
-    assert (np.round(sigma_10, 1) == 2).all()
+    assert (np.round(sigma_10, 0) == 2).all()
+    sigma_01 = local_project(sigma[0,1], W).vector().get_local()
+    assert (np.round(sigma_01, 0) == 1).all()
     #Testing moments
     mu_0 = local_project(mu[0], W).vector().get_local()
-    assert (np.round(mu_0, 2)  == 0).all()
+    assert (np.round(mu_0, 0)  == 0).all()
     mu_1 = local_project(mu[1], W).vector().get_local()
-    assert (np.round(mu_1, 2)  == 0).all()
+    assert (np.round(mu_1, 0)  == 0).all()
 
