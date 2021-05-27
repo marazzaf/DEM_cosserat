@@ -2,7 +2,7 @@
 
 # Computation of the solution in the plate for different meshes
 from dolfin import *
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
@@ -20,7 +20,7 @@ l = L/10 # intrinsic length scale
 a = 0.5
 pen = 1e2 #penalty parameter
 
-@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")]) #, BoxMesh(Point(-L, -L, -L), Point(L, L, L), nb_elt, nb_elt, nb_elt)])
+@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")])
 def test_pen_bnd(mesh):
 
     #Creating the DEM problem
@@ -34,7 +34,7 @@ def test_pen_bnd(mesh):
     A = problem.elastic_bilinear_form()
 
     #Penalty matrix
-    A += inner_penalty(problem) #_light
+    A += inner_penalty(problem)
 
     #rhs
     t = Constant((-10,-10,0))
@@ -63,28 +63,27 @@ def test_pen_bnd(mesh):
     assert round(assemble(u_h[1] / aire * ds), 1) == 0
     assert round(assemble(phi_h / aire * ds), 1) == 0
 
-#gamma,kappa = strain(u_h,phi_h)
-#U = FunctionSpace(problem.mesh, 'DG', 0)
-#fig = plot(local_project(gamma[3], U))
-#plt.colorbar(fig)
-#plt.savefig('stress_1_1.pdf')
-#plt.show()
-#fig = plot(local_project(kappa[1],U))
-#plt.colorbar(fig)
-#plt.savefig('kappa_1.pdf')
-#plt.show()
-#sys.exit()
+    #gamma,kappa = strain(u_h,phi_h)
+    #U = FunctionSpace(problem.mesh, 'DG', 0)
+    #fig = plot(local_project(gamma[3], U))
+    #plt.colorbar(fig)
+    #plt.savefig('stress_1_1.pdf')
+    #plt.show()
+    #fig = plot(local_project(kappa[1],U))
+    #plt.colorbar(fig)
+    #plt.savefig('kappa_1.pdf')
+    #plt.show()
+    #sys.exit()
 
-#fig = plot(u_h[0])
-#plt.colorbar(fig)
-##plt.savefig('u_x_25.pdf')
-#plt.show()
-#fig = plot(u_h[1])
-#plt.colorbar(fig)
-##plt.savefig('u_y_25.pdf')
-#plt.show()
-#fig = plot(phi_h)
-#plt.colorbar(fig)
-##plt.savefig('phi_25.pdf')
-#plt.show()
-#sys.exit()
+    #fig = plot(u_h[0])
+    #plt.colorbar(fig)
+    #plt.savefig('u_x_no_pen.pdf')
+    #plt.show()
+    #fig = plot(u_h[1])
+    #plt.colorbar(fig)
+    #plt.savefig('u_y_no_pen.pdf')
+    #plt.show()
+    #fig = plot(phi_h)
+    #plt.colorbar(fig)
+    #plt.savefig('phi_no_pen.pdf')
+    #plt.show()

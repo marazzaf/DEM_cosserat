@@ -66,14 +66,12 @@ def gradient_matrix(problem):
     Dv_DG,Dphi_DG = TestFunctions(problem.W)
     a = inner(grad(u_CR), Dv_DG) / vol * dx + inner(grad(phi_CR), Dphi_DG) / vol * dx
     A = assemble(a)
-    return as_backend_type(A).mat() #PETSc
+    return as_backend_type(A).mat()
 
 
 def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must contain lists with two parameters: list of components, function (list of components) and possibilty a third: num_domain
     u,phi = TrialFunctions(problem.V_CR) #V_DG1
     v,psi = TestFunctions(problem.V_CR) #V_DG1
-    #u,phi = TrialFunctions(problem.V_DG1)
-    #v,psi = TestFunctions(problem.V_DG1)
     h = CellDiameter(problem.mesh)
     n = FacetNormal(problem.mesh)
 
@@ -81,10 +79,8 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
     if problem.dim == 2:
         tr_strains = problem.strains_2d(u,phi)
         tr_sigma,tr_mu = problem.stresses_2d(tr_strains)
-        #tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1])))
         te_strains = problem.strains_2d(v,psi)
         te_sigma,te_mu = problem.stresses_2d(te_strains)
-        #te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1])))
     elif problem.dim == 3:
         tr_strain = problem.strain_3d(u,phi)
         tr_torsion = problem.torsion_3d(phi)
@@ -96,7 +92,12 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
         te_mu = problem.torque_3d(te_torsion)       
     #Bilinear
     if list_Dirichlet_BC == None: #Homogeneous Dirichlet on all boundary
-        bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds - inner(dot(tr_sigma, n), v) * ds - inner(dot(te_sigma, n), u) * ds
+        #bilinear = problem.penalty_u/h * inner(u,v) * ds + problem.penalty_phi/h * inner(phi,psi) * ds - inner(dot(tr_sigma, n), v) * ds - inner(dot(te_sigma, n), u) * ds #ref
+        #test
+        #aux = (outer(v,n),outer(psi, n))
+        #sigma,mu = problem.stresses_2d(aux)
+        #bilinear = problem.pen/h * inner(outer(u,n),sigma) * ds + problem.pen/h/problem.l**2 * inner(outer(phi,n),mu) * ds
+        blinear = -inner(dot(tr_sigma, n), v) * ds + inner(dot(te_sigma, n), u) * ds #consistency and symmetry
     else:
         list_lhs = []
         for BC in list_Dirichlet_BC:
