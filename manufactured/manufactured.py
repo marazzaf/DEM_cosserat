@@ -12,7 +12,7 @@ from petsc4py import PETSc
     
 # Mesh
 L = 0.5
-nb_elt = 40 #40 # 80 #110
+nb_elt = 110 #20 #40 #80 #110
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
@@ -22,7 +22,7 @@ l = L/100 # intrinsic length scale
 a = 0.5
 
 #Creating the DEM problem
-cte = 1 #1e3 in paper
+cte = 2e2 #1e3 in paper
 problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
@@ -165,7 +165,8 @@ err_L2 = errornorm(v_DG, v, 'L2')
 print(problem.nb_dof_DEM)
 print('L2 error: %.2e' % err_L2)
 print('H10 error: %.2e' % err_grad)
-#sys.exit()
+print('%i %.2e %.2e' % (problem.nb_dof_DEM, err_L2, err_grad))
+sys.exit()
 
 #error bnd
 h = CellDiameter(problem.mesh)
@@ -173,16 +174,8 @@ h_avg = 0.5 * (h('+') + h('-'))
 n = FacetNormal(problem.mesh)
 diff_u = u_DG1 - u
 error_u = assemble(inner(diff_u, diff_u) / h * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS + inner(grad(diff_u),grad(diff_u)) * dx)
-#error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_u)), n('+')), dot(avg(grad(diff_u)), n('+'))) * dS)
-#error_u = assemble(inner(diff_u, diff_u) / h * ds + h * inner(dot(grad(diff_u), n), dot(grad(diff_u), n)) * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
-#error_u = assemble(inner(diff_u, diff_u) / h * ds + inner(jump(diff_u), jump(diff_u)) / h_avg * dS)
-
 diff_phi = phi_DG1 - phi
 error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + inner(grad(diff_phi),grad(diff_phi)) * dx)
-#error_phi = assemble(l*l*inner(diff_phi, diff_phi) / h * ds + l*l*inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + inner(grad(diff_phi),grad(diff_phi)) * dx)
-#error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS + h_avg * inner(dot(avg(grad(diff_phi)), n('+')), dot(avg(grad(diff_phi)), n('+'))) * dS)
-#error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + h * inner(dot(grad(diff_phi), n), dot(grad(diff_phi), n)) * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
-#error_phi = assemble(inner(diff_phi, diff_phi) / h * ds + inner(jump(diff_phi), jump(diff_phi)) / h_avg * dS)
 energy_error = np.sqrt(error_u + error_phi)
 print('Error in energy norm: %.2e' % energy_error)
 print('%i %.2e %.2e %.2e' % (problem.nb_dof_DEM, err_L2, err_grad, energy_error))
