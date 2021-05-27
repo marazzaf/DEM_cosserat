@@ -12,7 +12,7 @@ from petsc4py import PETSc
     
 # Mesh
 L = 0.5
-nb_elt = 80 #40 # 80 #110
+nb_elt = 10 #40 # 80 #110
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
@@ -22,7 +22,7 @@ l = L/100 # intrinsic length scale
 a = 0.5
 
 #Creating the DEM problem
-cte = 1e2 #2e3
+cte = 1 #1e3 in paper
 problem = DEMProblem(mesh, cte) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)

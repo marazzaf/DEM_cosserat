@@ -20,13 +20,12 @@ T = 1.0 # load
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("mesh/hole_plate_5.xdmf") as infile:
+with XDMFFile("mesh/hole_plate_6.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
 cte = 1
 problem = DEMProblem(mesh, cte) #1e3 semble bien
-#print('nb dof DEM: %i' % problem.nb_dof_DEM)
 
 # Boundary conditions
 class BotBoundary(SubDomain):
@@ -80,7 +79,7 @@ A += inner_penalty(problem) #light
 #Solving linear problem
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(PETScMatrix(A), v_DG.vector(), PETScVector(b), 'mumps')
+solve(PETScMatrix(A), v_DG.vector(), PETScVector(b)) #, 'mumps')
 u_DG,phi_DG = v_DG.split()
 
 #Computing reconstruction
@@ -88,12 +87,23 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1,phi_DG1 = v_DG1.split()
 
+#Plot
+img = plot(u_DG1[1])
+plt.colorbar(img)
+plt.title('DEM')
+plt.show()
+
+file = File("DEM/u.pvd")
+file << u_DG1
+
 #Computing max stress
 strains = problem.strains_2d(u_DG1,phi_DG1)
 sigma,mu = problem.stresses_2d(strains)
 W = FunctionSpace(mesh, 'DG', 0)
 sig = project(sigma[1,1], W)
 print(max(sig.vector().get_local()))
+file = File("DEM/stress.pvd")
+file << sig
 
 #Plot
 img = plot(sig)

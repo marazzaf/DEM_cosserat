@@ -89,6 +89,15 @@ U_h = Function(V)
 solve(A == L, U_h, bc)
 u_h, psi_h = U_h.split()
 
+#Plot
+img = plot(u_h[1])
+plt.colorbar(img)
+plt.title('FEM')
+plt.show()
+
+file = File("FEM/u.pvd")
+file << u_h
+
 #Computing max stress
 e,kappa = strain(u_h,psi_h)
 sigma,mu = stress(e,kappa)
@@ -96,9 +105,7 @@ W = FunctionSpace(mesh, 'DG', 0)
 sig = project(sigma[1,1], W)
 print(max(sig.vector().get_local()))
 
-##Plot
-#img = plot(sig)
-#plt.colorbar(img)
-#plt.show()
+file = File("FEM/stress.pvd")
+file << sig
 
 
