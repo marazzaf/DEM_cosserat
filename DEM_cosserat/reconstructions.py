@@ -15,9 +15,6 @@ def DEM_to_DG1_matrix(problem):
     trial_DG1 = TestFunction(problem.V_DG1)
     mat = (problem.dim+1) * inner(test_DG0, trial_DG1) / vol * dx
     Mat = assemble(mat)
-    #scipy.sparse
-    #row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    #matrice_resultat_1 = csr_matrix((val, col, row))
     #PETSc
     result_matrix_1 = as_backend_type(Mat).mat()
 
@@ -35,14 +32,11 @@ def DEM_to_DG1_matrix(problem):
 
     for c in cells(problem.mesh):
         index_cell = c.index()
-        dof_position = dofmap_DG_1.cell_dofs(index_cell)
-        #print(dof_position)
-            
+        dof_position = dofmap_DG_1.cell_dofs(index_cell)            
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
         pos_dof_DG_1 = elt_1.tabulate_dof_coordinates(c)
         tens_dof_position = dofmap_tens_DG_0.cell_dofs(index_cell)
-        #print(tens_dof_position)
         for dof,pos in zip(dof_position,pos_dof_DG_1): #loop on quadrature points
             diff = pos - position_barycentre
             if problem.dim == 2:
@@ -68,14 +62,12 @@ def DEM_to_DG1_matrix(problem):
                     
             for i,j in zip(List,range(problem.dim)):
                 result_matrix_2[dof, tens_dof_position[i]] = diff[j]
-        #sys.exit()
 
     result_matrix_2.assemble() #for mat *
     return result_matrix_1 + result_matrix_2 * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):
-    """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
-    #assert isinstance(problem,DEMProblem)
+    """Computes the reconstruction in the facets of the mesh from the dofs of the DEM."""
     
     #To store the results of the computations
     res_num = dict([])
@@ -111,6 +103,9 @@ def facet_interpolation(problem):
 
             #Final set of neighbours to choose reconstruction from
             neigh_pool = path_1 | path_2
+
+        elif len(set(facet['dof_CR_u']) & problem.Dirichlet_CR_dofs) > 0: #Facet is on a Dirichlet boundary
+            print('Prout')
             
         else: #boundary facet
             assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
@@ -226,4 +221,3 @@ def DEM_to_CR_matrix(problem):
     #PETSc
     result_matrix.assemble() #needed for multiplications
     return result_matrix
-    #return result_matrix.tocsr() #scipy.sparse

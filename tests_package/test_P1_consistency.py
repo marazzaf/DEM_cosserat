@@ -17,6 +17,7 @@ def test_reconstruction(mesh):
 
     #DEM problem creation with reconstruction matrices
     problem = DEMProblem(mesh)
+    problem.assemble_reconstruction_matrices()
 
     #Testing P1 consistency and that's all
     x = SpatialCoordinate(mesh) #for disp
@@ -24,12 +25,11 @@ def test_reconstruction(mesh):
         func = as_vector((x[0],x[1],x[0]))
     elif dim == 3:
         func = as_vector((x[0],x[1],x[2],x[0],x[1],x[2]))
-    u,phi,tot = DEM_interpolation(func, problem)
+    u,phi,tot = DEM_interpolation(problem,func)
     assert abs(max(u) - L) < h
     assert abs(min(u) + L) < h
     assert abs(min(phi) + L) < h
     assert abs(max(phi) - L) < h
-
     #CR interpolation
     test_CR = Function(problem.V_CR)
     reco_CR = problem.DEM_to_CR * tot
@@ -85,7 +85,7 @@ def test_reconstruction(mesh):
     
 
     #test DG1 reconstruction
-    u,phi,tot = DEM_interpolation(func, problem)
+    u,phi,tot = DEM_interpolation(problem,func)
     test_DG1 = Function(problem.V_DG1)
     reco_DG1 = problem.DEM_to_DG1 * tot
     test_DG1.vector()[:] = reco_DG1 

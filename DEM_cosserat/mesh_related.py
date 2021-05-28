@@ -38,7 +38,6 @@ def connectivity_graph(problem):
         #Get the num of the dofs in global DEM vector
         num_global_dof_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
         num_global_dof_facet_phi = dofmap_CR_phi.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
-
         
         #Get the position of the barycentre
         if problem.dim == 2:

@@ -6,15 +6,13 @@ import numpy as np
 from petsc4py import PETSc
 from DEM_cosserat.reconstructions import *
 from DEM_cosserat.mesh_related import *
-from DEM_cosserat.miscellaneous import gradient_matrix
+from DEM_cosserat.miscellaneous import gradient_matrix,Dirichlet_CR_dofs
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh, penalty=1., penalty_u=1., penalty_phi=1.):
+    def __init__(self, mesh, penalty=1., full_Dirichlet_BC=True):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
-        self.penalty_u = penalty_u
-        self.penalty_phi = penalty_phi
         self.pen = penalty
 
         #Rotation is a scalar in 3d and a vector in 3d
@@ -65,7 +63,14 @@ class DEMProblem:
         #Computation of gradient matrix for inner penalty term
         self.mat_grad = gradient_matrix(self)
 
-        #DEM reconstructions
+        #Assembling term for full Dirichlet BC
+        if full_Dirichlet_BC:
+            v_CR = TestFunction(self.V_CR)
+            Dirichlet_BC_form = inner(Constant(['1'] * self.d), v_CR) * ds
+            self.Dirichlet_CR_dofs = Dirichlet_CR_dofs(Dirichlet_BC_form)
+
+    #DEM reconstructions
+    def assemble_reconstruction_matrices(self): #not assemble by default
         self.DEM_to_CR = DEM_to_CR_matrix(self)
         self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
