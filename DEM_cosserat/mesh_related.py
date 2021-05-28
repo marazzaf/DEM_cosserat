@@ -1,6 +1,6 @@
 # coding: utf-8
 from dolfin import *
-from numpy import array
+import numpy as np
 import networkx as nx
 
 #Use the graph to store information
@@ -22,8 +22,8 @@ def connectivity_graph(problem):
         #Get the position of the barycentre
         bary = elt_DG.tabulate_dof_coordinates(c)[0]
         #Get the num of the dofs in global DEM vector
-        num_global_dof = dofmap_DG.entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
-        num_global_dof_phi = dofmap_DG_phi.entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
+        num_global_dof = dofmap_DG.entity_dofs(problem.mesh, problem.dim, np.array([c.index()], dtype="uintp"))
+        num_global_dof_phi = dofmap_DG_phi.entity_dofs(problem.mesh, problem.dim, np.array([c.index()], dtype="uintp"))
         
         #adding node to the graph
         G.add_node(c.index(), dof_u=num_global_dof, barycentre=bary, dof_phi=num_global_dof_phi)
@@ -39,14 +39,14 @@ def connectivity_graph(problem):
             aux_bis.append(c.index())
 
         #Get the num of the dofs in global DEM vector
-        num_global_dof_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
-        num_global_dof_facet_phi = dofmap_CR_phi.entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
+        num_global_dof_facet = dofmap_CR.entity_dofs(problem.mesh, problem.dim - 1, np.array([f.index()], dtype="uintp")) #number of the dofs in CR
+        num_global_dof_facet_phi = dofmap_CR_phi.entity_dofs(problem.mesh, problem.dim - 1, np.array([f.index()], dtype="uintp")) #number of the dofs in CR
         
         #Get the position of the barycentre
         if problem.dim == 2:
-            bary = array([mp.x(), mp.y()])
+            bary = np.array([mp.x(), mp.y()])
         elif problem.dim == 3:
-            bary = array([mp.x(), mp.y(), mp.z()])
+            bary = np.array([mp.x(), mp.y(), mp.z()])
         else:
             raise ValueError('Problem with dimension of mesh')
         
@@ -57,8 +57,8 @@ def connectivity_graph(problem):
         elif bnd: #add the link between a cell dof and a boundary facet
             #number of the dof is total number of cells + num of the facet
             if len(set(num_global_dof_facet) & problem.Dirichlet_CR_dofs) > 0:
-                num_global_dof = count_Dirichlet+problem.d_u
-                num_global_dof_phi = count_Dirichlet+problem.d_phi
+                num_global_dof = list(np.arange(count_Dirichlet, count_Dirichlet+problem.d_u))
+                num_global_dof_phi = list(np.arange(count_Dirichlet+problem.d_u,count_Dirichlet+problem.d_u+problem.d_phi))
                 count_Dirichlet += problem.d
                 G.add_node(problem.nb_dof_DEM + f.index(), dof_u=num_global_dof, dof_phi=num_global_dof_phi)
             else:

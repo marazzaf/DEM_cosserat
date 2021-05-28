@@ -16,7 +16,14 @@ def DEM_to_DG1_matrix(problem):
     mat = (problem.dim+1) * inner(test_DG0, trial_DG1) / vol * dx
     Mat = assemble(mat)
     #PETSc
-    result_matrix_1 = as_backend_type(Mat).mat()
+    aux_result_matrix_1 = as_backend_type(Mat).mat()
+    #This is a mess...
+    result_matrix_1 = PETSc.Mat().create() #Empty matrix
+    result_matrix_1.setSizes((problem.nb_dof_DG1,problem.nb_dof_DEM_aug))
+    result_matrix_1.setType('aij')
+    result_matrix_1.setUp()
+    csr = 
+    result_matrix_1 = 
 
     #P1 part of DG1
     result_matrix_2 = PETSc.Mat().create() #Empty matrix
@@ -63,7 +70,9 @@ def DEM_to_DG1_matrix(problem):
             for i,j in zip(List,range(problem.dim)):
                 result_matrix_2[dof, tens_dof_position[i]] = diff[j]
 
+    #sys.exit()
     result_matrix_2.assemble() #for mat *
+    #sys.exit()
     return result_matrix_1 + result_matrix_2 * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):
@@ -110,7 +119,7 @@ def facet_interpolation(problem):
             #modify these
             res_num[num_facet] = [problem.Graph.nodes[c2]['dof_u']]
             res_num_phi[num_facet] = [problem.Graph.nodes[c2]['dof_phi']]
-            res_coord[num_facet] = list(np.ones(problem.d))
+            res_coord[num_facet] = [1.]
             
         else: #boundary facet
             assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node
@@ -123,22 +132,16 @@ def facet_interpolation(problem):
             neigh_pool = set(neigh_pool) - {-1}
 
         #Final results
-        chosen_coord_bary = []
+        coord_bary = []
         coord_num = []
         coord_num_phi = []
-        
-        #Empty sets to store results of search
-        list_coord = []
-        list_max_coord = []
-        list_num = []
-        list_phi = []
 
         #Search of the simplex
         if len(neigh_pool) > 0:
             for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
             
                 #Dof positions to assemble matrix to compute barycentric coordinates
-                list_positions = []   
+                list_positions = []
                 for l in dof_num:
                     list_positions.append(problem.Graph.nodes[l]['barycentre'])
 
@@ -152,38 +155,18 @@ def facet_interpolation(problem):
                     pass
                 else:
                     coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
-                    if max(abs(coord_bary)) < 1: #interpolation. Stop the search
-                        chosen_coord_bary = coord_bary
-                        for l in dof_num:
-                            coord_num.append(problem.Graph.nodes[l]['dof_u'])
-                            coord_num_phi.append(problem.Graph.nodes[l]['dof_phi'])
-                            break #search is over
-                    elif max(abs(coord_bary)) < 10.:
-                        list_coord.append(coord_bary)
-                        list_max_coord.append(max(abs(coord_bary)))
-                        aux_num = []
-                        aux_phi = []
-                        for l in dof_num:
-                            aux_num.append(problem.Graph.nodes[l]['dof_u'])
-                        aux_phi.append(problem.Graph.nodes[l]['dof_phi'])
-                        list_num.append(aux_num)
-                        list_phi.append(aux_phi)
+                    for l in dof_num:
+                        coord_num.append(problem.Graph.nodes[l]['dof_u'])
+                        coord_num_phi.append(problem.Graph.nodes[l]['dof_phi'])
+                    break #search is over
                     
-            #Choosing the final recontruction for the facet if not already done
-            if len(list_coord) > 0:
-                Min = np.argmin(np.array(list_max_coord))
-                chosen_coord_bary = list_coord[Min]
-                coord_num = list_num[Min]
-                coord_num_phi = list_phi[Min]
-                
             #Tests if search was fruitful
-            print(len(chosen_coord_bary),len(coord_num),len(coord_num_phi))
-            assert len(chosen_coord_bary) > 0
-            assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
+            assert len(coord_bary) > 0
+            assert len(coord_bary) == len(coord_num) == len(coord_num_phi)
 
             res_num[num_facet] = coord_num
             res_num_phi[num_facet] = coord_num_phi
-            res_coord[num_facet] = chosen_coord_bary
+            res_coord[num_facet] = coord_bary
                                 
     return res_num,res_num_phi,res_coord
 
@@ -198,10 +181,7 @@ def DEM_to_CR_matrix(problem):
     simplex_num,simplex_num_phi,simplex_coord = facet_interpolation(problem)
 
     #Storing the facet reconstructions in a matrix
-    #scipy.sparse
-    #result_matrix = dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
-    #PETSc
-    shape = (problem.nb_dof_CR,problem.nb_dof_DEM)
+    shape = (problem.nb_dof_CR,problem.nb_dof_DEM_aug)
     result_matrix = PETSc.Mat().create()
     result_matrix.setSizes(shape)
     result_matrix.setType('aij')
@@ -217,7 +197,7 @@ def DEM_to_CR_matrix(problem):
 
         #Filling the reconstruction matrix
         for i,j,k in zip(simplex_f,simplex_c,simplex_phi):
-            result_matrix[num_global_ddl[0],i[0]] = j #Disp x
+            result_matrix[num_global_ddl[0],i[1]] = j #Disp x
             result_matrix[num_global_ddl[1],i[1]] = j #Disp y
             result_matrix[num_global_ddl_phi[0],k[0]] = j #Rotation
             if problem.dim == 3:

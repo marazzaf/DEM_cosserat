@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 L = 0.5
 nb_elt = 3
 
-@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed"), BoxMesh(Point(-L, -L, -L), Point(L, L, L), nb_elt, nb_elt, nb_elt)])
+@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")])
+                         #, BoxMesh(Point(-L, -L, -L), Point(L, L, L), nb_elt, nb_elt, nb_elt)])
 def test_reconstruction(mesh):
     h = mesh.hmax()
     dim = mesh.geometric_dimension()

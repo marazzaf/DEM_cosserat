@@ -42,7 +42,11 @@ class DEMProblem:
         v = Function(self.V_DG)
         self.d = len(v)
         u,phi = v.split()
-        self.d_u,self.d_phi = len(u),len(phi)
+        self.d_u = len(u)
+        if self.d_u == 2:
+            self.d_phi = 1
+        else:
+            self.d_phi = 3
         
 
         #Spaces for facet interpolations
@@ -65,6 +69,7 @@ class DEMProblem:
             v_CR = TestFunction(self.V_CR)
             Dirichlet_form = inner(Constant(['1'] * self.d), v_CR) * ds
         self.Dirichlet_CR_dofs = Dirichlet_CR_dofs(Dirichlet_form)
+        self.nb_dof_DEM_aug = self.nb_dof_DEM + len(self.Dirichlet_CR_dofs)
         
         #Creating the graph associated with the mesh
         self.Graph = connectivity_graph(self)
@@ -76,6 +81,7 @@ class DEMProblem:
     def assemble_reconstruction_matrices(self): #not assemble by default
         self.DEM_to_CR = DEM_to_CR_matrix(self)
         self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
+        sys.exit()
 
     #Importing useful functions
     from DEM_cosserat.miscellaneous import assemble_volume_load
@@ -188,7 +194,8 @@ def inner_penalty(problem):
     A = assemble(a_pen)
     #PETSc mat
     A = as_backend_type(A).mat()
-    return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
+    #return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
+    return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
 
 
 def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia scalar matrix
