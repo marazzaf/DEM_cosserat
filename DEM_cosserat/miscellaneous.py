@@ -110,14 +110,14 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
             component = BC[0]
 
             if component < problem.dim: #bnd stress
-                #form_pen = problem.pen*problem.G / h * u[component] * v[component] * dds - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
+                #form_pen = problem.pen*4*problem.G / h * u[component] * v[component] * dds# - dot(tr_sigma, n)[component] * v[component] * dds - dot(te_sigma, n)[component] * u[component] * dds
                 form_pen = -dot(tr_sigma, n)[component] * v[component] * dds + dot(te_sigma, n)[component] * u[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
                     form_pen = problem.pen * (problem.G+problem.Gc) / h * phi[component-problem.dim] * psi[component-problem.dim] * dds - dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds - dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
                 elif problem.dim == 2:
                     #form_pen = problem.pen*4*problem.G / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
-                   form_pen = -inner(dot(tr_mu, n), psi) * dds + inner(dot(te_mu, n), phi) * dds
+                    form_pen = -inner(dot(tr_mu, n), psi) * dds + inner(dot(te_mu, n), phi) * dds
             #Storing new term
             list_lhs.append(form_pen)
                 
@@ -158,13 +158,13 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
         
         #for i,j in enumerate(components):
         if component < problem.dim: #bnd stress
-            #form_pen = problem.pen*problem.G / h * imposed_value * v[component] * dds - dot(sigma, n)[component] * imposed_value * dds
+            #form_pen = problem.pen*4*problem.G / h * imposed_value * v[component] * dds + dot(sigma, n)[component] * imposed_value * dds
             form_pen = dot(sigma, n)[component] * imposed_value * dds
         elif component >= problem.dim: #bnd couple stress
             if problem.dim == 3:
                 form_pen = problem.pen* (problem.M+problem.Mc) / h * imposed_value * psi[component-problem.dim] * dds - dot(mu, n)[component-problem.dim] * imposed_value * dds
             elif problem.dim == 2:
-                #form_pen = problem.pen*4*problem.G / h * imposed_value * psi * dds - inner(dot(mu, n), imposed_value) * dds
+                #form_pen = problem.pen*4*problem.G / h * imposed_value * psi * dds + dot(mu, n)*imposed_value * dds
                 form_pen = dot(mu, n) * imposed_value * dds
         list_L.append(form_pen)
     L = sum(l for l in list_L)
@@ -185,70 +185,70 @@ def energy_error_matrix(problem, subdomain_data):
     Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_DG1,problem.nb_dof_DG1))
     return  problem.DEM_to_DG1.T * Mat * problem.DEM_to_DG1
 
-def lhs_bnd_penalty_test(problem): #Test
-    u,phi = TrialFunctions(problem.V_CR)
-    v,psi = TestFunctions(problem.V_CR)
-    h = CellDiameter(problem.mesh)
-    n = FacetNormal(problem.mesh)
+#def lhs_bnd_penalty_test(problem): #Test
+#    u,phi = TrialFunctions(problem.V_CR)
+#    v,psi = TestFunctions(problem.V_CR)
+#    h = CellDiameter(problem.mesh)
+#    n = FacetNormal(problem.mesh)
+#
+#    #stresses Nitsche
+#    tr_strains = problem.strains_2d(u,phi)
+#    tr_sigma,tr_mu = problem.stresses_2d(tr_strains)
+#    tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1])))
+#    te_strains = problem.strains_2d(v,psi)
+#    te_sigma,te_mu = problem.stresses_2d(te_strains)
+#    te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1])))
+#
+#    #symmetric Nitsche
+#    nitsche = -inner(dot(tr_sigma, n), v) * ds - inner(dot(te_sigma, n), u) * ds
+#
+#    #Stresses penalty
+#    aux = outer(v,n)
+#    aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0]))
+#    sigma = dot(problem.D, aux)
+#    sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1]))) #2d
+#    #mu = 4*problem.G*problem.l*problem.l * outer(psi, n)
+#    #mu = 4*problem.G*problem.l*problem.l * psi
+#    mu = 4 * problem.G * psi
+#
+#    #Bilinear
+#    #pen_phi = problem.pen_u * problem.l * problem.l
+#    pen = problem.pen/h * inner(outer(u,n),sigma) * ds + problem.pen/h * inner(phi,mu) * ds #inner(outer(phi,n),mu) * ds
+#    bilinear = pen + nitsche
+#    
+#    #Assembling matrix
+#    Mat = assemble(bilinear)
+#    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
+#    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
+#    
+#    return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
 
-    #stresses Nitsche
-    tr_strains = problem.strains_2d(u,phi)
-    tr_sigma,tr_mu = problem.stresses_2d(tr_strains)
-    tr_sigma = as_tensor(((tr_sigma[0],tr_sigma[2]), (tr_sigma[3], tr_sigma[1])))
-    te_strains = problem.strains_2d(v,psi)
-    te_sigma,te_mu = problem.stresses_2d(te_strains)
-    te_sigma = as_tensor(((te_sigma[0],te_sigma[2]), (te_sigma[3], te_sigma[1])))
-
-    #symmetric Nitsche
-    nitsche = -inner(dot(tr_sigma, n), v) * ds - inner(dot(te_sigma, n), u) * ds
-
-    #Stresses penalty
-    aux = outer(v,n)
-    aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0]))
-    sigma = dot(problem.D, aux)
-    sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1]))) #2d
-    #mu = 4*problem.G*problem.l*problem.l * outer(psi, n)
-    #mu = 4*problem.G*problem.l*problem.l * psi
-    mu = 4 * problem.G * psi
-
-    #Bilinear
-    #pen_phi = problem.pen_u * problem.l * problem.l
-    pen = problem.pen/h * inner(outer(u,n),sigma) * ds + problem.pen/h * inner(phi,mu) * ds #inner(outer(phi,n),mu) * ds
-    bilinear = pen + nitsche
-    
-    #Assembling matrix
-    Mat = assemble(bilinear)
-    row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    Mat = csr_matrix((val, col, row), shape=(problem.nb_dof_CR,problem.nb_dof_CR))
-    
-    return problem.DEM_to_CR.T * Mat * problem.DEM_to_CR
-
-def rhs_bnd_penalty_test(problem, imposed_value_u, imposed_value_phi): #Test
-    #For rhs penalty term computation
-    h = CellDiameter(problem.mesh)
-    v,psi = TestFunctions(problem.V_CR)
-    n = FacetNormal(problem.mesh)
-
-    #Stresses Nitsche
-    strains = problem.strains_2d(v,psi)
-    sigma,mu = problem.stresses_2d(strains)
-    sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1])))
-    
-    #symmetric Nitsche
-    nitsche = -inner(dot(sigma, n), imposed_value_u) * ds - inner(dot(mu, n), imposed_value_phi) * ds
-
-    #Stresses penalty
-    aux = outer(v,n)
-    aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0]))
-    sigma = dot(problem.D, aux)
-    sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1]))) #2d
-    #mu = 4*problem.G*problem.l*problem.l * psi #outer(psi, n)
-    mu = 4 * problem.G * psi
-
-    #penalty
-    #pen_phi = problem.pen_u * problem.l * problem.l
-    pen = problem.pen / h * inner(outer(imposed_value_u,n), sigma) * ds + problem.pen / h * inner(imposed_value_phi, mu) * ds #inner(outer(imposed_value_phi,n), mu) * ds
-
-    L = assemble(nitsche + pen).get_local()
-    
-    return problem.DEM_to_CR.T * L
+#def rhs_bnd_penalty_test(problem, imposed_value_u, imposed_value_phi): #Test
+#    #For rhs penalty term computation
+#    h = CellDiameter(problem.mesh)
+#    v,psi = TestFunctions(problem.V_CR)
+#    n = FacetNormal(problem.mesh)
+#
+#    #Stresses Nitsche
+#    strains = problem.strains_2d(v,psi)
+#    sigma,mu = problem.stresses_2d(strains)
+#    sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1])))
+#    
+#    #symmetric Nitsche
+#    nitsche = -inner(dot(sigma, n), imposed_value_u) * ds - inner(dot(mu, n), imposed_value_phi) * ds
+#
+#    #Stresses penalty
+#    aux = outer(v,n)
+#    aux = as_vector((aux[0,0], aux[1,1], aux[0,1], aux[1,0]))
+#    sigma = dot(problem.D, aux)
+#    sigma = as_tensor(((sigma[0],sigma[2]), (sigma[3], sigma[1]))) #2d
+#    #mu = 4*problem.G*problem.l*problem.l * psi #outer(psi, n)
+#    mu = 4 * problem.G * psi
+#
+#    #penalty
+#    #pen_phi = problem.pen_u * problem.l * problem.l
+#    pen = problem.pen / h * inner(outer(imposed_value_u,n), sigma) * ds + problem.pen / h * inner(imposed_value_phi, mu) * ds #inner(outer(imposed_value_phi,n), mu) * ds
+#
+#    L = assemble(nitsche + pen).get_local()
+#    
+#    return problem.DEM_to_CR.T * L
