@@ -17,13 +17,13 @@ mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
 nu = 0.3 # Poisson's ratio
-l = 0.1 #0.1 #L/100 # intrinsic length scale
+l = L/100 #0.1 #L/100 # intrinsic length scale
 a = 0.5
 G = 1e3 #Shear modulus
 E =  2*G*(1+nu) #Young Modulus
 
 #Creating the DEM problem
-pen = 1 #4*G #2e2 in paper
+pen = 2 #4*G #2e2 in paper
 problem = DEMProblem(mesh, pen) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
