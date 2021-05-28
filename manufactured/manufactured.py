@@ -12,7 +12,7 @@ from petsc4py import PETSc
     
 # Mesh
 L = 0.5
-nb_elt = 20 #20 #40 #80 #110
+nb_elt = 110 #20 #40 #80 #110
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters

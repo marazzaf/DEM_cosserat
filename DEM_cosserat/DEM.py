@@ -180,7 +180,8 @@ def inner_penalty(problem):
     A = assemble(a_pen)
     #PETSc mat
     A = as_backend_type(A).mat()
-    return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
+    #return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
+    return problem.DEM_to_DG1.transpose(PETSc.Mat()) * A * problem.DEM_to_DG1
 
 
 def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia scalar matrix

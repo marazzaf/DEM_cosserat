@@ -97,7 +97,7 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
         #aux = (outer(v,n),outer(psi, n))
         #sigma,mu = problem.stresses_2d(aux)
         #bilinear = problem.pen/h * inner(outer(u,n),sigma) * ds + problem.pen/h/problem.l**2 * inner(outer(phi,n),mu) * ds
-        blinear = -inner(dot(tr_sigma, n), v) * ds + inner(dot(te_sigma, n), u) * ds #consistency and symmetry
+        bilinear = -inner(dot(tr_sigma, n), v) * ds + inner(dot(te_sigma, n), u) * ds #consistency and symmetry
     else:
         list_lhs = []
         for BC in list_Dirichlet_BC:
