@@ -105,10 +105,15 @@ def facet_interpolation(problem):
             neigh_pool = path_1 | path_2
 
         elif len(set(facet['dof_CR_u']) & problem.Dirichlet_CR_dofs) > 0: #Facet is on a Dirichlet boundary
-            print('Prout')
+            assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
+            neigh_pool = [] #not needed
+            #modify these
+            res_num[num_facet] = [problem.Graph.nodes[c2]['dof_u']]
+            res_num_phi[num_facet] = [problem.Graph.nodes[c2]['dof_phi']]
+            res_coord[num_facet] = list(np.ones(problem.d))
             
         else: #boundary facet
-            assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
+            assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node
 
             neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=problem.dim)) - {num_facet + problem.nb_dof_DEM} #2
 
@@ -127,56 +132,58 @@ def facet_interpolation(problem):
         list_max_coord = []
         list_num = []
         list_phi = []
-        
+
         #Search of the simplex
-        for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
+        if len(neigh_pool) > 0:
+            for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
             
-            #Dof positions to assemble matrix to compute barycentric coordinates
-            list_positions = []   
-            for l in dof_num:
-                list_positions.append(problem.Graph.nodes[l]['barycentre'])
+                #Dof positions to assemble matrix to compute barycentric coordinates
+                list_positions = []   
+                for l in dof_num:
+                    list_positions.append(problem.Graph.nodes[l]['barycentre'])
 
-            #Computation of barycentric coordinates
-            A = np.array(list_positions)
-            A = A[1:,:] - A[0,:]
-            b = np.array(x - list_positions[0])
-            try:
-                partial_coord_bary = np.linalg.solve(A.T,b)
-            except np.linalg.LinAlgError: #singular matrix
-                pass
-            else:
-                coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
-                if max(abs(coord_bary)) < 1: #interpolation. Stop the search
-                    chosen_coord_bary = coord_bary
-                    for l in dof_num:
-                        coord_num.append(problem.Graph.nodes[l]['dof_u'])
-                        coord_num_phi.append(problem.Graph.nodes[l]['dof_phi'])
-                    break #search is over
-                elif max(abs(coord_bary)) < 10.:
-                    list_coord.append(coord_bary)
-                    list_max_coord.append(max(abs(coord_bary)))
-                    aux_num = []
-                    aux_phi = []
-                    for l in dof_num:
-                        aux_num.append(problem.Graph.nodes[l]['dof_u'])
+                #Computation of barycentric coordinates
+                A = np.array(list_positions)
+                A = A[1:,:] - A[0,:]
+                b = np.array(x - list_positions[0])
+                try:
+                    partial_coord_bary = np.linalg.solve(A.T,b)
+                except np.linalg.LinAlgError: #singular matrix
+                    pass
+                else:
+                    coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
+                    if max(abs(coord_bary)) < 1: #interpolation. Stop the search
+                        chosen_coord_bary = coord_bary
+                        for l in dof_num:
+                            coord_num.append(problem.Graph.nodes[l]['dof_u'])
+                            coord_num_phi.append(problem.Graph.nodes[l]['dof_phi'])
+                            break #search is over
+                    elif max(abs(coord_bary)) < 10.:
+                        list_coord.append(coord_bary)
+                        list_max_coord.append(max(abs(coord_bary)))
+                        aux_num = []
+                        aux_phi = []
+                        for l in dof_num:
+                            aux_num.append(problem.Graph.nodes[l]['dof_u'])
                         aux_phi.append(problem.Graph.nodes[l]['dof_phi'])
-                    list_num.append(aux_num)
-                    list_phi.append(aux_phi)
+                        list_num.append(aux_num)
+                        list_phi.append(aux_phi)
                     
-        #Choosing the final recontruction for the facet if not already done
-        if len(list_coord) > 0:
-            Min = np.argmin(np.array(list_max_coord))
-            chosen_coord_bary = list_coord[Min]
-            coord_num = list_num[Min]
-            coord_num_phi = list_phi[Min]
+            #Choosing the final recontruction for the facet if not already done
+            if len(list_coord) > 0:
+                Min = np.argmin(np.array(list_max_coord))
+                chosen_coord_bary = list_coord[Min]
+                coord_num = list_num[Min]
+                coord_num_phi = list_phi[Min]
                 
-        #Tests if search was fruitful
-        assert len(chosen_coord_bary) > 0
-        assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
+            #Tests if search was fruitful
+            print(len(chosen_coord_bary),len(coord_num),len(coord_num_phi))
+            assert len(chosen_coord_bary) > 0
+            assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
 
-        res_num[num_facet] = coord_num
-        res_num_phi[num_facet] = coord_num_phi
-        res_coord[num_facet] = chosen_coord_bary
+            res_num[num_facet] = coord_num
+            res_num_phi[num_facet] = coord_num_phi
+            res_coord[num_facet] = chosen_coord_bary
                                 
     return res_num,res_num_phi,res_coord
 

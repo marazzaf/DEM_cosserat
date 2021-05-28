@@ -14,6 +14,9 @@ def connectivity_graph(problem):
     dofmap_CR = problem.U_CR.dofmap()
     dofmap_CR_phi = problem.PHI_CR.dofmap()
 
+    #To count Dirichlet dofs
+    count_Dirichlet = problem.nb_dof_DEM
+
     #importing cell dofs
     for c in cells(problem.mesh): #Importing cells
         #Get the position of the barycentre
@@ -53,7 +56,15 @@ def connectivity_graph(problem):
             
         elif bnd: #add the link between a cell dof and a boundary facet
             #number of the dof is total number of cells + num of the facet
-            G.add_node(problem.nb_dof_DEM + f.index())
+            if len(set(num_global_dof_facet) & problem.Dirichlet_CR_dofs) > 0:
+                num_global_dof = count_Dirichlet+problem.d_u
+                num_global_dof_phi = count_Dirichlet+problem.d_phi
+                count_Dirichlet += problem.d
+                G.add_node(problem.nb_dof_DEM + f.index(), dof_u=num_global_dof, dof_phi=num_global_dof_phi)
+            else:
+                G.add_node(problem.nb_dof_DEM + f.index())
             G.add_edge(aux_bis[0], problem.nb_dof_DEM + f.index(), num=f.index(), dof_CR_u=num_global_dof_facet, dof_CR_phi=num_global_dof_facet_phi, barycentre=bary, bnd=bnd)
+
+    assert(problem.nb_dof_DEM + len(problem.Dirichlet_CR_dofs) == count_Dirichlet) #Checks that dof numbers are good on boundary
                 
     return G

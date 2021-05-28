@@ -10,7 +10,7 @@ from DEM_cosserat.miscellaneous import gradient_matrix,Dirichlet_CR_dofs
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
-    def __init__(self, mesh, penalty=1., full_Dirichlet_BC=True):
+    def __init__(self, mesh, penalty=1., Dirichlet_form=False):
         self.mesh = mesh
         self.dim = self.mesh.geometric_dimension()
         self.pen = penalty
@@ -39,8 +39,11 @@ class DEMProblem:
         print('nb dof DEM: %i' % self.nb_dof_DEM)
 
         #Dimension of Approximation space
-        u = Function(self.V_DG)
-        self.d = len(u)
+        v = Function(self.V_DG)
+        self.d = len(v)
+        u,phi = v.split()
+        self.d_u,self.d_phi = len(u),len(phi)
+        
 
         #Spaces for facet interpolations
         self.V_CR = FunctionSpace(self.mesh, MixedElement(U_CR,PHI_CR))
@@ -56,18 +59,18 @@ class DEMProblem:
         self.V_DG1 = FunctionSpace(self.mesh, MixedElement(U_DG1,PHI_DG1))
         self.U_DG1,self.PHI_DG1 = self.V_DG1.split()
         self.nb_dof_DG1 = self.V_DG1.dofmap().global_dimension()
+
+        #Assembling term Dirichlet BC
+        if not Dirichlet_form: #Dirichlet BC on all components on entire boundary of domain
+            v_CR = TestFunction(self.V_CR)
+            Dirichlet_form = inner(Constant(['1'] * self.d), v_CR) * ds
+        self.Dirichlet_CR_dofs = Dirichlet_CR_dofs(Dirichlet_form)
         
         #Creating the graph associated with the mesh
         self.Graph = connectivity_graph(self)
 
         #Computation of gradient matrix for inner penalty term
         self.mat_grad = gradient_matrix(self)
-
-        #Assembling term for full Dirichlet BC
-        if full_Dirichlet_BC:
-            v_CR = TestFunction(self.V_CR)
-            Dirichlet_BC_form = inner(Constant(['1'] * self.d), v_CR) * ds
-            self.Dirichlet_CR_dofs = Dirichlet_CR_dofs(Dirichlet_BC_form)
 
     #DEM reconstructions
     def assemble_reconstruction_matrices(self): #not assemble by default
