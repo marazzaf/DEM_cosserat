@@ -172,8 +172,8 @@ def inner_penalty(problem):
         mu = problem.torque_3d(aux[1])
 
     #penalty bilinear form
-    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
-    #a_pen = problem.pen / h_avg * inner(jump(u), jump(v)) * dS + problem.pen / problem.l**2 / h_avg * inner(jump(phi),jump(psi)) * dS
+    #a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
+    a_pen = problem.pen / h_avg * inner(jump(u), jump(v)) * dS + problem.pen * problem.l**2/h_avg * inner(jump(phi),jump(psi)) * dS
 
 
     #Assembling matrix

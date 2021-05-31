@@ -24,7 +24,7 @@ with XDMFFile("mesh/hole_plate_6.xdmf") as infile:
     infile.read(mesh)
 
 #Creating the DEM problem
-pen = 1 #2e2
+pen = 2 #2e2
 problem = DEMProblem(mesh, pen)
 
 # Boundary conditions

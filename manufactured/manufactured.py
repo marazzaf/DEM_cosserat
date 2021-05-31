@@ -12,18 +12,18 @@ from petsc4py import PETSc
     
 # Mesh
 L = 0.5
-nb_elt = 110 #20 #40 #80 #110
+nb_elt = 130 #20 #40 #80 #110
 mesh = RectangleMesh(Point(-L,-L),Point(L,L),nb_elt,nb_elt,"crossed")
 
 # Parameters
 nu = 0.3 # Poisson's ratio
-l = L/100 #0.1 #L/100 # intrinsic length scale
+l = L/100 # intrinsic length scale
 a = 0.5
 G = 1e3 #Shear modulus
 E =  2*G*(1+nu) #Young Modulus
 
 #Creating the DEM problem
-pen = 2 #4*G #2e2 in paper
+pen = 4*G #4*G #1
 problem = DEMProblem(mesh, pen) #1e3 semble bien
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
@@ -161,13 +161,12 @@ print('Error grad phi: %.2e' % (np.sqrt(error_phi_grad)))
 
 #DG1 errors
 err_grad = np.sqrt(errornorm(u_DG1, u, 'H10')**2 + errornorm(phi_DG1, phi, 'H10')**2)
-#err_L2 = np.sqrt(errornorm(u_DG1, u, 'L2')**2 + errornorm(phi_DG1, phi, 'L2')**2)
+#err_grad = errornorm(v_DG, v, 'H10')
 err_L2 = errornorm(v_DG, v, 'L2')
 print(problem.nb_dof_DEM)
 print('L2 error: %.2e' % err_L2)
-print('H10 error: %.2e' % err_grad)
-print('%i %.2e %.2e' % (problem.nb_dof_DEM, err_L2, err_grad))
-sys.exit()
+print('H1 error: %.2e' % err_grad)
+#print('%i %.2e %.2e' % (problem.nb_dof_DEM, err_L2, err_grad))
 
 #error bnd
 h = CellDiameter(problem.mesh)
