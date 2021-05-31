@@ -87,11 +87,11 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1,phi_DG1 = v_DG1.split()
 
-##Plot
-#img = plot(u_DG1[1])
-#plt.colorbar(img)
-#plt.title('DEM')
-#plt.show()
+#Plot
+img = plot(u_DG1[1])
+plt.colorbar(img)
+plt.title('DEM')
+plt.show()
 #
 #file = File("DEM/u.pvd")
 #file << u_DG1

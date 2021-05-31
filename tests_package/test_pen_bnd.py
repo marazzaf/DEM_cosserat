@@ -11,7 +11,7 @@ import pytest #for unit tests
 
 # Mesh
 L = 0.5
-nb_elt = 10
+nb_elt = 50
 
 # Parameters
 nu = 0.3 # Poisson's ratio
@@ -59,9 +59,9 @@ def test_pen_bnd(mesh):
     W = FunctionSpace(problem.mesh, 'CR', 1)
     w = TestFunction(W)
     aire = sum(assemble(w * ds).get_local())
-    assert round(assemble(u_h[0] / aire * ds), 1) == 0
-    assert round(assemble(u_h[1] / aire * ds), 1) == 0
-    assert round(assemble(phi_h / aire * ds), 1) == 0
+    assert round(assemble(u_h[0] / aire * ds), 0) == 0
+    assert round(assemble(u_h[1] / aire * ds), 0) == 0
+    assert round(assemble(phi_h / aire * ds), 0) == 0
 
     #gamma,kappa = strain(u_h,phi_h)
     #U = FunctionSpace(problem.mesh, 'DG', 0)
