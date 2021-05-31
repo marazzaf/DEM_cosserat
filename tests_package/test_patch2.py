@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # Mesh
 L = 0.12
-nb_elt = 100
+nb_elt = 25 #50 #100
 
 # Parameters
 nu = 0.25 # Poisson's ratio
@@ -22,7 +22,8 @@ l = 0.1 # intrinsic length scale
 a = 0.5 #last param in law
 pen = 1 #penalty parameter
 
-@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L/2),Point(L,L/2),nb_elt,nb_elt,"crossed")])
+#@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L/2),Point(L,L/2),nb_elt,nb_elt,"crossed")])
+@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L/2),Point(L,L/2),50,50,"crossed"), RectangleMesh(Point(-L,-L/2),Point(L,L/2),100,100,"crossed")])
 def test_patch2(mesh):
 
     #Creating the DEM problem

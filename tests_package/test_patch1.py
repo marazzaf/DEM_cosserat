@@ -11,7 +11,7 @@ import pytest #for unit tests
 
 # Mesh
 L = 0.12
-nb_elt = 50
+nb_elt = 10 #10 #25 #50
 
 # Parameters
 nu = 0.25 # Poisson's ratio
@@ -21,7 +21,8 @@ l = 0.1 # intrinsic length scale
 a = 0.5 #last param in law
 pen = 1 #penalty parameter
 
-@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L/2),Point(L,L/2),nb_elt,nb_elt,"crossed")])
+#@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L/2),Point(L,L/2),nb_elt,nb_elt,"crossed")])
+@pytest.mark.parametrize("mesh", [RectangleMesh(Point(-L,-L/2),Point(L,L/2),10,10,"crossed"), RectangleMesh(Point(-L,-L/2),Point(L,L/2),25,25,"crossed"), RectangleMesh(Point(-L,-L/2),Point(L,L/2),50,50,"crossed")])
 def test_patch1(mesh):
 
     #Creating the DEM problem
