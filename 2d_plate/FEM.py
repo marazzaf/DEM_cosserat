@@ -9,7 +9,7 @@ T = 1
 G = 1e3
 nu = 0.3
 r = 0.864e-3
-l = r / 1
+l = r / 3
 a = 1/3
 
 def strain(v,psi):
