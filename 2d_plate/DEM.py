@@ -13,15 +13,18 @@ from DEM_cosserat.miscellaneous import *
 nu = 0.3 # Poisson's ratio
 G = 1e3 # shear modulus
 E = 2*G*(1+nu)
-a = 1/3
-r = 0.864e-3
-l = r / 3 # intrinsic length scale
+a = 1/3 #0 #0.0667 #1.2857 #4.2632 #1/3
+r = 0.864e-3 #0.216e-3 #0.864e-3
+l = r/10 #r / 1.063 #r / 10.63 # intrinsic length scale
 T = 1.0 # load
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("mesh/big_hole/hole_plate_6.xdmf") as infile:
+with XDMFFile("mesh/small_hole/hole_plate_2.xdmf") as infile:
+#with XDMFFile("mesh/big_hole/hole_plate_6.xdmf") as infile:
+
     infile.read(mesh)
+
 
 #Creating the DEM problem
 pen = 1
@@ -87,12 +90,12 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1,phi_DG1 = v_DG1.split()
 
-#Plot
-img = plot(u_DG1[1])
-plt.colorbar(img)
-plt.title('DEM')
-plt.show()
-#
+##Plot
+#img = plot(u_DG1[1])
+#plt.colorbar(img)
+#plt.title('DEM')
+#plt.show()
+
 #file = File("DEM/u.pvd")
 #file << u_DG1
 
@@ -105,11 +108,11 @@ print(max(sig.vector().get_local()))
 #file = File("DEM/stress.pvd")
 #file << sig
 
-#Plot
-img = plot(sig)
-plt.colorbar(img)
-plt.show()
-#
+##Plot
+#img = plot(sig)
+#plt.colorbar(img)
+#plt.show()
+
 ##Reconstruction of facets
 #U_CR = FunctionSpace(mesh, 'CR', 1)
 #h = CellDiameter(mesh)
