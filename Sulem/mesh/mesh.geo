@@ -2,7 +2,6 @@
 plate = 16.2e-3;
 h = 2.5e-4; //3e-4;
 hx = h/150; //h/100;
-R = 0.216e-3; //0.864e-3;
 
 //Geometry definition
 //Points

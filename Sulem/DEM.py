@@ -10,12 +10,13 @@ from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
 
 # Parameters
-nu = 0.3 # Poisson's ratio
-G = 1e3 # shear modulus
-E = 2*G*(1+nu)
-a = 1/3 #0 #0.0667 #1.2857 #4.2632 #1/3
-r = 0.864e-3 #0.216e-3 #0.864e-3
-l = r/10 #r / 1.063 #r / 10.63 # intrinsic length scale
+K = 16.67e9
+G = 10e9
+Gc = 5e9
+l = 0.01e-3 #internal length
+a = Gc/G
+nu = (K-G)/(K+G) # Poisson's ratio
+E = 4*K*G/(K+G) #Young's modulus
 T = 1.0 # load
     
 # Mesh
