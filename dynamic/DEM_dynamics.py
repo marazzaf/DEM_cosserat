@@ -43,11 +43,9 @@ Mc = M
 rho = Constant(1.0)
 I = Constant(2/5*l*l) #Quelle valeur donner à ca ?
 
-# Generalized-alpha method parameters
-alpha_m = Constant(0.2)
-alpha_f = Constant(0.4)
-gamma   = Constant(0.5+alpha_f-alpha_m)
-beta    = Constant((gamma+0.5)**2/4.)
+# Newmark-beta parameters for Crank-Nicholson
+gamma   = Constant(0.5)
+beta    = Constant(0.25)
 
 # Time-stepping parameters
 T       = 4.0
@@ -64,7 +62,7 @@ cte = 10
 problem = DEMProblem(mesh, cte)
 
 #Computing coefficients for Cosserat material
-problem.micropolar_constants(E, nu, l, Gc, M)
+problem.micropolar_constants_3d(E, nu, l, Gc, M, Mc)
 
 # Current (unknown) displacement
 u = Function(problem.V_DG)
@@ -103,11 +101,6 @@ def m(w, w_):
     u_ = as_vector((w_[0],w_[1],w_[2]))
     phi_ = as_vector((w_[3],w_[4],w_[5]))
     return rho*inner(u, u_)*dx + rho*I*inner(phi,phi_)*dx 
-
-##Nitsche penalty bilinear form
-#K += lhs_bnd_penalty(problem, boundary_subdomains, bcs)
-##Penalty matrix
-#K += inner_penalty(problem)
 
 # Strain and torsion
 def strain(v, eta):
@@ -180,9 +173,6 @@ def update_fields(u, u_old, v_old, a_old):
     v_old.vector()[:], a_old.vector()[:] = v_vec, a_vec
     u_old.vector()[:] = u.vector()
 
-def avg(x_old, x_new, alpha):
-    return alpha*x_old + (1-alpha)*x_new
-
 # Residual
 du_DG = TrialFunction(problem.V_DG)
 u_DG = TestFunction(problem.V_DG)
@@ -191,33 +181,27 @@ u_CR = TestFunction(problem.V_CR)
 a_new = update_a(du_DG, u_old, v_old, a_old)
 v_new = update_v(a_new, u_old, v_old, a_old)
 
-#res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
 #mass
-res_mass = m(avg(a_old, a_new, alpha_m), u_DG)
+res_mass = m(a_new, u_DG)
 a_form_m = lhs(res_mass)
 L_form_m = rhs(res_mass)
 K_m, res_m = assemble_system(a_form_m, L_form_m)
-row,col,val = as_backend_type(K_m).mat().getValuesCSR()
-K_m = PETSc.Mat().createAIJ(size=(K_m.size(0),K_m.size(1)), csr=(row,col,val))
-print(type(K_m))
+K_m = as_backend_type(K_m).mat()
 
 #rigidity
-res_rigidity = k(avg(u_old_CR, du_CR, alpha_f), u_CR) - Wext(u_CR)
+res_rigidity = k(du_CR, u_CR) - Wext(u_CR)
 a_form_r = lhs(res_rigidity)
 L_form_r = rhs(res_rigidity)
 K_r, res_r = assemble_system(a_form_r, L_form_r)
-K_r = as_backend_type(K_r)
-print(type(K_r))
+K_r = as_backend_type(K_r).mat()
 
-#Converting a matrix
-DEM_to_CR = PETSc.Mat().createAIJ(size=problem.DEM_to_CR.shape, csr=(problem.DEM_to_CR.indptr, problem.DEM_to_CR.indices,problem.DEM_to_CR.data))
-DEM_to_CR_aux = PETScMatrix(DEM_to_CR)
-print(type(DEM_to_CR))
+#Nitsche penalty
+K_p = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 
-#Define solver
-K = K_r.mat().matMult(DEM_to_CR)
-K = PETScMatrix(DEM_to_CR_aux.mat().transpose().matMult(K) + K_m) #ajouter les matrices de pénalisation
-print(type(K))
+#define lhs and rhs
+K = K_r * problem.DEM_to_CR
+K = PETScMatrix(problem.DEM_to_CR.transpose() * K + K_m + K_p) #ajouter la matrice de pénalisation
+
 sys.exit()
 
 # Time-stepping
@@ -255,8 +239,9 @@ for (i, dt) in enumerate(np.diff(time)):
     p.t = t-float(alpha_f*dt)
 
     # Solve for new displacement
-    res = assemble(L_form)
-    bc.apply(res)
+    res_r = problem.DEM_to_CR.transpose() * assemble(L_form_r).vector()
+    res_m = assemble(L_form_m)
+    res = res_m + res_r
     solve(K, v_DG.vector(), res, 'mumps')
 
 

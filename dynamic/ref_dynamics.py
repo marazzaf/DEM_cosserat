@@ -45,12 +45,12 @@ eta_k = Constant(0.)
 # Generalized-alpha method parameters
 alpha_m = Constant(0) #Constant(0.2)
 alpha_f = Constant(0) #Constant(0.4)
-gamma   = Constant(0.5+alpha_f-alpha_m)
-beta    = Constant((gamma+0.5)**2/4.)
+gamma   = Constant(0.5)
+beta    = Constant(0.25)
 
 # Time-stepping parameters
-T       = 1 #4
-dt = 1e-5
+T = 1 #4
+dt = 1e-2 #1e-5
 Nsteps = int(T / dt) + 1
 
 p0 = 1.
@@ -180,7 +180,8 @@ def avg(x_old, x_new, alpha):
 # Residual
 a_new = update_a(du, u_old, v_old, a_old, ufl=True)
 v_new = update_v(a_new, u_old, v_old, a_old, ufl=True)
-res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
+res = m(a_new, u_) + k(du, u_) - Wext(u_)
+#res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
 a_form = lhs(res)
 L_form = rhs(res)
 
