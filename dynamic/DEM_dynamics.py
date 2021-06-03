@@ -58,8 +58,8 @@ cutoff_Tc = T/5
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
 
 #Creating the DEM problem
-cte = 10
-problem = DEMProblem(mesh, cte)
+pen = 1
+problem = DEMProblem(mesh, pen)
 
 #Computing coefficients for Cosserat material
 problem.micropolar_constants_3d(E, nu, l, Gc, M, Mc)
@@ -133,8 +133,8 @@ def k(w, w_):
     sigma_v = stress(epsilon_v)
     m_u = couple(chi_u)
     m_v = couple(chi_v)
-
-    return inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
+    
+    return (inner(epsilon_v, sigma_u)  + inner(chi_v, m_u))*dx
 
 # Work of external forces
 def Wext(u_):
@@ -200,9 +200,7 @@ K_p = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 
 #define lhs and rhs
 K = K_r * problem.DEM_to_CR
-K = PETScMatrix(problem.DEM_to_CR.transpose() * K + K_m + K_p) #ajouter la matrice de pénalisation
-
-sys.exit()
+K = PETScMatrix(problem.DEM_to_CR.transpose(PETSc.Mat()) * K + K_m + K_p) #ajouter la matrice de pénalisation
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
@@ -236,13 +234,13 @@ for (i, dt) in enumerate(np.diff(time)):
     print("Time: ", t)
 
     # Forces are evaluated at t_{n+1-alpha_f}=t_{n+1}-alpha_f*dt
-    p.t = t-float(alpha_f*dt)
+    p.t = t
 
     # Solve for new displacement
-    res_r = problem.DEM_to_CR.transpose() * assemble(L_form_r).vector()
+    res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
     res_m = assemble(L_form_m)
     res = res_m + res_r
-    solve(K, v_DG.vector(), res, 'mumps')
+    solve(K, u.vector(), res, 'mumps')
 
 
     # Update old fields with new quantities
@@ -251,12 +249,12 @@ for (i, dt) in enumerate(np.diff(time)):
     # Save solution to XDMF format
     xdmf_file.write(u, t)
 
-    p.t = t
     # Record tip displacement and compute energies
     u_tip[i+1] = u(1., 0.05, 0.)[1]
     E_elas = assemble(0.5*k(u_old, u_old))
     E_kin = assemble(0.5*m(v_old, v_old))
     E_ext += assemble(Wext(u-u_old))
+    u_old.vector()[:] = u.vector()
     E_tot = E_elas+E_kin
     energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
 
