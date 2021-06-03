@@ -11,9 +11,10 @@ parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
-Lx,Ly,Lz = 1., 0.1, 0.04
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+folder = 'DEM'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -27,28 +28,30 @@ def left(x, on_boundary):
     return near(x[0], 0) and on_boundary
 
 # Elastic parameters
-E = 1e3
-nu = 0.3
-l = 0.1 * Lx
-
-#other parameters
-G = 0.5*E/(1+nu)
-Gc = 0.5*G
-lmbda = 2*G*nu / (1-2*nu)
-M = G * l*l
-L = M
+l = 0.01e-3
+K = 16.67e9
+G = 10e9
+Gc = 5e9
+L = G*l*l #why that? No values in Rattez et al
+h3 = 2/5
+M = G * l*l / h3
 Mc = M
 
+#recomputing elastic parameters
+#nu = (K-G)/(K+G) # Poisson's ratio
+#E = 4*K*G/(K+G) #Young's modulus
+lmbda = K -2/3*G
+
 # Mass density
-rho = Constant(1.0)
-I = Constant(2/5*l*l) #Quelle valeur donner à ca ?
+rho = Constant(2500)
+I = Constant(2/5*l*l)
 
 # Newmark-beta parameters for Crank-Nicholson
 gamma   = Constant(0.5)
 beta    = Constant(0.25)
 
 # Time-stepping parameters
-T       = 4.0
+T       = 1.0
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
@@ -207,10 +210,12 @@ time = np.linspace(0, T, Nsteps+1)
 u_tip = np.zeros((Nsteps+1,))
 energies = np.zeros((Nsteps+1, 4))
 E_ext = 0
-xdmf_file = XDMFFile("ref/flexion.xdmf")
+xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
+file = open(folder+'/energies.txt', 'w')
+file_disp = open(folder+'/disp.txt', 'w')
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -257,20 +262,8 @@ for (i, dt) in enumerate(np.diff(time)):
     u_old.vector()[:] = u.vector()
     E_tot = E_elas+E_kin
     energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
+    file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
+    file_disp.write('%.2e %.2e\n' % (t, u_tip[i+1]))
 
-# Plot tip displacement evolution
-plt.figure()
-plt.plot(time, u_tip)
-plt.xlabel("Time")
-plt.ylabel("Tip displacement")
-plt.ylim(-0.5, 0.5)
-plt.show()
-
-# Plot energies evolution
-plt.figure()
-plt.plot(time, energies)
-plt.legend(("elastic", "kinetic", "total", "exterior"))
-plt.xlabel("Time")
-plt.ylabel("Energies")
-plt.ylim(0, 0.0011)
-plt.show()
+file.close()
+file_disp.close()

@@ -7,7 +7,7 @@ parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
-Lx,Ly,Lz = 1., 0.1, 0.04
+Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
 #folder = 'test'
 mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
@@ -22,36 +22,37 @@ def right(x, on_boundary):
     return near(x[0], Lx) and on_boundary
 
 # Elastic parameters
-E = 1e3
-nu = 0.3
-l = 0.1 * Lx
-
-#other parameters
-G = 0.5*E/(1+nu)
-Gc = 0.5*G
-lmbda = 2*G*nu / (1-2*nu)
-M = G * l*l
-L = M
+l = 0.01e-3
+K = 16.67e9
+G = 10e9
+Gc = 5e9
+L = G*l*l #why that? No values in Rattez et al
+h3 = 2/5
+M = G * l*l / h3
 Mc = M
 
-# Mass density
-rho = Constant(1.0)
-I = Constant(2/5*l*l) #Quelle valeur donner à ca ?
+#recomputing elastic parameters
+#nu = (K-G)/(K+G) # Poisson's ratio
+#E = 4*K*G/(K+G) #Young's modulus
+lmbda = K -2/3*G
 
+# Mass density
+rho = Constant(2500)
+I = Constant(2/5*l*l)
 # Rayleigh damping coefficients
 eta_m = Constant(0.)
 eta_k = Constant(0.)
 
 # Generalized-alpha method parameters
-alpha_m = Constant(0) #Constant(0.2)
-alpha_f = Constant(0) #Constant(0.4)
 gamma   = Constant(0.5)
 beta    = Constant(0.25)
 
 # Time-stepping parameters
-T = 1 #4
-dt = 1e-2 #1e-5
-Nsteps = int(T / dt) + 1
+T = 1 #1 #4
+#dt = 1e-2 #1e-5
+#Nsteps = int(T / dt) + 1
+Nsteps  = 50
+dt = Constant(T/Nsteps)
 
 p0 = 1.
 cutoff_Tc = T/5
