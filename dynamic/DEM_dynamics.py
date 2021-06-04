@@ -12,8 +12,8 @@ parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
 folder = 'DEM'
 
 # Sub domain for clamp at left end
@@ -63,7 +63,7 @@ pen = 1
 problem = DEMProblem(mesh, pen)
 
 #Computing coefficients for Cosserat material
-problem.micropolar_constants_3d(E, nu, l, Gc, M, Mc)
+problem.micropolar_constants_3d(lmbda, G, Gc, L, M, Mc)
 
 # Current (unknown) displacement
 u = Function(problem.V_DG)
@@ -95,7 +95,6 @@ bc_6 = [5, u_0, 1]
 bcs = [bc_1, bc_2, bc_3, bc_4, bc_5, bc_6]
 
 # Mass form
-#mass = mass_matrix(problem, rho, I)
 def m(w, w_):
     u = as_vector((w[0],w[1],w[2]))
     phi = as_vector((w[3],w[4],w[5]))
@@ -147,16 +146,24 @@ def Wext(u_):
 
 # Update formula for acceleration
 # a = 1/(2*beta)*((u - u0 - v0*dt)/(0.5*dt*dt) - (1-2*beta)*a0)
-def update_a(u, u_old, v_old, a_old):
-    dt_ = float(dt)
-    beta_ = float(beta)
+def update_a(u, u_old, v_old, a_old, ufl=True):
+    if ufl:
+        dt_ = dt
+        beta_ = beta
+    else:
+        dt_ = float(dt)
+        beta_ = float(beta)
     return (u-u_old-dt_*v_old)/beta_/dt_**2 - (1-2*beta_)/2/beta_*a_old
 
 # Update formula for velocity
 # v = dt * ((1-gamma)*a0 + gamma*a) + v0
-def update_v(a, u_old, v_old, a_old):
-    dt_ = float(dt)
-    gamma_ = float(gamma)
+def update_v(a, u_old, v_old, a_old, ufl=True):
+    if ufl:
+        dt_ = dt
+        gamma_ = gamma
+    else:
+        dt_ = float(dt)
+        gamma_ = float(gamma)
     return v_old + dt_*((1-gamma_)*a_old + gamma_*a)
 
 def update_fields(u, u_old, v_old, a_old):
@@ -167,20 +174,20 @@ def update_fields(u, u_old, v_old, a_old):
     v0_vec, a0_vec = v_old.vector(), a_old.vector()
 
     # use update functions using vector arguments
-    a_vec = update_a(u_vec, u0_vec, v0_vec, a0_vec)
-    v_vec = update_v(a_vec, u0_vec, v0_vec, a0_vec)
+    a_vec = update_a(u_vec, u0_vec, v0_vec, a0_vec, ufl=False)
+    v_vec = update_v(a_vec, u0_vec, v0_vec, a0_vec, ufl=False)
 
     # Update (u_old <- u)
     v_old.vector()[:], a_old.vector()[:] = v_vec, a_vec
-    u_old.vector()[:] = u.vector()
+    #u_old.vector()[:] = u.vector()
 
 # Residual
 du_DG = TrialFunction(problem.V_DG)
 u_DG = TestFunction(problem.V_DG)
 du_CR = TrialFunction(problem.V_CR)
 u_CR = TestFunction(problem.V_CR)
-a_new = update_a(du_DG, u_old, v_old, a_old)
-v_new = update_v(a_new, u_old, v_old, a_old)
+a_new = update_a(du_DG, u_old, v_old, a_old, ufl=True)
+v_new = update_v(a_new, u_old, v_old, a_old, ufl=True)
 
 #mass
 res_mass = m(a_new, u_DG)
@@ -196,12 +203,15 @@ L_form_r = rhs(res_rigidity)
 K_r, res_r = assemble_system(a_form_r, L_form_r)
 K_r = as_backend_type(K_r).mat()
 
+#penalty
+K_p = inner_penalty(problem)
+
 #Nitsche penalty
-K_p = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
+K_np = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 
 #define lhs and rhs
-K = K_r * problem.DEM_to_CR
-K = PETScMatrix(problem.DEM_to_CR.transpose(PETSc.Mat()) * K + K_m + K_p) #ajouter la matrice de pénalisation
+K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR
+K = PETScMatrix(K + K_np + K_p + K_m)
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
@@ -242,8 +252,13 @@ for (i, dt) in enumerate(np.diff(time)):
     # Solve for new displacement
     res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
     res_m = assemble(L_form_m)
-    res = res_m + res_r
-    solve(K, u.vector(), res, 'mumps')
+    res = res_r + res_m
+    solve(K, u.vector(), res)#, 'mumps')
+
+    ##plot
+    #img = plot(u[1])
+    #plt.colorbar(img)
+    #plt.show()
 
 
     # Update old fields with new quantities
@@ -256,12 +271,14 @@ for (i, dt) in enumerate(np.diff(time)):
     # Record tip displacement and compute energies
     u_tip = u(Lx, Ly/2, Lz/2)[1]
     v_tip = v_old(Lx, Ly/2, Lz/2)[1]
+    #F = FacetArea(mesh)
+    #u_tip = assemble(u[1] / F * dss(3))
+    #v_tip = assemble(v_old[1] / F * dss(3))
     E_elas = assemble(0.5*k(u_old, u_old))
     E_kin = assemble(0.5*m(v_old, v_old))
     E_ext += assemble(Wext(u-u_old))
     u_old.vector()[:] = u.vector()
     E_tot = E_elas+E_kin
-    #energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
     file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
     file_disp.write('%.2e %.2e %.2e\n' % (t, u_tip, v_tip))
 

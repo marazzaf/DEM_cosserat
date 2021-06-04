@@ -39,9 +39,6 @@ lmbda = K -2/3*G
 # Mass density
 rho = Constant(2500)
 I = Constant(2/5*l*l)
-# Rayleigh damping coefficients
-eta_m = Constant(0.)
-eta_k = Constant(0.)
 
 # Generalized-alpha method parameters
 gamma   = Constant(0.5)
@@ -182,8 +179,8 @@ def avg(x_old, x_new, alpha):
 # Residual
 a_new = update_a(du, u_old, v_old, a_old, ufl=True)
 v_new = update_v(a_new, u_old, v_old, a_old, ufl=True)
-#res = m(a_new, u_) + k(du, u_) - Wext(u_)
-res = m(avg(a_old, a_new, 0), u_) + k(avg(u_old, du, 0), u_) - Wext(u_)
+res = m(a_new, u_) + k(du, u_) - Wext(u_)
+#res = m(avg(a_old, a_new, 0), u_) + k(avg(u_old, du, 0), u_) - Wext(u_)
 a_form = lhs(res)
 L_form = rhs(res)
 
@@ -198,7 +195,7 @@ time = np.linspace(0, T, Nsteps+1)
 #energies = np.zeros((Nsteps+1, 4))
 E_damp = 0
 E_ext = 0
-xdmf_file = XDMFFile(folder+"/flexion_fine.xdmf")
+xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
@@ -239,8 +236,8 @@ for (i, dt) in enumerate(np.diff(time)):
     update_fields(u, u_old, v_old, a_old)
 
     # Save solution to XDMF format
-    if i % 100 == 0:
-        xdmf_file.write(u, t)
+    #if i % 100 == 0:
+    xdmf_file.write(u, t)
 
     # Record tip displacement and compute energies
     u_tip = u(Lx, Ly/2, Lz/2)[1]
@@ -257,20 +254,3 @@ for (i, dt) in enumerate(np.diff(time)):
 
 file.close()
 file_disp.close()
-
-## Plot tip displacement evolution
-#plt.figure()
-#plt.plot(time, u_tip)
-#plt.xlabel("Time")
-#plt.ylabel("Tip displacement")
-#plt.ylim(-0.5, 0.5)
-#plt.show()
-#
-## Plot energies evolution
-#plt.figure()
-#plt.plot(time, energies)
-#plt.legend(("elastic", "kinetic", "total", "exterior"))
-#plt.xlabel("Time")
-#plt.ylabel("Energies")
-#plt.ylim(0, 0.0011)
-#plt.show()

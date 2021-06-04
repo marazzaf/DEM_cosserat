@@ -83,15 +83,14 @@ class DEMProblem:
         self.G = 0.5*E/(1+nu)
         return
 
-    def micropolar_constants_3d(self, E, nu, Gc, L, M, Mc):
-        self.Gc = Gc
+    def micropolar_constants_3d(self, lmbda, G, Gc, L, M, Mc):
+        self.lmbda = lmbda
+        self.G = G
         self.L = L
+        self.Gc = Gc
         self.M = M
         self.Mc = Mc
-
-        #computing other parameters
-        self.G = 0.5*E/(1+nu)
-        self.lmbda = 2*self.G*nu / (1-2*nu)
+        
         return      
     
     def strains_2d(self, v, psi):
@@ -172,8 +171,8 @@ def inner_penalty(problem):
         mu = problem.torque_3d(aux[1])
 
     #penalty bilinear form
-    #a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
-    a_pen = problem.pen / h_avg * inner(jump(u), jump(v)) * dS + problem.pen * problem.l**2/h_avg * inner(jump(phi),jump(psi)) * dS
+    a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
+    #a_pen = problem.pen / h_avg * inner(jump(u), jump(v)) * dS + problem.pen * problem.l**2/h_avg * inner(jump(phi),jump(psi)) * dS
 
 
     #Assembling matrix

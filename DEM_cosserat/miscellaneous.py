@@ -114,7 +114,8 @@ def lhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC=None): #List must
                 form_pen = -dot(tr_sigma, n)[component] * v[component] * dds + dot(te_sigma, n)[component] * u[component] * dds
             elif component >= problem.dim: #bnd couple stress
                 if problem.dim == 3:
-                    form_pen = problem.pen * (problem.G+problem.Gc) / h * phi[component-problem.dim] * psi[component-problem.dim] * dds - dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds - dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
+                    #form_pen = problem.pen * (problem.G+problem.Gc) / h * phi[component-problem.dim] * psi[component-problem.dim] * dds
+                    form_pen = -dot(tr_mu, n)[component-problem.dim] * psi[component-problem.dim] * dds + dot(te_mu, n)[component-problem.dim] * phi[component-problem.dim] * dds
                 elif problem.dim == 2:
                     #form_pen = problem.pen*4*problem.G / h * phi * psi * dds - inner(dot(tr_mu, n), psi) * dds - inner(dot(te_mu, n), phi) * dds
                     form_pen = -inner(dot(tr_mu, n), psi) * dds + inner(dot(te_mu, n), phi) * dds
@@ -162,7 +163,8 @@ def rhs_bnd_penalty(problem, subdomain_data, list_Dirichlet_BC): #List must cont
             form_pen = dot(sigma, n)[component] * imposed_value * dds
         elif component >= problem.dim: #bnd couple stress
             if problem.dim == 3:
-                form_pen = problem.pen* (problem.M+problem.Mc) / h * imposed_value * psi[component-problem.dim] * dds - dot(mu, n)[component-problem.dim] * imposed_value * dds
+                #form_pen = problem.pen* (problem.M+problem.Mc) / h * imposed_value * psi[component-problem.dim] * dds
+                form_pen = dot(mu, n)[component-problem.dim] * imposed_value * dds
             elif problem.dim == 2:
                 #form_pen = problem.pen*4*problem.G / h * imposed_value * psi * dds + dot(mu, n)*imposed_value * dds
                 form_pen = dot(mu, n) * imposed_value * dds
