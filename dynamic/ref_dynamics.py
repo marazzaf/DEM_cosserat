@@ -48,13 +48,14 @@ gamma   = Constant(0.5)
 beta    = Constant(0.25)
 
 # Time-stepping parameters
-T = 1 #1 #4
+T = Lx * float(sqrt(rho/E))#1 #4
+T *= 2e2
 #dt = 1e-2 #1e-5
 #Nsteps = int(T / dt) + 1
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
-p0 = 100*E
+p0 = E
 cutoff_Tc = T/5
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
@@ -181,8 +182,8 @@ def avg(x_old, x_new, alpha):
 # Residual
 a_new = update_a(du, u_old, v_old, a_old, ufl=True)
 v_new = update_v(a_new, u_old, v_old, a_old, ufl=True)
-res = m(a_new, u_) + k(du, u_) - Wext(u_)
-#res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
+#res = m(a_new, u_) + k(du, u_) - Wext(u_)
+res = m(avg(a_old, a_new, 0), u_) + k(avg(u_old, du, 0), u_) - Wext(u_)
 a_form = lhs(res)
 L_form = rhs(res)
 
@@ -193,8 +194,8 @@ solver.parameters["symmetric"] = True
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
-u_tip = np.zeros((Nsteps+1,))
-energies = np.zeros((Nsteps+1, 4))
+#u_tip = np.zeros((Nsteps+1,))
+#energies = np.zeros((Nsteps+1, 4))
 E_damp = 0
 E_ext = 0
 xdmf_file = XDMFFile(folder+"/flexion_fine.xdmf")
@@ -242,16 +243,17 @@ for (i, dt) in enumerate(np.diff(time)):
         xdmf_file.write(u, t)
 
     # Record tip displacement and compute energies
-    u_tip[i+1] = u(Lx, Ly/2, Lz/2)[1]
+    u_tip = u(Lx, Ly/2, Lz/2)[1]
+    v_tip = v_old(Lx, Ly/2, Lz/2)[1]
     E_elas = assemble(0.5*k(u_old, u_old))
     E_kin = assemble(0.5*m(v_old, v_old))
     E_ext += assemble(Wext(u-u_old))
     u_old.vector()[:] = u.vector()
     
     E_tot = E_elas+E_kin
-    energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
+    #energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
     file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
-    file_disp.write('%.2e %.2e\n' % (t, u_tip[i+1]))
+    file_disp.write('%.2e %.2e %.2e\n' % (t, u_tip, v_tip))
 
 file.close()
 file_disp.close()
