@@ -33,7 +33,7 @@ Mc = M
 
 #recomputing elastic parameters
 #nu = (K-G)/(K+G) # Poisson's ratio
-#E = 4*K*G/(K+G) #Young's modulus
+E = 9*K*G/(3*K+G) #Young's modulus
 lmbda = K -2/3*G
 
 # Mass density
@@ -54,7 +54,7 @@ T = 1 #1 #4
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
-p0 = 1.
+p0 = 100*E
 cutoff_Tc = T/5
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
@@ -226,7 +226,7 @@ for (i, dt) in enumerate(np.diff(time)):
     print("Time: ", t)
 
     # Forces are evaluated at t_{n+1-alpha_f}=t_{n+1}-alpha_f*dt
-    p.t = t-float(alpha_f*dt)
+    p.t = t
 
     # Solve for new displacement
     res = assemble(L_form)
@@ -241,9 +241,8 @@ for (i, dt) in enumerate(np.diff(time)):
     if i % 100 == 0:
         xdmf_file.write(u, t)
 
-    p.t = t
     # Record tip displacement and compute energies
-    u_tip[i+1] = u(1., 0.05, 0.)[1]
+    u_tip[i+1] = u(Lx, Ly/2, Lz/2)[1]
     E_elas = assemble(0.5*k(u_old, u_old))
     E_kin = assemble(0.5*m(v_old, v_old))
     E_ext += assemble(Wext(u-u_old))

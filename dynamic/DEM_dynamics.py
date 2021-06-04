@@ -24,9 +24,6 @@ def left(x, on_boundary):
 def right(x, on_boundary):
     return near(x[0], Lx) and on_boundary
 
-def left(x, on_boundary):
-    return near(x[0], 0) and on_boundary
-
 # Elastic parameters
 l = 0.01e-3
 K = 16.67e9
@@ -38,8 +35,8 @@ M = G * l*l / h3
 Mc = M
 
 #recomputing elastic parameters
-#nu = (K-G)/(K+G) # Poisson's ratio
-#E = 4*K*G/(K+G) #Young's modulus
+nu = (3*K-2*G)/2*(3*K+G) # Poisson's ratio
+E = 9*K*G/(3*K+G) #Young's modulus
 lmbda = K -2/3*G
 
 # Mass density
@@ -214,8 +211,8 @@ xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open(folder+'/energies.txt', 'w')
-file_disp = open(folder+'/disp.txt', 'w')
+file = open(folder+'/energies.txt', 'w', 1)
+file_disp = open(folder+'/disp.txt', 'w', 1)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -255,7 +252,7 @@ for (i, dt) in enumerate(np.diff(time)):
     xdmf_file.write(u, t)
 
     # Record tip displacement and compute energies
-    u_tip[i+1] = u(1., 0.05, 0.)[1]
+    u_tip[i+1] = u(Lx, Ly/2, Lz/2)[1]
     E_elas = assemble(0.5*k(u_old, u_old))
     E_kin = assemble(0.5*m(v_old, v_old))
     E_ext += assemble(Wext(u-u_old))
