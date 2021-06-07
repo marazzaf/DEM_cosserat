@@ -50,14 +50,28 @@ u_D = Expression(('1e-5*x[1]/h','0'), h=h, degree=1)
 phi_D = Expression('-0.1*x[1]/h', h=h, degree=1)
 
 #ref
-x = SpatialCoordinate(mesh)
-K1 = 0 #TBD
-K2 = 0
+delta = 2*np.sqrt(G*Gc/((G+Gc)*M))
+mat = np.array([[1, 1, -0.5/G], [np.exp(delta*h), np.exp(-delta*h), -0.5/G], [-0.5*Gc/(G+Gc)/delta*np.exp(delta*h), -0.5*Gc/(G+Gc)/delta*np.exp(-delta*h), h/G]])
+vec = np.array([0,-0.1,0.01*h])
+res = np.linalg.solve(mat,vec)
+K1 = res[0]
+K2 = res[1]
 K3 = 0
-tau_c = 0 #TBD
-delta = 2*sqrt(G*Gc/((G+Gc)*M))
+tau_c = res[2]
+x = SpatialCoordinate(mesh)
 u_0 = -2*Gc/(G+Gc)*(K1/delta*exp(delta*x[1]) - K2/delta*exp(-delta*x[1])) + tau_c/G*x[1] + K3
 omega = K1*exp(delta*x[1]) - K2*exp(-delta*x[1]) - 0.5*tau_c/G
+#print(np.allclose(np.dot(mat, res), vec))
+#sys.exit()
+
+##plot ref solution
+#xx = np.arange(0, h, 1e-6)
+#omegaa = K1*np.exp(delta*xx) - K2*np.exp(-delta*xx) - 0.5*tau_c/G
+#plt.plot(xx, omegaa, '-')
+#plt.xlim((0, h))
+#plt.ylim((-0.1, 0))
+#plt.show()
+#sys.exit()
 
 #compliance tensor
 problem.micropolar_constants(E, nu, l/2, a)
@@ -92,15 +106,33 @@ v_DG1 = Function(problem.V_DG1)
 v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
 u_DG1,phi_DG1 = v_DG1.split()
 
-#plot
-fig = plot(u_DG1[0])
-plt.colorbar(fig)
-plt.show()
-fig = plot(u_DG1[1])
-plt.colorbar(fig)
-plt.show()
-fig = plot(phi_DG1)
-plt.colorbar(fig)
+##plot
+#fig = plot(u_DG1[0])
+#plt.colorbar(fig)
+#plt.show()
+#fig = plot(u_DG1[1])
+#plt.colorbar(fig)
+#plt.show()
+#fig = plot(phi_DG1)
+#plt.colorbar(fig)
+#plt.show()
+#sys.exit()
+
+#plot computd rotation
+U = FunctionSpace(mesh, 'CG', 1)
+xx = np.arange(0, h, h/20)
+yy = np.zeros_like(xx)
+for i,X in enumerate(xx):
+    yy[i] = phi_DG1(0,X)
+    
+
+##plot ref solution
+xxx = np.arange(0, h, 1e-6)
+omegaa = K1*np.exp(delta*xxx) - K2*np.exp(-delta*xxx) - 0.5*tau_c/G
+plt.plot(xxx, omegaa, '-')
+plt.plot(xx, yy, '*')
+plt.xlim((0, h))
+plt.ylim((-0.1, 0))
 plt.show()
 sys.exit()
 
