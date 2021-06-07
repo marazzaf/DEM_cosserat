@@ -12,9 +12,10 @@ parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-folder = 'DEM'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
+#folder = 'DEM'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+folder = 'DEM_fine'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
