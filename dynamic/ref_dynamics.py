@@ -8,10 +8,10 @@ parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-#folder = 'test'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
+#folder = 'ref'
 mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-folder = 'ref'
+folder = 'ref_fine'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
