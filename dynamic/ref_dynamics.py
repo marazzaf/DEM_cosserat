@@ -10,8 +10,10 @@ parameters["form_compiler"]["optimize"] = True
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
 #folder = 'test'
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-folder = 'ref'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+#folder = 'ref'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 80, 20, 7) #fine
+folder = 'ref_fine'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -199,8 +201,8 @@ xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open(folder+'/energies.txt', 'w')
-file_disp = open(folder+'/disp.txt', 'w')
+file = open(folder+'/energies.txt', 'w', 1)
+file_disp = open(folder+'/disp.txt', 'w', 1)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -229,7 +231,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Solve for new displacement
     res = assemble(L_form)
     bc.apply(res)
-    solver.solve(K, u.vector(), res)
+    solver.solve(K, u.vector(), res, 'cg')
 
 
     # Update old fields with new quantities

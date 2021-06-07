@@ -12,10 +12,10 @@ parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-#folder = 'DEM'
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-folder = 'DEM_fine'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
+folder = 'DEM'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+#folder = 'DEM_fine'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -254,7 +254,7 @@ for (i, dt) in enumerate(np.diff(time)):
     res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
     res_m = assemble(L_form_m)
     res = res_r + res_m
-    solve(K, u.vector(), res, 'mumps')
+    solve(K, u.vector(), res, 'cg', 'sor')
 
     ##plot
     #img = plot(u[1])
