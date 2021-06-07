@@ -47,13 +47,13 @@ ds = ds(subdomain_data=boundary_parts)
 
 #ref solution
 delta = 2*np.sqrt(G*Gc/((G+Gc)*M))
-mat = np.array([[1, 1, 0], [np.exp(delta*h), np.exp(-delta*h), -0.5/G], [-0.5*Gc/(G+Gc)/delta*np.exp(delta*h), 0.5*Gc/(G+Gc)/delta*np.exp(-delta*h), h/G]]) #[1, 1, -0.5/G]
-vec = np.array([0,-0.1,0.01*h])
+mat = np.array([[np.exp(delta*h)-np.exp(-delta*h), -0.5/G], [-2*Gc/(G+Gc)/delta*(np.exp(delta*h)-np.exp(-delta*h)), h/G]])
+vec = np.array([-0.1,0.01*h])
 res = np.linalg.solve(mat,vec)
 K1 = res[0]
-K2 = res[1]
+K2 = -K1
 K3 = 0
-tau_c = res[2]
+tau_c = res[1]
 omega21 = Gc/(G+Gc)*(K1+K2) - 0.5*tau_c/G
 
 #BC
@@ -95,9 +95,6 @@ u_DG1,phi_DG1 = v_DG1.split()
 
 ##plot
 #fig = plot(u_DG1[0])
-#plt.colorbar(fig)
-#plt.show()
-#fig = plot(u_DG1[1])
 #plt.colorbar(fig)
 #plt.show()
 #fig = plot(phi_DG1)
