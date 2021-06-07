@@ -12,7 +12,7 @@ from petsc4py import PETSc
     
 # Mesh
 h = 1e-3
-nb_elt = 5
+nb_elt = 5 #10
 mesh = RectangleMesh(Point(-h/2,0),Point(h/2,h),nb_elt,5*nb_elt,"crossed")
 
 # Parameters
@@ -48,30 +48,6 @@ ds = ds(subdomain_data=boundary_parts)
 #BC
 u_D = Expression(('1e-5*x[1]/h','0'), h=h, degree=1)
 phi_D = Expression('-0.1*x[1]/h', h=h, degree=1)
-
-#ref
-delta = 2*np.sqrt(G*Gc/((G+Gc)*M))
-mat = np.array([[1, 1, -0.5/G], [np.exp(delta*h), np.exp(-delta*h), -0.5/G], [-0.5*Gc/(G+Gc)/delta*np.exp(delta*h), -0.5*Gc/(G+Gc)/delta*np.exp(-delta*h), h/G]])
-vec = np.array([0,-0.1,0.01*h])
-res = np.linalg.solve(mat,vec)
-K1 = res[0]
-K2 = res[1]
-K3 = 0
-tau_c = res[2]
-x = SpatialCoordinate(mesh)
-u_0 = -2*Gc/(G+Gc)*(K1/delta*exp(delta*x[1]) - K2/delta*exp(-delta*x[1])) + tau_c/G*x[1] + K3
-omega = K1*exp(delta*x[1]) - K2*exp(-delta*x[1]) - 0.5*tau_c/G
-#print(np.allclose(np.dot(mat, res), vec))
-#sys.exit()
-
-##plot ref solution
-#xx = np.arange(0, h, 1e-6)
-#omegaa = K1*np.exp(delta*xx) - K2*np.exp(-delta*xx) - 0.5*tau_c/G
-#plt.plot(xx, omegaa, '-')
-#plt.xlim((0, h))
-#plt.ylim((-0.1, 0))
-#plt.show()
-#sys.exit()
 
 #compliance tensor
 problem.micropolar_constants(E, nu, l/2, a)
@@ -118,26 +94,40 @@ u_DG1,phi_DG1 = v_DG1.split()
 #plt.show()
 #sys.exit()
 
-#plot computd rotation
+#computed rotation
 U = FunctionSpace(mesh, 'CG', 1)
 xx = np.arange(0, h, h/20)
-yy = np.zeros_like(xx)
+rot = np.zeros_like(xx)
+disp = np.zeros_like(xx)
 for i,X in enumerate(xx):
-    yy[i] = phi_DG1(0,X)
-    
+    rot[i] = phi_DG1(0,X)
+    disp[i] = u_DG1(0,X)[0]
 
-##plot ref solution
+#ref solution
+delta = 2*np.sqrt(G*Gc/((G+Gc)*M))
+mat = np.array([[1, 1, -0.5/G], [np.exp(delta*h), np.exp(-delta*h), -0.5/G], [-0.5*Gc/(G+Gc)/delta*np.exp(delta*h), 0.5*Gc/(G+Gc)/delta*np.exp(-delta*h), h/G]])
+vec = np.array([0,-0.1,0.01*h])
+res = np.linalg.solve(mat,vec)
+K1 = res[0]
+K2 = res[1]
+K3 = 0
+tau_c = res[2]
+
+###plot ref rotation
 xxx = np.arange(0, h, 1e-6)
-omegaa = K1*np.exp(delta*xxx) - K2*np.exp(-delta*xxx) - 0.5*tau_c/G
-plt.plot(xxx, omegaa, '-')
-plt.plot(xx, yy, '*')
+#omega = K1*np.exp(delta*xxx) + K2*np.exp(-delta*xxx) - 0.5*tau_c/G
+#plt.plot(xxx, omega, '-')
+#plt.plot(xx, rot, '*')
+#plt.xlim((0, h))
+#plt.ylim((-0.1, 0))
+#plt.show()
+
+##plot ref rotation
+u_0 = -2*Gc/(G+Gc)*(K1/delta*np.exp(delta*xxx) - K2/delta*np.exp(-delta*xxx)) + tau_c/G*xxx + K3
+plt.plot(xxx, u_0, '-')
+plt.plot(xx, disp, '*')
 plt.xlim((0, h))
-plt.ylim((-0.1, 0))
+#plt.ylim((0, 4e-6))
+plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
+plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
 plt.show()
-sys.exit()
-
-
-#Computing stresses
-strains = problem.strains_2d(u_DG1, phi_DG1)
-sig,mu = problem.stresses_2d(strains)
-deff,kappa = strains
