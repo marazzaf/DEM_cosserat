@@ -199,8 +199,8 @@ xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open(folder+'/energies.txt', 'w')
-file_disp = open(folder+'/disp.txt', 'w')
+file = open(folder+'/energies.txt', 'w', 1)
+file_disp = open(folder+'/disp.txt', 'w', 1)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -229,7 +229,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Solve for new displacement
     res = assemble(L_form)
     bc.apply(res)
-    solver.solve(K, u.vector(), res)
+    solver.solve(K, u.vector(), res, 'cg')
 
 
     # Update old fields with new quantities
