@@ -254,7 +254,7 @@ for (i, dt) in enumerate(np.diff(time)):
     res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
     res_m = assemble(L_form_m)
     res = res_r + res_m
-    solve(K, u.vector(), res)#, 'mumps')
+    solve(K, u.vector(), res, 'mumps')
 
     ##plot
     #img = plot(u[1])
