@@ -11,18 +11,18 @@ from DEM_cosserat.miscellaneous import *
 from petsc4py import PETSc
     
 # Mesh
-h = 1e-3
+Lx,Ly = 4e3,2e3
 nb_elt = 10
-mesh = RectangleMesh(Point(-h/2,0),Point(h/2,h),nb_elt,5*nb_elt,"crossed")
+mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),Lx/Ly*nb_elt,nb_elt,"crossed")
 
 # Parameters
-nu = 0 #0.3 # Poisson's ratio #Correct?
-l = 1e-4 # intrinsic length scale
-a = 2 #2 #or 1???
-G = 10e9 #Shear modulus
-Gc = 20e9
-M = G*l*l
-E =  2*G*(1+nu) #Young Modulus
+nu = 0.25 # Poisson's ratio
+E =  1.88e10 #Young Modulus
+rho = 2200 #volumic mass
+G = E/(1+nu) #Shear modulus
+Gc = 0
+a = Gc/G
+l = 0.5*mesh.hmax()/np.sqrt(2) # intrinsic length scale
 
 #Creating the DEM problem
 pen = 1
@@ -45,47 +45,40 @@ left_right_boundary = AutoSubDomain(left_right)
 left_right_boundary.mark(boundary_parts, 2)
 ds = ds(subdomain_data=boundary_parts)
 
-#ref solution
-delta = 2*np.sqrt(G*Gc/((G+Gc)*M))
-mat = np.array([[np.exp(delta*h)-np.exp(-delta*h), -0.5/G], [-2*Gc/(G+Gc)/delta*(np.exp(delta*h)-np.exp(-delta*h)), h/G]])
-vec = np.array([-0.1,0.01*h])
-res = np.linalg.solve(mat,vec)
-K1 = res[0]
-K2 = -K1
-K3 = 0
-tau_c = res[1]
-omega21 = Gc/(G+Gc)*(K1+K2) - 0.5*tau_c/G
-
 #BC
 u_D = Expression(('1e-5*x[1]/h','0'), h=h, degree=1)
 phi_D = Expression('-0.1*x[1]/h + omega21', h=h, omega21=omega21, degree=1)
+
+#volume load
+t = Expression(('', '', ''), degree=5)
+Rhs = problem.assemble(t) #continue that!
 
 #compliance tensor
 problem.micropolar_constants(E, nu, l/2, a)
 
 # Variational problem
 elas = problem.elastic_bilinear_form()
-lhs = elas
+Lhs = elas
 
 #Penalty matrix
 inner_pen = inner_penalty(problem) #test
-lhs += inner_pen
+Lhs += inner_pen
 
 #Listing Dirichlet BC
 bc = [[0,u_D[0],1], [1, u_D[1],1], [2, phi_D,1], [1, Constant(0), 2]]
 
 #Nitsche penalty rhs
 nitsche_and_bnd = rhs_bnd_penalty(problem, boundary_parts, bc) 
-Rhs = nitsche_and_bnd
+Rhs += nitsche_and_bnd
 
 #Nitsche penalty bilinear form
 bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
-lhs += bnd
+Lhs += bnd
 
 #Solving linear problem
 v_DG = Function(problem.V_DG)
 print('Solve!')
-solve(PETScMatrix(lhs), v_DG.vector(), PETScVector(Rhs), 'mumps')
+solve(PETScMatrix(Lhs), v_DG.vector(), PETScVector(Rhs), 'mumps')
 u_DG,phi_DG = v_DG.split()
 
 #Computing reconstruction
