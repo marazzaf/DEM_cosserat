@@ -200,3 +200,13 @@ def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia
     res.assemble() #needed for multiplications
 
     return res
+
+def mass_matrix_vec(problem, rho=1, I=1): #rho is the volumic mass and I the inertia scalar matrix
+    v,psi = TestFunctions(problem.V_DG)
+    aux = Constant(['1'] * problem.dim)
+    form = rho * inner(aux,v) * dx
+    if problem.dim == 3:
+        form += rho*I*inner(aux,psi) * dx
+    elif problem.dim ==2:
+        form += rho*I*psi * dx
+    return as_backend_type(assemble(form))

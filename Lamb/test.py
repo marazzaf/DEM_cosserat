@@ -13,7 +13,7 @@ from ufl import sign
     
 # Mesh
 Lx,Ly = 4e3,2e3
-nb_elt = 50 #50 computation #5 #debug
+nb_elt = 5 #50 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
 
 # Parameters
@@ -76,8 +76,11 @@ beta = 0.25
 # Time-stepping
 T = 1 #second
 Nsteps = 50
-dt_ = T/Nsteps
-time = np.linspace(0, T, Nsteps+1)
+#dt_ = T/Nsteps
+#time = np.linspace(0, T, Nsteps+1)
+#test
+dt_ = 1e-10
+time = np.linspace(0, 50*dt_, Nsteps+1)
 
 # Current (unknown) displacement
 u = Function(problem.V_DG, name='disp')
@@ -89,13 +92,13 @@ a_old = Function(problem.V_DG)
 v_DG,psi_DG = TestFunctions(problem.V_DG)
 
 #test
-truc = Expression(('pow(x[0]-x0,2)+pow(x[1]-0.5*Ly,2) < 1e3 ? 1 : 0', '0', '0'), x0=x0, Ly=Ly, degree = 1)
+truc = Expression(('x[0] < 0 ? 1 : 0', '0', '0'), x0=x0, Ly=Ly, degree = 1)
 v_old = interpolate(truc, problem.V_DG)
 
 #Mass matrix
 I = 2/5*l*l
 M = mass_matrix(problem, rho, I)
-K += M/beta/dt_**2
+#K += M/beta/dt_**2
 K = PETScMatrix(K)
 #corresponding rhs
 def L(uu, vv, aa):
@@ -108,10 +111,34 @@ def L(uu, vv, aa):
 folder = 'test'
 file = File(folder+"/output.pvd")
 
+#test Verlet
+M = mass_matrix_vec(problem, rho, I)
+for (i, dt) in enumerate(np.diff(time)):
+    t = time[i+1]
+    print("Time: ", t)
+
+    u.vector()[:] += v_old.vector() * dt_
+    a_old.vector()[:] = K*u.vector()
+    v_old.vector().set_local(v_old.vector().get_local() - dt_*a_old.vector().get_local() / M.get_local())
+
+    #img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
+    img = plot(sqrt(v_old[1]*v_old[1]+v_old[0]*v_old[0]))
+    plt.colorbar(img)
+    plt.show()
+    #sys.exit()
+
+    #output
+    file.write(u, t)
+    file.write(v_old, t)
+
+sys.exit()
+
+#implicit integration
 for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
     print("Time: ", t)
     #psi = (1 - t*t/sigma/sigma) * np.exp(-0.5*t*t/sigma/sigma) / r_squared
+    psi = 1e-3
     load = psi * as_vector((cos_theta, sin_theta, 0)) # * psi
 
     # Solve for new displacement
