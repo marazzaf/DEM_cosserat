@@ -114,18 +114,23 @@ for i,X in enumerate(xx):
 ##plot ref rotation
 xxx = np.arange(0, h, 1e-6)
 omega = K1*np.exp(delta*xxx) + K2*np.exp(-delta*xxx) - 0.5*tau_c/G
-plt.plot(xxx, omega, '-')
-plt.plot(xx, rot, '*')
+plt.plot(xxx, omega, '-', label='analytical')
+plt.plot(xx, rot, '*', label='computed')
 plt.xlim((0, h))
 plt.ylim((-0.1, 0))
+plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
+plt.title(r'$u_x$')
+plt.savefig('disp.pdf')
 plt.show()
 
 ##plot ref rotation
 u_0 = -2*Gc/(G+Gc)*(K1/delta*np.exp(delta*xxx) - K2/delta*np.exp(-delta*xxx)) + tau_c/G*xxx + K3
-plt.plot(xxx, u_0, '-')
-plt.plot(xx, disp, '*')
+plt.plot(xxx, u_0, '-', label='analytical')
+plt.plot(xx, disp, '*', label='computed')
 plt.xlim((0, h))
 #plt.ylim((0, 4e-6))
 plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
 plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+plt.title(r'$\varphi$')
+plt.savefig('rotation.pdf')
 plt.show()
