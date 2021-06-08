@@ -61,20 +61,14 @@ elas = problem.elastic_bilinear_form()
 K = elas
 
 #Penalty matrix
-K += inner_penalty(problem) #test
+K += inner_penalty(problem)
 
 #Nitsche penalty bilinear form
 K += lhs_bnd_penalty(problem, boundary_parts)
 
-#Mass matrix
-I = 2/5*l*l
-M = mass_matrix(problem, rho, I)
-K += M
-#(u-u_old-dt_*v_old)/beta_/dt_**2 - (1-2*beta_)/2/beta_*a_old
-
 #Newmark-beta parameters
-gamma = Constant(0.5)
-beta = Constant(0.25)
+gamma = 0.5
+beta = 0.25
 
 # Current (unknown) displacement
 u = Function(problem.V_DG)
@@ -83,24 +77,39 @@ u_old = Function(problem.V_DG)
 v_old = Function(problem.V_DG)
 a_old = Function(problem.V_DG)
 
+#Mass matrix
+I = 2/5*l*l
+M = mass_matrix(problem, rho, I)
+K += M/beta/dt_**2
+#corresponding rhs
+L = (u_old+dt_*v_old)/beta/dt_**2 + (1-2*beta)/2/beta*a_old
+
+
 # Time-stepping
 T = 1 #second
-Nsteps  = 50
-#dt = Constant(T/Nsteps)
+Nsteps = 50
+dt_ = T/Nsteps
 time = np.linspace(0, T, Nsteps+1)
 
-for (i, dt) in enumerate(np.diff(time)):
+#outputs
+folder = 'test'
+xdmf_file = XDMFFile(folder+"/disp.xdmf")
 
+for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
     print("Time: ", t)
 
     # Solve for new displacement
-    res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
-    res_m = assemble(L_form_m)
-    res = res_r + res_m + Rhs
-    solve(K, u.vector(), res, 'mumps')
+    res = Rhs + as_backend_type(assemble(L))
+    solve(PETScMatrix(K), u.vector(), PETScVector(res), 'mumps')
     
     # Update old fields with new quantities
-    update_fields(u, u_old, v_old, a_old)
+    u_vec, u0_vec  = u.vector(), u_old.vector()
+    v0_vec, a0_vec = v_old.vector(), a_old.vector()
+    a_old.vector()[:] = (u_vec-u0_vec-dt_*v0_vec)/beta/dt_**2 - (1-2*beta)/2/beta*a0_vec
+    v_old.vector()[:] = v0_vec + dt_*((1-gamma)*a0_vec + gamma*a_old.vector())
+
+    #output
+    xdmf_file.write(u, t)
 
 
