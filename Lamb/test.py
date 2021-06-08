@@ -23,7 +23,7 @@ rho = 2200 #volumic mass
 G = E/(1+nu) #Shear modulus
 Gc = 0
 a = Gc/G
-l = 0.5*mesh.hmax()/np.sqrt(2) # intrinsic length scale
+l = float(0.5*mesh.hmax()/np.sqrt(2)) # intrinsic length scale
 
 #Creating the DEM problem
 pen = 1
@@ -70,26 +70,32 @@ K += lhs_bnd_penalty(problem, boundary_parts)
 gamma = 0.5
 beta = 0.25
 
+# Time-stepping
+T = 1 #second
+Nsteps = 50
+dt_ = T/Nsteps
+time = np.linspace(0, T, Nsteps+1)
+
 # Current (unknown) displacement
 u = Function(problem.V_DG)
 # Fields from previous time step (displacement, velocity, acceleration)
 u_old = Function(problem.V_DG)
 v_old = Function(problem.V_DG)
 a_old = Function(problem.V_DG)
+#Necessary
+v_DG,psi_DG = TestFunctions(problem.V_DG)
 
 #Mass matrix
 I = 2/5*l*l
 M = mass_matrix(problem, rho, I)
 K += M/beta/dt_**2
+K = PETScMatrix(K)
 #corresponding rhs
-L = (u_old+dt_*v_old)/beta/dt_**2 + (1-2*beta)/2/beta*a_old
-
-
-# Time-stepping
-T = 1 #second
-Nsteps = 50
-dt_ = T/Nsteps
-time = np.linspace(0, T, Nsteps+1)
+def L():
+    truc = (u_old+dt_*v_old)/beta/dt_**2 + (1-2*beta)/2/beta*a_old
+    disp = as_vector((truc[0],truc[1]))
+    rot = truc[2]
+    return rho*inner(disp, v_DG)*dx + rho*I*inner(rot,psi_DG)*dx
 
 #outputs
 folder = 'test'
@@ -100,8 +106,8 @@ for (i, dt) in enumerate(np.diff(time)):
     print("Time: ", t)
 
     # Solve for new displacement
-    res = Rhs + as_backend_type(assemble(L))
-    solve(PETScMatrix(K), u.vector(), PETScVector(res), 'mumps')
+    res = PETScVector(Rhs) + as_backend_type(assemble(L()))
+    solve(K, u.vector(), res, 'mumps')
     
     # Update old fields with new quantities
     u_vec, u0_vec  = u.vector(), u_old.vector()

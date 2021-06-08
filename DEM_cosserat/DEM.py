@@ -172,7 +172,7 @@ def inner_penalty(problem):
 
     #penalty bilinear form
     a_pen = problem.pen / h_avg * inner(outer(jump(u),n('+')), sigma) * dS + problem.pen / h_avg * inner(outer(jump(phi),n('+')), mu) * dS
-    #a_pen = problem.pen / h_avg * inner(jump(u), jump(v)) * dS + problem.pen * problem.l**2/h_avg * inner(jump(phi),jump(psi)) * dS
+    ##a_pen = problem.pen / h_avg * inner(jump(u), jump(v)) * dS + problem.pen * problem.l**2/h_avg * inner(jump(phi),jump(psi)) * dS
 
 
     #Assembling matrix
@@ -184,8 +184,12 @@ def inner_penalty(problem):
 
 def mass_matrix(problem, rho=1, I=1): #rho is the volumic mass and I the inertia scalar matrix
     v,psi = TestFunctions(problem.V_DG)
-    aux = Constant(('1', '1', '1'))
-    form = rho * (inner(aux,v) + I*inner(aux,psi)) * dx
+    aux = Constant(['1'] * problem.dim)
+    form = rho * inner(aux,v) * dx
+    if problem.dim == 3:
+        form += rho*I*inner(aux,psi) * dx
+    elif problem.dim ==2:
+        form += rho*I*psi * dx
     vec = as_backend_type(assemble(form)).vec()
 
     #creating PETSc mat
