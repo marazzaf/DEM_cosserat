@@ -13,7 +13,7 @@ from ufl import sign
     
 # Mesh
 Lx,Ly = 4e3,2e3
-nb_elt = 5 #5 #debug
+nb_elt = 5 #50 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
 
 # Parameters
@@ -36,15 +36,18 @@ ds = ds(subdomain_data=boundary_parts)
 #volume load
 x0 = 0
 y0 = Ly - 20
-r_squared = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2)', x0=x0, y0=y0, degree=2)
 sigma = 14.5
-t = (1 - 0.5 * r_squared/sigma**2) * exp(-0.5*r_squared/sigma**2) / (np.pi*sigma**4)
+r_squared = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2)', x0=x0, y0=y0, degree=2)
+#psi = 1e10 * (1 - 0.5 * r_squared/sigma**2) * exp(-0.5*r_squared/sigma**2) / (np.pi*sigma**4)
+#psi = Expression('pow(x[0]-x0,2)+pow(x[1]-y0,2) < 1 ? (1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma) : 0', x0=x0, y0=y0, sigma=sigma, t=0, degree = 1)
+t = 0
+psi = (1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)
 x = SpatialCoordinate(mesh)
 X = (x[1]-y0) / (x[0]-x0)
-cos_theta = 1. / sqrt(1 + X**2.) * sign(x[0]-x0) #check signs
-sin_theta = abs(X) / sqrt(1 + X**2.) * sign(x[1]-y0) #check signs
-t = as_vector((t*cos_theta, t*sin_theta, 0)) 
-Rhs = problem.assemble_volume_load(t) #continue that!
+cos_theta = 1. / sqrt(1 + X**2.) * sign(x[0]-x0)
+sin_theta = abs(X) / sqrt(1 + X**2.) * sign(x[1]-y0)
+load = psi * as_vector((cos_theta, sin_theta, 0)) 
+Rhs = problem.assemble_volume_load(load)
 
 ##test load
 #U = FunctionSpace(mesh ,'CG', 1)
@@ -77,10 +80,10 @@ dt_ = T/Nsteps
 time = np.linspace(0, T, Nsteps+1)
 
 # Current (unknown) displacement
-u = Function(problem.V_DG)
+u = Function(problem.V_DG, name='disp')
 # Fields from previous time step (displacement, velocity, acceleration)
 u_old = Function(problem.V_DG)
-v_old = Function(problem.V_DG)
+v_old = Function(problem.V_DG, name='vel')
 a_old = Function(problem.V_DG)
 #Necessary
 v_DG,psi_DG = TestFunctions(problem.V_DG)
@@ -99,13 +102,16 @@ def L():
 
 #outputs
 folder = 'test'
-xdmf_file = XDMFFile(folder+"/disp.xdmf")
+file = File(folder+"/output.pvd")
 
 for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
     print("Time: ", t)
+    psi = (1 - t*t/sigma/sigma) * np.exp(-0.5*t*t/sigma/sigma) / r_squared
+    load = psi * as_vector((cos_theta, sin_theta, 0)) # * psi
 
     # Solve for new displacement
+    Rhs = problem.assemble_volume_load(load)
     res = PETScVector(Rhs) + as_backend_type(assemble(L()))
     solve(K, u.vector(), res, 'mumps')
     
@@ -115,7 +121,13 @@ for (i, dt) in enumerate(np.diff(time)):
     a_old.vector()[:] = (u_vec-u0_vec-dt_*v0_vec)/beta/dt_**2 - (1-2*beta)/2/beta*a0_vec
     v_old.vector()[:] = v0_vec + dt_*((1-gamma)*a0_vec + gamma*a_old.vector())
 
+    img = plot(v_old[1])
+    plt.colorbar(img)
+    plt.show()
+    #sys.exit()
+
     #output
-    xdmf_file.write(u, t)
+    file.write(u, t)
+    file.write(v_old, t)
 
 
