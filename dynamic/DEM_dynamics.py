@@ -214,6 +214,8 @@ K_np = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR
 K = PETScMatrix(K + K_np + K_p + K_m)
 
+#Add a rhs to impose Dirichlet BC on the velocity???
+
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
 #u_tip = np.zeros((Nsteps+1,))

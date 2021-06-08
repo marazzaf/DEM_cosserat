@@ -89,7 +89,7 @@ a_old = Function(problem.V_DG)
 v_DG,psi_DG = TestFunctions(problem.V_DG)
 
 #test
-truc = Expression(('pow(x[0]-x0,2)+pow(x[1]-y0,2) < 1e3 ? 1 : 0', '0', '0'), x0=x0, y0=y0, degree = 1)
+truc = Expression(('pow(x[0]-x0,2)+pow(x[1]-0.5*Ly,2) < 1e3 ? 1 : 0', '0', '0'), x0=x0, Ly=Ly, degree = 1)
 v_old = interpolate(truc, problem.V_DG)
 
 #Mass matrix
@@ -117,7 +117,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Solve for new displacement
     Rhs = problem.assemble_volume_load(load)
     res = as_backend_type(assemble(L(u_old, v_old, a_old))) + PETScVector(Rhs)
-    #res = PETScVector(Rhs)
+    res = as_backend_type(assemble(L(u_old, v_old, a_old)))
     solve(K, u.vector(), res, 'mumps')
     
     # Update old fields with new quantities
@@ -125,16 +125,16 @@ for (i, dt) in enumerate(np.diff(time)):
     v0_vec, a0_vec = v_old.vector(), a_old.vector()
     a_old.vector()[:] = (u_vec-u0_vec-dt_*v0_vec)/beta/dt_**2 - (1-2*beta)/2/beta*a0_vec
     v_old.vector()[:] = v0_vec + dt_*((1-gamma)*a0_vec + gamma*a_old.vector())
+    u_old.vector()[:] = u.vector() #Useful?
 
-    img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
-    #img = plot(v_old[1])
+    #img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
+    img = plot(sqrt(v_old[1]*v_old[1]+v_old[0]*v_old[0]))
     plt.colorbar(img)
     plt.show()
     #sys.exit()
 
-    ##output
-    #file.write(u, t)
-    #file.write(v_old, t)
-    #u_old.vector()[:] = u.vector() #Useful?
+    #output
+    file.write(u, t)
+    file.write(v_old, t)
 
 
