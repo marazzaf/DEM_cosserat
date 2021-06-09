@@ -50,7 +50,7 @@ beta    = Constant(0.25)
 
 # Time-stepping parameters
 T = Lx * float(sqrt(rho/E))
-T *= 2e2
+#T *= 2e2
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
