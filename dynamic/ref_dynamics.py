@@ -13,10 +13,10 @@ rank = comm.Get_rank()
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
-#folder = 'ref'
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-folder = 'ref_fine'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
+folder = 'ref'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+#folder = 'ref_fine'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 100, 13, 5) #very fine
 #folder = 'ref_very_fine'
 
@@ -59,7 +59,7 @@ T *= 2e2
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
-p0 = E
+p0 = E*1e-6
 cutoff_Tc = T/5
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)

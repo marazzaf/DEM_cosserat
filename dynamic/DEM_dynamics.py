@@ -12,7 +12,7 @@ parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
 folder = 'test'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
 #folder = 'DEM_fine'
@@ -54,7 +54,7 @@ T *= 2e2
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
-p0 = E
+p0 = E*1e-6
 cutoff_Tc = T/5
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
@@ -211,19 +211,20 @@ K_r, res_r = assemble_system(a_form_r, L_form_r)
 K_r = as_backend_type(K_r).mat()
 
 #damping (penalty on velocity)
-#def c(v_new_DG1, u_DG1):
-h = CellDiameter(mesh)
-#n = FacetNormal(mesh)
-#v = TestFunction(problem.V_DG1)
-#sigma = stress(outer(v,n))
-#mu = couple(outer(psi,n))
-#return (inner(outer(as_vector((v_new_DG1[0], v_new_DG1[1], v_new_DG1[2])),n),sigma) + inner(outer(as_vector((v_new_DG1[3], v_new_DG1[4], v_new_DG1[5])),n),mu)) / h * dss(1)
-res_pv = 4*G * inner(jump(v_new_DG1),jump(u_DG1)) / h('+') * dss(1)
-#res_pv = c(v_new_DG1, u_DG1) #m(a_new_DG1, u_DG1)
+def c(v_new_DG1):
+    h = CellDiameter(mesh)
+    n = FacetNormal(mesh)
+    v,psi = TestFunctions(problem.V_DG1)
+    sigma = stress(outer(v,n))
+    mu = couple(outer(psi,n))
+    return (inner(outer(as_vector((v_new_DG1[0], v_new_DG1[1], v_new_DG1[2])),n),sigma) + inner(outer(as_vector((v_new_DG1[3], v_new_DG1[4], v_new_DG1[5])),n),mu)) / h * dss(1)
+res_pv = c(v_new_DG1)
+#res_pv = 4*G * inner(v_new_DG1,u_DG1) / h * dss(1)
 a_form_pv = lhs(res_pv)
 L_form_pv = rhs(res_pv)
-K_pv, res_pv = assemble_system(a_form_pv, L_form_pv)
-K_pv = as_backend_type(K_pv).mat()
+#K_pv, res_pv = assemble_system(a_form_pv, L_form_pv)
+K_pv = as_backend_type(assemble(a_form_pv)).mat()
+res_pv = as_backend_type(assemble(L_form_pv))
 
 #penalty
 K_p = inner_penalty(problem)
@@ -232,7 +233,7 @@ K_p = inner_penalty(problem)
 K_np = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 
 #define lhs and rhs
-K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR + problem.DEM_to_DG1.transpose(PETSc.Mat()) * K_pv * problem.DEM_to_DG1
+K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR# + problem.DEM_to_DG1.transpose(PETSc.Mat()) * K_pv * problem.DEM_to_DG1
 K = PETScMatrix(K + K_np + K_p + K_m)
 
 # Time-stepping
@@ -275,7 +276,7 @@ for (i, dt) in enumerate(np.diff(time)):
     res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
     res_m = assemble(L_form_m)
     res_pv = PETScVector(problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_pv)).vec())
-    res = res_r + res_m + res_pv
+    res = res_r + res_m# + res_pv
     solve(K, u.vector(), res, 'mumps')
 
     ##plot
@@ -301,7 +302,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Save solution to XDMF format
     #if i % 100 == 0:
     xdmf_file.write(u, t)
-    xdmf_file.write(v_old, t)
+    xdmf_file.write(v_old_DG1, t)
 
     # Record tip displacement and compute energies
     u_tip = u(Lx, Ly/2, Lz/2)[1]
