@@ -67,11 +67,10 @@ problem = DEMProblem(mesh, pen)
 problem.micropolar_constants_3d(lmbda, G, Gc, L, M, Mc)
 
 # Current (unknown) displacement
-u = Function(problem.V_DG)
+u = Function(problem.V_DG, name='disp')
 # Fields from previous time step (displacement, velocity, acceleration)
 u_old = Function(problem.V_DG)
-u_old_CR = Function(problem.V_CR)
-v_old = Function(problem.V_DG)
+v_old = Function(problem.V_DG, name='vel')
 a_old = Function(problem.V_DG)
 
 # Create mesh function over the cell facets
@@ -256,7 +255,7 @@ for (i, dt) in enumerate(np.diff(time)):
     res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
     res_m = assemble(L_form_m)
     res = res_r + res_m
-    solve(K, u.vector(), res, 'cg', 'sor') #'mumps')
+    solve(K, u.vector(), res, 'mumps')
 
     ##plot
     #img = plot(u[1])
@@ -270,6 +269,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Save solution to XDMF format
     #if i % 100 == 0:
     xdmf_file.write(u, t)
+    xdmf_file.write(v_old, t)
 
     # Record tip displacement and compute energies
     u_tip = u(Lx, Ly/2, Lz/2)[1]
