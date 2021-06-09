@@ -1,10 +1,15 @@
 from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
+import mpi4py
 
 # Form compiler options
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
+parameters["allow_extrapolation"] = True
+
+comm = mpi4py.MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
@@ -12,6 +17,8 @@ Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
 #folder = 'ref'
 mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
 folder = 'ref_fine'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 100, 13, 5) #very fine
+#folder = 'ref_very_fine'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -61,7 +68,8 @@ p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, de
 U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
 S = VectorElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
-print('nb dofs FEM: %i' % V.dofmap().global_dimension())
+if rank == 0:
+    print('nb dofs FEM: %i' % V.dofmap().global_dimension())
 U, S = V.split()
 U_1, U_2, U_3 = U.split()
 S_1, S_2, S_3 = S.split()
@@ -70,10 +78,10 @@ S_1, S_2, S_3 = S.split()
 du = TrialFunction(V)
 u_ = TestFunction(V)
 # Current (unknown) displacement
-u = Function(V)
+u = Function(V, name='disp')
 # Fields from previous time step (displacement, velocity, acceleration)
 u_old = Function(V)
-v_old = Function(V)
+v_old = Function(V, name='vel')
 a_old = Function(V)
 
 # Create mesh function over the cell facets
@@ -199,8 +207,8 @@ xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open(folder+'/energies.txt', 'w', 1)
-file_disp = open(folder+'/disp.txt', 'w', 1)
+file = open(folder+'/energies.txt', 'w') #, 1)
+file_disp = open(folder+'/disp.txt', 'w') #, 1)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -221,7 +229,8 @@ def local_project(v, V, u=None):
 for (i, dt) in enumerate(np.diff(time)):
 
     t = time[i+1]
-    print("Time: ", t)
+    if rank == 0:
+        print("Time: ", t)
 
     # Forces are evaluated at t_{n+1-alpha_f}=t_{n+1}-alpha_f*dt
     p.t = t
@@ -229,7 +238,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Solve for new displacement
     res = assemble(L_form)
     bc.apply(res)
-    solver.solve(K, u.vector(), res, 'cg')
+    solver.solve(K, u.vector(), res)
 
 
     # Update old fields with new quantities
@@ -238,6 +247,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Save solution to XDMF format
     #if i % 100 == 0:
     xdmf_file.write(u, t)
+    xdmf_file.write(v_old, t)
 
     # Record tip displacement and compute energies
     u_tip = u(Lx, Ly/2, Lz/2)[1]

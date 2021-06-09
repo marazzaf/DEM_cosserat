@@ -20,9 +20,8 @@ T = 1.0 # load
     
 # Mesh
 mesh = Mesh()
-with XDMFFile("mesh/small_hole/hole_plate_2.xdmf") as infile:
-#with XDMFFile("mesh/big_hole/hole_plate_6.xdmf") as infile:
-
+#with XDMFFile("mesh/small_hole/hole_plate_2.xdmf") as infile:
+with XDMFFile("mesh/big_hole/hole_plate_6.xdmf") as infile:
     infile.read(mesh)
 
 
