@@ -211,18 +211,17 @@ K_r, res_r = assemble_system(a_form_r, L_form_r)
 K_r = as_backend_type(K_r).mat()
 
 #damping (penalty on velocity)
-def c(v_new_DG1):
-    h = CellDiameter(mesh)
-    n = FacetNormal(mesh)
-    v,psi = TestFunctions(problem.V_DG1)
-    sigma = stress(outer(v,n))
-    mu = couple(outer(psi,n))
-    return (inner(outer(as_vector((v_new_DG1[0], v_new_DG1[1], v_new_DG1[2])),n),sigma) + inner(outer(as_vector((v_new_DG1[3], v_new_DG1[4], v_new_DG1[5])),n),mu)) / h * dss(1)
-res_pv = c(v_new_DG1)
-#res_pv = 4*G * inner(v_new_DG1,u_DG1) / h * dss(1)
+h = CellDiameter(mesh)
+#def c(v_new_DG1):
+#    n = FacetNormal(mesh)
+#    v,psi = TestFunctions(problem.V_DG1)
+#    sigma = stress(outer(v,n))
+#    mu = couple(outer(psi,n))
+#    return (inner(outer(as_vector((v_new_DG1[0], v_new_DG1[1], v_new_DG1[2])),n),sigma) + inner(outer(as_vector((v_new_DG1[3], v_new_DG1[4], v_new_DG1[5])),n),mu)) / h * dss(1)
+#res_pv = c(v_new_DG1)
+res_pv = 4*G * inner(v_new_DG1[1],u_DG1[1]) / h * dss(1) + 4*G*l*l * inner(v_new_DG1[4],u_DG1[4]) / h * dss(1)
 a_form_pv = lhs(res_pv)
 L_form_pv = rhs(res_pv)
-#K_pv, res_pv = assemble_system(a_form_pv, L_form_pv)
 K_pv = as_backend_type(assemble(a_form_pv)).mat()
 res_pv = as_backend_type(assemble(L_form_pv))
 
@@ -233,7 +232,7 @@ K_p = inner_penalty(problem)
 K_np = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 
 #define lhs and rhs
-K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR# + problem.DEM_to_DG1.transpose(PETSc.Mat()) * K_pv * problem.DEM_to_DG1
+K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR + problem.DEM_to_DG1.transpose(PETSc.Mat()) * K_pv * problem.DEM_to_DG1
 K = PETScMatrix(K + K_np + K_p + K_m)
 
 # Time-stepping
@@ -276,7 +275,7 @@ for (i, dt) in enumerate(np.diff(time)):
     res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
     res_m = assemble(L_form_m)
     res_pv = PETScVector(problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_pv)).vec())
-    res = res_r + res_m# + res_pv
+    res = res_r + res_m + res_pv
     solve(K, u.vector(), res, 'mumps')
 
     ##plot
