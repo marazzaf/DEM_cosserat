@@ -68,6 +68,7 @@ problem.micropolar_constants_3d(lmbda, G, Gc, L, M, Mc)
 
 # Current (unknown) displacement
 u = Function(problem.V_DG, name='disp')
+uu_DG1 = Function(problem.V_DG1, name='disp DG1')
 # Fields from previous time step (displacement, velocity, acceleration)
 u_old = Function(problem.V_DG)
 v_old = Function(problem.V_DG, name='vel')
@@ -286,25 +287,26 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Update old fields with new quantities
     update_fields(u, u_old, v_old, a_old)
+    uu_DG1.vector()[:] =  problem.DEM_to_DG1 * u.vector().vec()
     u_old_DG1.vector()[:] = problem.DEM_to_DG1 * u_old.vector().vec()
     v_old_DG1.vector()[:] = problem.DEM_to_DG1 * v_old.vector().vec()
     a_old_DG1.vector()[:] = problem.DEM_to_DG1 * a_old.vector().vec()
     
-    #test to see if velocity is zero on left boundary
-    v_old_CR.vector()[:] = problem.DEM_to_CR * v_old.vector().vec()
-    test = v_old_CR(0, Ly/2, Lz/2)[1]
-    #bc.apply(v_old_CR.vector()) #just a test
-    #test2 = v_old_CR(0, Ly/2, Lz/2)[1]
-    #print('%.2e %.2e\n' % (test,test2))
-    print(test)
+    ##test to see if velocity is zero on left boundary
+    #v_old_CR.vector()[:] = problem.DEM_to_CR * v_old.vector().vec()
+    #test = v_old_CR(0, Ly/2, Lz/2)[1]
+    ##bc.apply(v_old_CR.vector()) #just a test
+    ##test2 = v_old_CR(0, Ly/2, Lz/2)[1]
+    ##print('%.2e %.2e\n' % (test,test2))
+    #print(test)
 
     # Save solution to XDMF format
     #if i % 100 == 0:
-    xdmf_file.write(u, t)
+    xdmf_file.write(uu_DG1, t)
     xdmf_file.write(v_old_DG1, t)
 
     # Record tip displacement and compute energies
-    u_tip = u(Lx, Ly/2, Lz/2)[1]
+    u_tip = uu_DG1(Lx, Ly/2, Lz/2)[1]
     v_tip = v_old(Lx, Ly/2, Lz/2)[1]
     #F = FacetArea(mesh)
     #u_tip = assemble(u[1] / F * dss(3))
