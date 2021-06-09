@@ -13,7 +13,7 @@ parameters["form_compiler"]["optimize"] = True
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
 mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-folder = 'DEM'
+folder = 'test'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
 #folder = 'DEM_fine'
 
@@ -71,7 +71,12 @@ u = Function(problem.V_DG, name='disp')
 # Fields from previous time step (displacement, velocity, acceleration)
 u_old = Function(problem.V_DG)
 v_old = Function(problem.V_DG, name='vel')
+v_old_CR = Function(problem.V_CR, name='vel CR')
 a_old = Function(problem.V_DG)
+#reconstructions of fields defined above
+u_old_DG1 = Function(problem.V_DG1)
+v_old_DG1 = Function(problem.V_DG1, name='vel DG1')
+a_old_DG1 = Function(problem.V_DG1)
 
 # Create mesh function over the cell facets
 boundary_subdomains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
@@ -93,6 +98,8 @@ bc_4 = [3, u_0, 1]
 bc_5 = [4, u_0, 1]
 bc_6 = [5, u_0, 1]
 bcs = [bc_1, bc_2, bc_3, bc_4, bc_5, bc_6]
+#zero = Constant(['0'] * 6)
+#bc = DirichletBC(problem.V_DG, zero, left)
 
 # Mass form
 def m(w, w_):
@@ -141,9 +148,6 @@ def Wext(u_):
     u_aux = as_vector((u_[0],u_[1],u_[2]))
     return dot(u_aux, p)*dss(3)
 
-## Work of external forces
-#Wext = assemble_boundary_load(problem, 3, boundary_subdomains, p)
-
 # Update formula for acceleration
 # a = 1/(2*beta)*((u - u0 - v0*dt)/(0.5*dt*dt) - (1-2*beta)*a0)
 def update_a(u, u_old, v_old, a_old, ufl=True):
@@ -179,7 +183,7 @@ def update_fields(u, u_old, v_old, a_old):
 
     # Update (u_old <- u)
     v_old.vector()[:], a_old.vector()[:] = v_vec, a_vec
-    #u_old.vector()[:] = u.vector()
+    u_old.vector()[:] = u.vector()
 
 # Residual
 du_DG = TrialFunction(problem.V_DG)
@@ -187,7 +191,10 @@ u_DG = TestFunction(problem.V_DG)
 du_CR = TrialFunction(problem.V_CR)
 u_CR = TestFunction(problem.V_CR)
 a_new = update_a(du_DG, u_old, v_old, a_old, ufl=True)
-v_new = update_v(a_new, u_old, v_old, a_old, ufl=True)
+du_DG1 = TrialFunction(problem.V_DG1)
+u_DG1 = TestFunction(problem.V_DG1)
+a_new_DG1 = update_a(du_DG1, u_old_DG1, v_old_DG1, a_old_DG1, ufl=True)
+v_new_DG1 = update_v(a_new_DG1, u_old_DG1, v_old_DG1, a_old_DG1, ufl=True)
 
 #mass
 res_mass = m(a_new, u_DG)
@@ -203,6 +210,21 @@ L_form_r = rhs(res_rigidity)
 K_r, res_r = assemble_system(a_form_r, L_form_r)
 K_r = as_backend_type(K_r).mat()
 
+#damping (penalty on velocity)
+#def c(v_new_DG1, u_DG1):
+h = CellDiameter(mesh)
+#n = FacetNormal(mesh)
+#v = TestFunction(problem.V_DG1)
+#sigma = stress(outer(v,n))
+#mu = couple(outer(psi,n))
+#return (inner(outer(as_vector((v_new_DG1[0], v_new_DG1[1], v_new_DG1[2])),n),sigma) + inner(outer(as_vector((v_new_DG1[3], v_new_DG1[4], v_new_DG1[5])),n),mu)) / h * dss(1)
+res_pv = 4*G * inner(jump(v_new_DG1),jump(u_DG1)) / h('+') * dss(1)
+#res_pv = c(v_new_DG1, u_DG1) #m(a_new_DG1, u_DG1)
+a_form_pv = lhs(res_pv)
+L_form_pv = rhs(res_pv)
+K_pv, res_pv = assemble_system(a_form_pv, L_form_pv)
+K_pv = as_backend_type(K_pv).mat()
+
 #penalty
 K_p = inner_penalty(problem)
 
@@ -210,10 +232,8 @@ K_p = inner_penalty(problem)
 K_np = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 
 #define lhs and rhs
-K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR
+K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR + problem.DEM_to_DG1.transpose(PETSc.Mat()) * K_pv * problem.DEM_to_DG1
 K = PETScMatrix(K + K_np + K_p + K_m)
-
-#Add a rhs to impose Dirichlet BC on the velocity???
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
@@ -254,7 +274,8 @@ for (i, dt) in enumerate(np.diff(time)):
     # Solve for new displacement
     res_r = PETScVector(problem.DEM_to_CR.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_r)).vec())
     res_m = assemble(L_form_m)
-    res = res_r + res_m
+    res_pv = PETScVector(problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_pv)).vec())
+    res = res_r + res_m + res_pv
     solve(K, u.vector(), res, 'mumps')
 
     ##plot
@@ -265,6 +286,17 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Update old fields with new quantities
     update_fields(u, u_old, v_old, a_old)
+    u_old_DG1.vector()[:] = problem.DEM_to_DG1 * u_old.vector().vec()
+    v_old_DG1.vector()[:] = problem.DEM_to_DG1 * v_old.vector().vec()
+    a_old_DG1.vector()[:] = problem.DEM_to_DG1 * a_old.vector().vec()
+    
+    #test to see if velocity is zero on left boundary
+    v_old_CR.vector()[:] = problem.DEM_to_CR * v_old.vector().vec()
+    test = v_old_CR(0, Ly/2, Lz/2)[1]
+    #bc.apply(v_old_CR.vector()) #just a test
+    #test2 = v_old_CR(0, Ly/2, Lz/2)[1]
+    #print('%.2e %.2e\n' % (test,test2))
+    print(test)
 
     # Save solution to XDMF format
     #if i % 100 == 0:

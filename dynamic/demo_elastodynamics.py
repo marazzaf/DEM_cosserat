@@ -186,8 +186,8 @@ lmbda = Constant(E*nu / ((1.0 + nu)*(1.0 - 2.0*nu)))
 rho = Constant(1.0)
 
 # Rayleigh damping coefficients
-eta_m = Constant(0.)
-eta_k = Constant(0.)
+eta_m = Constant(0.01)
+eta_k = Constant(0.01)
 
 # Parameters used for the time discretization scheme are now defined. First, the four parameters used by the
 # generalized-:math:`\alpha` method are chosen. Here, we used the optimal dissipation and second-order accuracy
@@ -410,7 +410,7 @@ for (i, dt) in enumerate(np.diff(time)):
     update_fields(u, u_old, v_old, a_old)
 
     # Save solution to XDMF format
-    xdmf_file.write(u, t)
+    #xdmf_file.write(u, t)
 
     # Compute stresses and save to file
     local_project(sigma(u), Vsig, sig)
