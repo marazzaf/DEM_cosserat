@@ -31,6 +31,14 @@ problem = DEMProblem(mesh, pen)
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
+
+# Sub domain for clamp at left end
+def top(x, on_boundary):
+    return near(x[1], Ly) and on_boundary
+
+top_boundary = AutoSubDomain(top)
+top_boundary.mark(boundary_subdomains, 1)
+
 ds = ds(subdomain_data=boundary_parts)
 
 #volume load
@@ -67,7 +75,8 @@ K = elas
 K += inner_penalty(problem)
 
 #Nitsche penalty bilinear form
-K += lhs_bnd_penalty(problem, boundary_parts)
+bc = [[0, Constant(0), 0], [1, Constant(0), 0], [2, Constant(0), 0]] #Homogeneous Dirichlet on all boundary apart from top surface
+K += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Newmark-beta parameters
 gamma = 0.5
