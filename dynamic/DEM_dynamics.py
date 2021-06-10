@@ -70,8 +70,10 @@ problem.micropolar_constants_3d(lmbda, G, Gc, L, M, Mc)
 # Current (unknown) displacement
 u = Function(problem.V_DG, name='disp')
 uu_DG1 = Function(problem.V_DG1, name='disp DG1')
+uu_CR = Function(problem.V_CR)
 # Fields from previous time step (displacement, velocity, acceleration)
 u_old = Function(problem.V_DG)
+u_old_CR = Function(problem.V_CR)
 v_old = Function(problem.V_DG, name='vel')
 v_old_CR = Function(problem.V_CR, name='vel CR')
 a_old = Function(problem.V_DG)
@@ -290,8 +292,10 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Update old fields with new quantities
     update_fields(u, u_old, v_old, a_old)
+    uu_CR.vector()[:] =  problem.DEM_to_CR * u.vector().vec()
     uu_DG1.vector()[:] =  problem.DEM_to_DG1 * u.vector().vec()
     u_old_DG1.vector()[:] = problem.DEM_to_DG1 * u_old.vector().vec()
+    u_old_CR.vector()[:] = problem.DEM_to_CR * u_old.vector().vec()
     v_old_DG1.vector()[:] = problem.DEM_to_DG1 * v_old.vector().vec()
     a_old_DG1.vector()[:] = problem.DEM_to_DG1 * a_old.vector().vec()
     
@@ -319,13 +323,14 @@ for (i, dt) in enumerate(np.diff(time)):
     #F = FacetArea(mesh)
     #u_tip = assemble(u[1] / F * dss(3))
     #v_tip = assemble(v_old[1] / F * dss(3))
-    E_elas = assemble(0.5*k(u, u))
+    E_elas = assemble(0.5*k(uu_DG1, uu_DG1))
     E_kin = assemble(0.5*m(v_old, v_old))
-    E_ext += assemble(Wext(u-u_old))
+    E_ext += assemble(Wext(uu_CR-u_old_CR))
+    E_pen = 0.5 * u.vector().vec().dot((K_np+K_p) * u.vector().vec())
     E_damp += dt*assemble(c(v_old_DG1, v_old_DG1))
     u_old.vector()[:] = u.vector()
-    E_tot = E_elas+E_kin+E_damp
-    file.write('%.2e %.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext, E_damp))
+    E_tot = E_elas+E_kin+E_damp+E_pen
+    file.write('%.2e %.2e %.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext, E_damp, E_pen))
     file_disp.write('%.2e %.2e %.2e\n' % (t, u_tip, v_tip))
 
 file.close()
