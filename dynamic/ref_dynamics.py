@@ -59,7 +59,7 @@ T = T_ref
 #T = T_ref * 2e2
 #dt = 1e-2 #1e-5
 #Nsteps = int(T / dt) + 1
-Nsteps = 100 #50
+Nsteps = 50
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6
@@ -261,7 +261,7 @@ for (i, dt) in enumerate(np.diff(time)):
     # Record tip displacement and compute energies
     u_tip = u(Lx, Ly/2, Lz/2)[1]
     v_tip = v_old(Lx, Ly/2, Lz/2)[1]
-    E_elas = assemble(0.5*k(u_old, u_old))
+    E_elas = assemble(0.5*k(u, u))
     E_kin = assemble(0.5*m(v_old, v_old))
     E_ext += assemble(Wext(u-u_old))
     u_old.vector()[:] = u.vector()

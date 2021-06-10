@@ -52,7 +52,7 @@ beta    = Constant(0.25)
 T_ref = Lx * float(sqrt(rho/E))
 T = T_ref
 #T = T_ref * 2e2
-Nsteps = 100 #50
+Nsteps = 50
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6
@@ -214,7 +214,8 @@ K_r = as_backend_type(K_r).mat()
 
 #damping (penalty on velocity)
 h = CellDiameter(mesh)
-#def c(v_new_DG1):
+def c(u, u_):
+    return 4*G * inner(u[1],u_[1]) / h * dss(1) + 4*G*l*l * inner(u[4],u_[4]) / h * dss(1)
 #    n = FacetNormal(mesh)
 #    v,psi = TestFunctions(problem.V_DG1)
 #    sigma = stress(outer(v,n))
@@ -242,6 +243,7 @@ time = np.linspace(0, T, Nsteps+1)
 #u_tip = np.zeros((Nsteps+1,))
 #energies = np.zeros((Nsteps+1, 4))
 E_ext = 0
+E_damp = 0
 xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
@@ -317,12 +319,13 @@ for (i, dt) in enumerate(np.diff(time)):
     #F = FacetArea(mesh)
     #u_tip = assemble(u[1] / F * dss(3))
     #v_tip = assemble(v_old[1] / F * dss(3))
-    E_elas = assemble(0.5*k(u_old, u_old))
+    E_elas = assemble(0.5*k(u, u))
     E_kin = assemble(0.5*m(v_old, v_old))
     E_ext += assemble(Wext(u-u_old))
+    E_damp += dt*assemble(c(v_old_DG1, v_old_DG1))
     u_old.vector()[:] = u.vector()
-    E_tot = E_elas+E_kin
-    file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
+    E_tot = E_elas+E_kin+E_damp
+    file.write('%.2e %.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext, E_damp))
     file_disp.write('%.2e %.2e %.2e\n' % (t, u_tip, v_tip))
 
 file.close()
