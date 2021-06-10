@@ -73,15 +73,6 @@ K += lhs_bnd_penalty(problem, boundary_parts, bc)
 gamma = 0.5
 beta = 0.25
 
-# Time-stepping
-T = 1 #second
-Nsteps = 50
-#dt_ = T/Nsteps
-#time = np.linspace(0, T, Nsteps+1)
-#test
-dt_ = 1e-10
-time = np.linspace(0, 50*dt_, Nsteps+1)
-
 # Current (unknown) displacement
 u = Function(problem.V_DG, name='disp')
 u_DG1 = Function(problem.V_DG1, name='disp DG1')
@@ -101,7 +92,7 @@ truc = Expression(('x[0] < 0 ? 1 : 0', '0', '0'), x0=x0, Ly=Ly, degree = 1)
 I = 2/5*l*l
 M = mass_matrix(problem, rho, I)
 #K += M/beta/dt_**2
-K = PETScMatrix(K)
+#K = PETScMatrix(K)
 #corresponding rhs
 def L(uu, vv, aa):
     aux = (uu+dt_*vv)/beta/dt_**2 + (1-2*beta)/2/beta*aa
@@ -110,20 +101,29 @@ def L(uu, vv, aa):
     return rho*inner(disp, v_DG)*dx + rho*I*inner(rot,psi_DG)*dx
 
 #outputs
-folder = 'big' #'big' #'test'
+folder = 'test' #'big' #'test'
 file = XDMFFile(folder+"/output.xdmf")
 file.parameters["flush_output"] = True
 file.parameters["functions_share_mesh"] = True
 file.parameters["rewrite_function_mesh"] = False
 
+# Time-stepping implicit
+T = 1 #second
+#Nsteps = 50
+##dt_ = T/Nsteps
+##time = np.linspace(0, T, Nsteps+1)
+##test
+#dt_ = 1e-10
+#time = np.linspace(0, 50*dt_, Nsteps+1)
+
 #test Verlet
 M = mass_matrix_vec(problem, rho, I)
 M_min = min(M)
-K_max = eigsh(K.array(), k=1, return_eigenvectors=False)[0]
+K_max = eigsh(PETScMatrix(K).array(), k=1, return_eigenvectors=False)[0]
 dt_ = np.sqrt(M_min/K_max)
 #dt_ = 1e-6
-Nsteps = int(1e5) #int(1e3)
-time = np.linspace(0, Nsteps*dt_, Nsteps+1)
+Nsteps = int(T/dt_) #int(1e3)
+time = np.linspace(0, T, Nsteps+1)
 for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
     if i%100 == 0:
@@ -133,8 +133,9 @@ for (i, dt) in enumerate(np.diff(time)):
     Rhs = problem.assemble_volume_load(load)
 
     u.vector()[:] += v_old.vector() * dt_
-    a_old.vector()[:] = K*u.vector()
-    v_old.vector().set_local(v_old.vector().get_local() - (dt_*a_old.vector().get_local() + Rhs.getArray()) / M.get_local())
+    v_old.vector()[:] += dt_ * (Rhs - K*u.vector().vec()) / M
+    #a_old.vector()[:] = K*u.vector()
+    #v_old.vector().set_local(v_old.vector().get_local() - dt_*(a_old.vector().get_local() + Rhs.getArray()) / M.get_local())
 
     ##img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
     #img = plot(sqrt(v_old[1]*v_old[1]+v_old[0]*v_old[0]))
