@@ -52,6 +52,7 @@ class DEMProblem:
         #Spaces for gradients (strains and stresses)
         self.W = FunctionSpace(self.mesh, MixedElement(WW,PHI_W))
         self.WW,self.PHI_W = self.W.split()
+        self.WW = self.WW.collapse()
         self.nb_dof_grad = self.W.dofmap().global_dimension()
 
         #Spaces for penalties

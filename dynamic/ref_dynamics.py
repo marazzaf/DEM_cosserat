@@ -13,8 +13,10 @@ rank = comm.Get_rank()
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
-folder = 'ref'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
+folder = 'test_FEM'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
+#folder = 'ref'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
 #folder = 'ref_fine'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 100, 13, 5) #very fine
@@ -52,15 +54,16 @@ gamma   = Constant(0.5)
 beta    = Constant(0.25)
 
 # Time-stepping parameters
-T = Lx * float(sqrt(rho/E))#1 #4
-#T *= 2e2
+T_ref = Lx * float(sqrt(rho/E))#1 #4
+T = T_ref
+#T = T_ref * 2e2
 #dt = 1e-2 #1e-5
 #Nsteps = int(T / dt) + 1
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6
-cutoff_Tc = T/5
+cutoff_Tc = T_ref/10 #T/5
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
 
@@ -248,6 +251,12 @@ for (i, dt) in enumerate(np.diff(time)):
     #if i % 100 == 0:
     xdmf_file.write(u, t)
     xdmf_file.write(v_old, t)
+    WW = TensorFunctionSpace(mesh, 'DG', 0)
+    v,phi = u.split()
+    e = strain(v, phi)
+    sigma = stress(e)
+    sigma = project(sigma, WW)
+    xdmf_file.write(sigma, t)
 
     # Record tip displacement and compute energies
     u_tip = u(Lx, Ly/2, Lz/2)[1]

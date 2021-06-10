@@ -13,7 +13,7 @@ parameters["form_compiler"]["optimize"] = True
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
 mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
-folder = 'test'
+folder = 'test_DEM'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
 #folder = 'DEM_fine'
 
@@ -49,13 +49,14 @@ gamma   = Constant(0.5)
 beta    = Constant(0.25)
 
 # Time-stepping parameters
-T = Lx * float(sqrt(rho/E))
-#T *= 2e2
+T_ref = Lx * float(sqrt(rho/E))
+T = T_ref
+#T = T_ref * 2e2
 Nsteps  = 50
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6
-cutoff_Tc = T/5
+cutoff_Tc = T_ref/10 #T/5
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
 
@@ -304,6 +305,11 @@ for (i, dt) in enumerate(np.diff(time)):
     #if i % 100 == 0:
     xdmf_file.write(uu_DG1, t)
     xdmf_file.write(v_old_DG1, t)
+    v_DG1,phi_DG1 = uu_DG1.split()
+    e = strain(v_DG1, phi_DG1)
+    sigma = stress(e)
+    sigma = project(sigma, problem.WW)
+    xdmf_file.write(sigma, t)
 
     # Record tip displacement and compute energies
     u_tip = uu_DG1(Lx, Ly/2, Lz/2)[1]
