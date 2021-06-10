@@ -1,6 +1,5 @@
 #coding: utf-8
 
-# Computation of the solution in the plate for different meshes
 from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,6 +9,11 @@ from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
 from petsc4py import PETSc
 from ufl import sign
+from scipy.sparse.linalg import eigsh
+
+# Form compiler options
+parameters["form_compiler"]["cpp_optimize"] = True
+parameters["form_compiler"]["optimize"] = True
     
 # Mesh
 Lx,Ly = 4e3,2e3
@@ -37,7 +41,7 @@ def top(x, on_boundary):
     return near(x[1], Ly) and on_boundary
 
 top_boundary = AutoSubDomain(top)
-top_boundary.mark(boundary_subdomains, 1)
+top_boundary.mark(boundary_parts, 1)
 
 ds = ds(subdomain_data=boundary_parts)
 
@@ -45,16 +49,19 @@ ds = ds(subdomain_data=boundary_parts)
 x0 = 0
 y0 = Ly - 20
 sigma = 14.5
-r_squared = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2)', x0=x0, y0=y0, degree=2)
+R = Ly/10
+#Just for test
+y0 = Ly-R
+domain = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2) < R ? 1 : 0', x0=x0, y0=y0, R=R, degree=2)
 #psi = 1e10 * (1 - 0.5 * r_squared/sigma**2) * exp(-0.5*r_squared/sigma**2) / (np.pi*sigma**4)
 #psi = Expression('pow(x[0]-x0,2)+pow(x[1]-y0,2) < 1 ? (1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma) : 0', x0=x0, y0=y0, sigma=sigma, t=0, degree = 1)
 t = 0.5
-psi = (1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)
-x = SpatialCoordinate(mesh)
-X = (x[1]-y0) / (x[0]-x0)
-cos_theta = 1. / sqrt(1 + X**2.) * sign(x[0]-x0)
-sin_theta = abs(X) / sqrt(1 + X**2.) * sign(x[1]-y0)
-load = psi * as_vector((cos_theta, sin_theta, 0)) 
+psi = (1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma) * domain
+#x = SpatialCoordinate(mesh)
+#X = (x[1]-y0) / (x[0]-x0)
+#cos_theta = 1. / sqrt(1 + X**2.) * sign(x[0]-x0)
+#sin_theta = abs(X) / sqrt(1 + X**2.) * sign(x[1]-y0)
+load = psi * Constant((0,-1,0))
 Rhs = problem.assemble_volume_load(load)
 
 ##test load
@@ -102,13 +109,14 @@ v_DG,psi_DG = TestFunctions(problem.V_DG)
 
 #test
 truc = Expression(('x[0] < 0 ? 1 : 0', '0', '0'), x0=x0, Ly=Ly, degree = 1)
-v_old = interpolate(truc, problem.V_DG)
+#v_old = interpolate(truc, problem.V_DG)
 
 #Mass matrix
 I = 2/5*l*l
 M = mass_matrix(problem, rho, I)
 #K += M/beta/dt_**2
 K = PETScMatrix(K)
+K_max = eigsh(K.array(), k=1, return_eigenvectors=False)[0]
 #corresponding rhs
 def L(uu, vv, aa):
     aux = (uu+dt_*vv)/beta/dt_**2 + (1-2*beta)/2/beta*aa
@@ -118,23 +126,33 @@ def L(uu, vv, aa):
 
 #outputs
 folder = 'test'
-file = File(folder+"/output.pvd")
+file = XDMFFile(folder+"/output.xdmf")
+file.parameters["flush_output"] = True
+file.parameters["functions_share_mesh"] = True
+file.parameters["rewrite_function_mesh"] = False
 
 #test Verlet
 M = mass_matrix_vec(problem, rho, I)
+M_min = min(M)
+dt_ = np.sqrt(M_min/K_max)
+Nsteps = int(1e3)
+time = np.linspace(0, Nsteps*dt_, Nsteps+1)
 for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
     print("Time: ", t)
 
+    load = psi * Constant((0,-1,0))
+    Rhs = problem.assemble_volume_load(load)
+
     u.vector()[:] += v_old.vector() * dt_
     a_old.vector()[:] = K*u.vector()
-    v_old.vector().set_local(v_old.vector().get_local() - dt_*a_old.vector().get_local() / M.get_local())
+    v_old.vector().set_local(v_old.vector().get_local() - (dt_*a_old.vector().get_local() + Rhs.getArray()) / M.get_local())
 
-    #img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
-    img = plot(sqrt(v_old[1]*v_old[1]+v_old[0]*v_old[0]))
-    plt.colorbar(img)
-    plt.show()
-    #sys.exit()
+    ##img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
+    #img = plot(sqrt(v_old[1]*v_old[1]+v_old[0]*v_old[0]))
+    #plt.colorbar(img)
+    #plt.show()
+    ##sys.exit()
 
     #output
     file.write(u, t)
@@ -147,8 +165,8 @@ for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
     print("Time: ", t)
     #psi = (1 - t*t/sigma/sigma) * np.exp(-0.5*t*t/sigma/sigma) / r_squared
-    psi = 1e-3
-    load = psi * as_vector((cos_theta, sin_theta, 0)) # * psi
+    #psi = 1e-3
+    load = psi * Constant((0,-1,0))
 
     # Solve for new displacement
     Rhs = problem.assemble_volume_load(load)
