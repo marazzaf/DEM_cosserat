@@ -1,17 +1,20 @@
 from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
+import mpi4py
 
 # Form compiler options
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
+parameters["allow_extrapolation"] = True
+
+comm = mpi4py.MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 # Define mesh
-Lx,Ly,Lz = 1., 0.1, 0.04
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 3, 2, 2) #test
-#computation = 'test'
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-computation = 'FEM'
+Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
+folder = 'test_FEM'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -22,26 +25,39 @@ def right(x, on_boundary):
     return near(x[0], Lx) and on_boundary
 
 # Elastic parameters
-E = 1e3
-nu = 0.3
-l = 0.1 * Lx
-
-#other parameters
-G = 0.5*E/(1+nu)
-Gc = 0.5*G
-lmbda = 2*G*nu / (1-2*nu)
-M = G * l*l
-L = M
+l = 0.01e-3
+K = 16.67e9
+G = 10e9
+Gc = 5e9
+L = G*l*l #why that? No values in Rattez et al
+h3 = 2/5
+M = G * l*l / h3
 Mc = M
 
+#recomputing elastic parameters
+#nu = (K-G)/(K+G) # Poisson's ratio
+E = 9*K*G/(3*K+G) #Young's modulus
+lmbda = K -2/3*G
+
 # Mass density
-rho = Constant(1.0)
-I = Constant(2/5*l*l) #Quelle valeur donner à ca ?
+rho = Constant(2500)
+I = Constant(2/5*l*l)
+
+# Generalized-alpha method parameters
+gamma   = Constant(0.5)
+beta    = Constant(0.25)
 
 # Time-stepping parameters
-T       = 1 #4
-p0 = 1.
-cutoff_Tc = T/5
+T_ref = Lx * float(sqrt(rho/E))#1 #4
+T = T_ref
+#T = T_ref * 2e2
+#dt = 1e-2 #1e-5
+#Nsteps = int(T / dt) + 1
+Nsteps  = 50
+dt = Constant(T/Nsteps)
+
+p0 = E*1e-6
+cutoff_Tc = T_ref/10 #T/5
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
 
@@ -139,21 +155,19 @@ def update_fields(disp, vel, vel_old, b):
     return
 
 #time-step
-dt = 5e-7 #similar to DEM
+dt = 1e-10
 Nsteps = int(T/dt) + 1
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
-u_tip = np.zeros((Nsteps+1,))
-energies = np.zeros((Nsteps+1, 4))
 E_damp = 0
 E_ext = 0
-xdmf_file = XDMFFile(computation+"/flexion_fine.xdmf")
+xdmf_file = XDMFFile(folder+"/explicit.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open(computation+'/energies_%s.txt' % computation, 'w')
-file_disp = open(computation+'/disp_%s.txt' % computation, 'w')
+file = open(folder+'/energies_exp.txt' % computation, 'w', 10)
+file_disp = open(folder+'/disp_exp.txt', 'w', 10)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -197,13 +211,14 @@ for (i, dt) in enumerate(np.diff(time)):
         xdmf_file.write(v, t)
 
         # Record tip displacement and compute energies
-        u_tip[i+1] = u(1., 0.05, 0.)[1]
+        u_tip = u(Lx, Ly/2, Lz/2)[1]
+        v_tip = v_old(Lx, Ly/2, Lz/2)[1]
         E_elas = assemble(0.5*k(u,u))
         v_mid = 0.5*(v+v_old)
         E_kin = assemble(0.5*m(v_mid, v_mid))
         E_ext += assemble(Wext(u-u_old))
         E_tot = E_elas+E_kin
-        energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
+        #energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
         file.write('%.5e %.5e %.5e %.5e %.5e\n' % (t, E_elas, E_kin, E_tot, E_ext))
         file_disp.write('%.5e %.5e\n' % (t, u_tip[i+1]))
 

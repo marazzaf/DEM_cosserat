@@ -52,7 +52,7 @@ beta    = Constant(0.25)
 T_ref = Lx * float(sqrt(rho/E))
 T = T_ref
 #T = T_ref * 2e2
-Nsteps  = 50
+Nsteps = 100 #50
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6
@@ -185,7 +185,7 @@ def update_fields(u, u_old, v_old, a_old):
 
     # Update (u_old <- u)
     v_old.vector()[:], a_old.vector()[:] = v_vec, a_vec
-    u_old.vector()[:] = u.vector()
+    #u_old.vector()[:] = u.vector()
 
 # Residual
 du_DG = TrialFunction(problem.V_DG)

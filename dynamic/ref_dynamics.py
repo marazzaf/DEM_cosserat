@@ -59,7 +59,7 @@ T = T_ref
 #T = T_ref * 2e2
 #dt = 1e-2 #1e-5
 #Nsteps = int(T / dt) + 1
-Nsteps  = 50
+Nsteps = 100 #50
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6
