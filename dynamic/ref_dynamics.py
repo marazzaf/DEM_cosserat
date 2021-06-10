@@ -13,12 +13,12 @@ rank = comm.Get_rank()
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
-folder = 'test_FEM'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
+#folder = 'test_FEM'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
 #folder = 'ref'
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-#folder = 'ref_fine'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+folder = 'ref_fine'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 100, 13, 5) #very fine
 #folder = 'ref_very_fine'
 
@@ -55,11 +55,11 @@ beta    = Constant(0.25)
 
 # Time-stepping parameters
 T_ref = Lx * float(sqrt(rho/E))#1 #4
-T = T_ref
+T = T_ref * 10
 #T = T_ref * 2e2
 #dt = 1e-2 #1e-5
 #Nsteps = int(T / dt) + 1
-Nsteps = 50
+Nsteps = 100
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6

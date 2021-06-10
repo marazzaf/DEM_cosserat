@@ -12,10 +12,10 @@ parameters["form_compiler"]["optimize"] = True
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
-folder = 'test_DEM'
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-#folder = 'DEM_fine'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
+#folder = 'test_DEM'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+folder = 'DEM_fine'
 
 # Sub domain for clamp at left end
 def left(x, on_boundary):
@@ -50,9 +50,9 @@ beta    = Constant(0.25)
 
 # Time-stepping parameters
 T_ref = Lx * float(sqrt(rho/E))
-T = T_ref
+T = T_ref * 10
 #T = T_ref * 2e2
-Nsteps = 50
+Nsteps = 100
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6
