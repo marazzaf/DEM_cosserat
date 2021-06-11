@@ -15,10 +15,10 @@ rank = comm.Get_rank()
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
 #folder = 'test_FEM'
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
-#folder = 'ref'
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-folder = 'ref_fine'
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
+folder = 'ref'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+#folder = 'ref_fine'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 100, 13, 5) #very fine
 #folder = 'ref_very_fine'
 
@@ -210,8 +210,8 @@ xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open(folder+'/energies.txt', 'w') #, 1)
-file_disp = open(folder+'/disp.txt', 'w') #, 1)
+file = open(folder+'/energies.txt', 'w', 10) #, 1)
+file_disp = open(folder+'/disp.txt', 'w', 10) #, 1)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
