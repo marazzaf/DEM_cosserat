@@ -5,6 +5,7 @@ import sys
 sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
+from petsc4py import PETSc
 
 # Form compiler options
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -238,14 +239,21 @@ K_np = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 
 #define lhs and rhs
 K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR + problem.DEM_to_DG1.transpose(PETSc.Mat()) * K_pv * problem.DEM_to_DG1
-K = PETScMatrix(K + K_np + K_p + K_m)
+#K = PETScMatrix(K + K_np + K_p + K_m)
+K = K + K_np + K_p + K_m
 
-#setting up solver
-solver = KrylovSolver('cg', 'hypre_amg')
-prm = solver.parameters
-prm['absolute_tolerance'] = 1E-7
-prm['relative_tolerance'] = 1E-4
-prm['maximum_iterations'] = 1000
+##setting up solver
+#solver = KrylovSolver('cg', 'hypre_amg')
+#prm = solver.parameters
+#prm['relative_tolerance'] = 1E-4
+#prm['maximum_iterations'] = 1000
+ksp=PETSc.KSP()
+ksp.create(PETSc.COMM_WORLD)
+ksp.setType('cg')
+ksp.getPC().setType('hypre')
+ksp.setTolerances(rtol=1e-5,max_it=200)
+ksp.setOperators(K)
+ksp.setFromOptions()
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
@@ -290,7 +298,11 @@ for (i, dt) in enumerate(np.diff(time)):
     res_pv = PETScVector(problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_pv)).vec())
     res = res_r + res_m + res_pv
     #solve(K, u.vector(), res, 'cg', 'hypre_amg') #'mumps')
-    solver.solve(K, u.vector(), res)
+    #solver.solve(K, u.vector(), res)
+
+    #petsc4py solver
+    ksp.solve(res.vec(),u.vector().vec())
+    
 
     ##plot
     #img = plot(u[1])
