@@ -240,6 +240,13 @@ K_np = lhs_bnd_penalty(problem, boundary_subdomains, bcs)
 K = problem.DEM_to_CR.transpose(PETSc.Mat()) * K_r * problem.DEM_to_CR + problem.DEM_to_DG1.transpose(PETSc.Mat()) * K_pv * problem.DEM_to_DG1
 K = PETScMatrix(K + K_np + K_p + K_m)
 
+#setting up solver
+solver = KrylovSolver('cg', 'hypre_amg')
+prm = solver.parameters
+prm['absolute_tolerance'] = 1E-7
+prm['relative_tolerance'] = 1E-4
+prm['maximum_iterations'] = 1000
+
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
 #u_tip = np.zeros((Nsteps+1,))
@@ -282,7 +289,8 @@ for (i, dt) in enumerate(np.diff(time)):
     res_m = assemble(L_form_m)
     res_pv = PETScVector(problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_pv)).vec())
     res = res_r + res_m + res_pv
-    solve(K, u.vector(), res, 'cg', 'hypre_amg') #'mumps')
+    #solve(K, u.vector(), res, 'cg', 'hypre_amg') #'mumps')
+    solver.solve(K, u.vector(), res)
 
     ##plot
     #img = plot(u[1])
