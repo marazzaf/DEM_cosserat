@@ -250,7 +250,7 @@ K = K + K_np + K_p + K_m
 ksp=PETSc.KSP()
 ksp.create(PETSc.COMM_WORLD)
 ksp.setType('cg')
-ksp.getPC().setType('hypre')
+ksp.getPC().setType('ilu')
 ksp.setTolerances(rtol=1e-5,max_it=200)
 ksp.setOperators(K)
 ksp.setFromOptions()
