@@ -55,11 +55,11 @@ beta    = Constant(0.25)
 
 # Time-stepping parameters
 T_ref = Lx * float(sqrt(rho/E))#1 #4
-T = T_ref * 10
-#T = T_ref * 2e2
+#T = T_ref * 10
+T = T_ref * 2e2
 #dt = 1e-2 #1e-5
 #Nsteps = int(T / dt) + 1
-Nsteps = 100
+Nsteps = 2000
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6

@@ -50,9 +50,9 @@ beta    = Constant(0.25)
 
 # Time-stepping parameters
 T_ref = Lx * float(sqrt(rho/E))
-T = T_ref * 10
-#T = T_ref * 2e2
-Nsteps = 100
+#T = T_ref * 10
+T = T_ref * 2e2
+Nsteps = 2000
 dt = Constant(T/Nsteps)
 
 p0 = E*1e-6
@@ -282,7 +282,7 @@ for (i, dt) in enumerate(np.diff(time)):
     res_m = assemble(L_form_m)
     res_pv = PETScVector(problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(L_form_pv)).vec())
     res = res_r + res_m + res_pv
-    solve(K, u.vector(), res, 'mumps')
+    solve(K, u.vector(), res, 'cg', 'hypre_amg') #'mumps')
 
     ##plot
     #img = plot(u[1])
