@@ -9,7 +9,7 @@ from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
 from petsc4py import PETSc
 from ufl import sign
-from scipy.sparse.linalg import eigsh
+#from scipy.sparse.linalg import eigsh
 
 # Form compiler options
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -17,7 +17,7 @@ parameters["form_compiler"]["optimize"] = True
     
 # Mesh
 Lx,Ly = 4e3,2e3
-nb_elt = 10 #100 computation #5 #debug
+nb_elt = 100 #100 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
 
 # Parameters
@@ -101,7 +101,7 @@ def L(uu, vv, aa):
     return rho*inner(disp, v_DG)*dx + rho*I*inner(rot,psi_DG)*dx
 
 #outputs
-folder = 'test' #'big' #'test'
+folder = 'big' #'big' #'test'
 file = XDMFFile(folder+"/output.xdmf")
 file.parameters["flush_output"] = True
 file.parameters["functions_share_mesh"] = True
@@ -117,12 +117,17 @@ T = 1 #second
 #time = np.linspace(0, 50*dt_, Nsteps+1)
 
 #test Verlet
-M = mass_matrix_vec(problem, rho, I)
-M_min = min(M)
-K_max = eigsh(PETScMatrix(K).array(), k=1, return_eigenvectors=False)[0]
-dt_ = np.sqrt(M_min/K_max)
-#dt_ = 1e-6
-Nsteps = int(T/dt_) #int(1e3)
+M = mass_matrix_vec(problem, rho, I).vec()
+#M_min = min(PETScVector(M))
+#eigensolver = SLEPcEigenSolver(PETScMatrix(K))
+#eigensolver.solve()
+#print(eigensolver.get_number_converged())
+#K_max, i = eigensolver.get_eigenvalue(0)
+#print(K_max)
+#dt_ = np.sqrt(M_min/K_max)
+#print(dt_)
+dt_ = 1e-6
+Nsteps = int(T/dt_)
 time = np.linspace(0, T, Nsteps+1)
 for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
@@ -134,23 +139,12 @@ for (i, dt) in enumerate(np.diff(time)):
 
     u.vector()[:] += v_old.vector() * dt_
     v_old.vector()[:] += dt_ * (Rhs - K*u.vector().vec()) / M
-    #a_old.vector()[:] = K*u.vector()
-    #v_old.vector().set_local(v_old.vector().get_local() - dt_*(a_old.vector().get_local() + Rhs.getArray()) / M.get_local())
-
-    ##img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
-    #img = plot(sqrt(v_old[1]*v_old[1]+v_old[0]*v_old[0]))
-    #plt.colorbar(img)
-    #plt.show()
-    ##sys.exit()
-
     #output
     if i%100 == 0:
         u_DG1.vector()[:] = problem.DEM_to_DG1 * u.vector().vec()
         v_old_DG1.vector()[:] = problem.DEM_to_DG1 * v_old.vector().vec()
         file.write(u_DG1, t)
         file.write(v_old_DG1, t)
-
-sys.exit()
 
 ##implicit integration
 #for (i, dt) in enumerate(np.diff(time)):
