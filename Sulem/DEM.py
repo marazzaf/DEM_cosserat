@@ -111,6 +111,17 @@ for i,X in enumerate(xx):
     rot[i] = phi_DG1(0,X)
     disp[i] = u_DG1(0,X)[0]
 
+#errors
+ref_rot = K1*np.exp(delta*xx) + K2*np.exp(-delta*xx) - 0.5*tau_c/G
+err_rot = abs(rot - ref_rot) / abs(ref_rot) * 100
+#print(err_rot)
+print(err_rot.max())
+ref_u =  -2*Gc/(G+Gc)*(K1/delta*np.exp(delta*xx) - K2/delta*np.exp(-delta*xx)) + tau_c/G*xx + K3
+err_u = abs(disp - ref_u) / abs(ref_u) * 100
+#print(err_u[1:])
+print(err_u[1:].max())
+sys.exit()
+
 ##plot ref rotation
 xxx = np.arange(0, h, 1e-6)
 omega = K1*np.exp(delta*xxx) + K2*np.exp(-delta*xxx) - 0.5*tau_c/G
