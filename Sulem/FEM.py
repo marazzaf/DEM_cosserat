@@ -41,17 +41,22 @@ boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
 #boundaries
-def top_down(x, on_boundary):
-    return (near(x[1], 0) or near(x[1], h)) and on_boundary
+def top(x, on_boundary):
+    return near(x[1], h) and on_boundary
+
+def down(x, on_boundary):
+    return near(x[1], 0) and on_boundary
 
 # Sub domain for rotation at right end
 def left_right(x, on_boundary):
     return (near(x[0], -h/2) or near(x[0], h/2)) and on_boundary
 
-top_down_boundary = AutoSubDomain(top_down)
-top_down_boundary.mark(boundary_parts, 1)
+top_boundary = AutoSubDomain(top)
+top_boundary.mark(boundary_parts, 1)
 left_right_boundary = AutoSubDomain(left_right)
 left_right_boundary.mark(boundary_parts, 2)
+down_boundary = AutoSubDomain(down)
+down_boundary.mark(boundary_parts, 3)
 ds = ds(subdomain_data=boundary_parts)
 
 #ref solution
@@ -65,11 +70,6 @@ K3 = 0
 tau_c = res[1]
 omega21 = Gc/(G+Gc)*(K1+K2) - 0.5*tau_c/G
 
-#BC
-u_D = Expression(('1e-5*x[1]/h','0'), h=h, degree=1)
-u_D1 = Expression('1e-5*x[1]/h', h=h, degree=1)
-phi_D = Expression('-0.1*x[1]/h + omega21', h=h, omega21=omega21, degree=1)
-
 #Functionnal spaces
 U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
 S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
@@ -79,11 +79,14 @@ U,S = V.split()
 U_1, U_2 = U.sub(0), U.sub(1)
 
 #Dirichlet BC
-td_U1 = DirichletBC(U_1, u_D1, top_down_boundary)
-td_U2 = DirichletBC(U_2, Constant(0), top_down_boundary)
-td_S = DirichletBC(S, phi_D, top_down_boundary)
-lr = DirichletBC(U_2, Constant(0), left_right_boundary)
-bcs = [td_U1, td_U2, td_S, lr]
+t_U1 = DirichletBC(U_1, Constant(1e-5), top_boundary)
+d_U1 = DirichletBC(U_1, Constant(0), down_boundary)
+d_U2 = DirichletBC(U_2, Constant(0), down_boundary)
+d_S = DirichletBC(S, Constant(omega21), down_boundary)
+t_S = DirichletBC(S, Constant(-0.1), top_boundary)
+lr_U = DirichletBC(U_2, Constant(0), left_right_boundary)
+#lr_S = DirichletBC(S, Constant(0), left_right_boundary)
+bcs = [t_U1, d_U1, d_U2, t_S, d_S, lr_U]#, lr_S]
 
 # Variational problem
 u, phi = TrialFunctions(V)
@@ -93,7 +96,7 @@ sigma,mu = stress(e,kappa)
 e,kappa = strain(v,psi)
 A = inner(sigma, e)*dx + inner(mu, kappa)*dx
 t = Constant((0,0))
-L = inner(t, v)*ds(1)
+L = inner(t, v) * dx
 
 
 #Solving linear problem
