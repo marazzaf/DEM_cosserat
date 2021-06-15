@@ -67,6 +67,7 @@ omega21 = Gc/(G+Gc)*(K1+K2) - 0.5*tau_c/G
 
 #BC
 u_D = Expression(('1e-5*x[1]/h','0'), h=h, degree=1)
+u_D1 = Expression('1e-5*x[1]/h', h=h, degree=1)
 phi_D = Expression('-0.1*x[1]/h + omega21', h=h, omega21=omega21, degree=1)
 
 #Functionnal spaces
@@ -78,10 +79,11 @@ U,S = V.split()
 U_1, U_2 = U.sub(0), U.sub(1)
 
 #Dirichlet BC
-td_U = DirichletBC(U, u_D, top_down_boundary)
+td_U1 = DirichletBC(U_1, u_D1, top_down_boundary)
+td_U2 = DirichletBC(U_2, Constant(0), top_down_boundary)
 td_S = DirichletBC(S, phi_D, top_down_boundary)
 lr = DirichletBC(U_2, Constant(0), left_right_boundary)
-bcs = [td_U, td_S, lr]
+bcs = [td_U1, td_U2, td_S, lr]
 
 # Variational problem
 u, phi = TrialFunctions(V)
