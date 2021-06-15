@@ -68,9 +68,9 @@ print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_00.min(), sigm
 sigma_11 = local_project(sigma[1,1], W).vector().get_local()
 print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_11.min(), sigma_11.max(), max((sigma_11.max() - 4) / 4 * 100, (sigma_11.min() - 4) / 4 * 100)))
 sigma_01 = local_project(sigma[0,1], W).vector().get_local()
-print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_01.min(), sigma_01.max(), max((sigma_01.max() - 1) / 1 * 100, (sigma_01.min() - 1) / 1 * 100)))
+print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_01.min(), sigma_01.max(), max(abs(sigma_01.max() - 1) / 1 * 100, abs(sigma_01.min() - 1) / 1 * 100)))
 sigma_10 = local_project(sigma[1,0], W).vector().get_local()
-print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_10.min(), sigma_10.max(), max((sigma_10.max() - 2) / 2 * 100, (sigma_10.min() - 2) / 2 * 100)))
+print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_10.min(), sigma_10.max(), max(abs(sigma_10.max() - 2) / 2 * 100, abs(sigma_10.min() - 2) / 2 * 100)))
 #Testing moments
 mu_0 = local_project(mu[0], W).vector().get_local()
 print('Min value: %.2e  Max value: %.2e' % (mu_0.min(), mu_0.max()))

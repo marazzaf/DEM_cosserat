@@ -64,20 +64,20 @@ sigma,mu = problem.stresses_2d(strains)
 W = FunctionSpace(problem.mesh, 'DG', 0)
 #Testing stresses
 sigma_00 = local_project(sigma[0,0], W).vector().get_local()
-print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_00.min(), sigma_00.max(), max((sigma_00.max() - 4) / 4 * 100, (sigma_00.min() - 4) / 4 * 100)))
+print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_00.min(), sigma_00.max(), max(abs(sigma_00.max() - 4) / 4 * 100, abs(sigma_00.min() - 4) / 4 * 100)))
 sigma_11 = local_project(sigma[1,1], W).vector().get_local()
-print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_11.min(), sigma_11.max(), max((sigma_11.max() - 4) / 4 * 100, (sigma_11.min() - 4) / 4 * 100)))
+print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_11.min(), sigma_11.max(), max(abs(sigma_11.max() - 4) / 4 * 100, abs(sigma_11.min() - 4) / 4 * 100)))
 aux = interpolate(Expression('x[0]-x[1]', degree=1), W).vector().get_local()
 sigma_01 = local_project(sigma[0,1],W).vector().get_local()
 test = sigma_01 - 1.5 + aux
-print('Min value: %.2e  Max value: %.2e' % (test.min(), test.max()))
+print('Max error: %.2e%%' % max( test / (1.5 - aux) * 100))
 sigma_10 = local_project(sigma[1,0], W).vector().get_local()
 test = sigma_10 - 1.5 - aux
-print('Min value: %.2e  Max value: %.2e' % (test.min(), test.max()))
+print('Max error: %.2e%%' % max( test / (1.5 + aux) * 100))
 #Testing moments
 ref = 2*alpha*l*l
 mu_0 = local_project(mu[0], W).vector().get_local()
-print('Min value: %.2e  Max value: %.2e Error: %.2f%%' % (mu_0.min(), mu_0.max(), max((mu_0.max() - ref) / ref * 100, (mu_0.min() - ref) / ref * 100)))
+print('Min value: %.2e  Max value: %.2e Error: %.2f%%' % (mu_0.min(), mu_0.max(), max(abs(mu_0.max() - ref) / ref * 100, abs(mu_0.min() - ref) / ref * 100)))
 mu_1 = local_project(mu[1], W).vector().get_local()
-print('Min value: %.2e  Max value: %.2e Error: %.2f%%' % (mu_1.min(), mu_1.max(), max((mu_1.max() + ref) / ref * 100, (mu_1.min() + ref) / ref * 100)))
+print('Min value: %.2e  Max value: %.2e Error: %.2f%%' % (mu_1.min(), mu_1.max(), max(abs(mu_1.max() + ref) / ref * 100, abs(mu_1.min() + ref) / ref * 100)))
 
