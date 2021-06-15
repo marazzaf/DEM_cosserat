@@ -5,10 +5,6 @@ from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-sys.path.append('../')
-from DEM_cosserat.DEM import *
-from DEM_cosserat.miscellaneous import *
-from petsc4py import PETSc
     
 # Mesh
 h = 1e-3
@@ -25,9 +21,22 @@ M = G*l*l
 E =  2*G*(1+nu) #Young Modulus
 
 #Creating the DEM problem
-pen = 1
-problem = DEMProblem(mesh, pen)
+def strain(v,psi):
+    e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
+    kappa = grad(psi)
+    return e,kappa
 
+def stress(e, kappa):
+    eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
+    aux_1 = 2*(1-nu)/(1-2*nu)
+    aux_2 = 2*nu/(1-2*nu)
+    Mat = G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+a,1-a), (0,0,1-a,1+a)))
+    sig = dot(Mat, eps)
+    sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
+    mu = 4*G*l*l * kappa
+    return sigma, mu
+
+#boundary
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
 
@@ -60,44 +69,42 @@ omega21 = Gc/(G+Gc)*(K1+K2) - 0.5*tau_c/G
 u_D = Expression(('1e-5*x[1]/h','0'), h=h, degree=1)
 phi_D = Expression('-0.1*x[1]/h + omega21', h=h, omega21=omega21, degree=1)
 
-#compliance tensor
-problem.micropolar_constants(E, nu, l/2, a)
+#Functionnal spaces
+U = VectorElement("CG", mesh.ufl_cell(), 2) # disp space
+S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
+V = FunctionSpace(mesh, MixedElement(U,S))
+print('nb dof CG: %i' % V.dofmap().global_dimension())
+U,S = V.split()
+U_1, U_2 = U.sub(0), U.sub(1)
+
+#Dirichlet BC
+td_U = DirichletBC(U, u_D, top_down_boundary)
+td_S = DirichletBC(S, phi_D, top_down_boundary)
+lr = DirichletBC(U_2, Constant(0), left_right_boundary)
+bcs = [td_U, td_S, lr]
 
 # Variational problem
-elas = problem.elastic_bilinear_form()
-lhs = elas
+u, phi = TrialFunctions(V)
+v, psi = TestFunctions(V)
+e,kappa = strain(u,phi)
+sigma,mu = stress(e,kappa)
+e,kappa = strain(v,psi)
+A = inner(sigma, e)*dx + inner(mu, kappa)*dx
+t = Constant((0,0))
+L = inner(t, v)*ds(1)
 
-#Penalty matrix
-inner_pen = inner_penalty(problem) #test
-lhs += inner_pen
-
-#Listing Dirichlet BC
-bc = [[0,u_D[0],1], [1, u_D[1],1], [2, phi_D,1], [1, Constant(0), 2]]
-
-#Nitsche penalty rhs
-nitsche_and_bnd = rhs_bnd_penalty(problem, boundary_parts, bc) 
-Rhs = nitsche_and_bnd
-
-#Nitsche penalty bilinear form
-bnd = lhs_bnd_penalty(problem, boundary_parts, bc)
-lhs += bnd
 
 #Solving linear problem
-v_DG = Function(problem.V_DG)
+sol = Function(V)
 print('Solve!')
-solve(PETScMatrix(lhs), v_DG.vector(), PETScVector(Rhs), 'mumps')
-u_DG,phi_DG = v_DG.split()
-
-#Computing reconstruction
-v_DG1 = Function(problem.V_DG1)
-v_DG1.vector()[:] = problem.DEM_to_DG1 * v_DG.vector().vec()
-u_DG1,phi_DG1 = v_DG1.split()
+solve(A == L, sol, bcs=bcs)
+u,phi = sol.split()
 
 ##plot
-#fig = plot(u_DG1[0])
+#fig = plot(u[0])
 #plt.colorbar(fig)
 #plt.show()
-#fig = plot(phi_DG1)
+#fig = plot(phi)
 #plt.colorbar(fig)
 #plt.show()
 #sys.exit()
@@ -108,8 +115,8 @@ xx = np.arange(0, h, h/20)
 rot = np.zeros_like(xx)
 disp = np.zeros_like(xx)
 for i,X in enumerate(xx):
-    rot[i] = phi_DG1(0,X)
-    disp[i] = u_DG1(0,X)[0]
+    rot[i] = phi(0,X)
+    disp[i] = u(0,X)[0]
 
 ##plot ref rotation
 xxx = np.arange(0, h, 1e-6)
@@ -123,7 +130,7 @@ plt.title('Rotation')
 plt.ylabel(r'$\varphi(x_2)$')
 plt.xlabel(r'$x_2$')
 plt.legend(loc='lower left')
-plt.savefig('rotation.pdf')
+plt.savefig('rotation_FEM.pdf')
 plt.show()
 
 ##plot ref rotation
@@ -137,5 +144,5 @@ plt.ylabel(r'$u_1(x_2)$')
 plt.title('Vertical displacement')
 plt.xlabel(r'$x_2$')
 plt.legend(loc='upper left')
-plt.savefig('disp.pdf')
+plt.savefig('disp_FEM.pdf')
 plt.show()
