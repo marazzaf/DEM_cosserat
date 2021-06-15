@@ -33,7 +33,7 @@ def stress(e, kappa):
     Mat = G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+a,1-a), (0,0,1-a,1+a)))
     sig = dot(Mat, eps)
     sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
-    mu = 4*G*l*l * kappa
+    mu = M * kappa
     return sigma, mu
 
 #boundary
@@ -85,8 +85,7 @@ d_U2 = DirichletBC(U_2, Constant(0), down_boundary)
 d_S = DirichletBC(S, Constant(omega21), down_boundary)
 t_S = DirichletBC(S, Constant(-0.1), top_boundary)
 lr_U = DirichletBC(U_2, Constant(0), left_right_boundary)
-#lr_S = DirichletBC(S, Constant(0), left_right_boundary)
-bcs = [t_U1, d_U1, d_U2, t_S, d_S, lr_U]#, lr_S]
+bcs = [t_U1, d_U1, d_U2, t_S, d_S, lr_U]
 
 # Variational problem
 u, phi = TrialFunctions(V)
