@@ -52,7 +52,8 @@ def stress(e, kappa):
 #BC
 u_D = Expression('1e-3*(x[0]+0.5*x[1])', degree=1)
 v_D = Expression('1e-3*(x[0]+x[1])', degree=1)
-phi_D = Constant(0.25e-3)
+alpha = -2
+phi_D = Constant(0.25e-3*(1+alpha))
 bc_1 = DirichletBC(U_1, u_D, boundary_parts, 0)
 bc_2 = DirichletBC(U_2, v_D, boundary_parts, 0)
 bc_3 = DirichletBC(S, phi_D, boundary_parts, 0)
@@ -65,8 +66,9 @@ e,kappa = strain(u,phi)
 sigma,mu = stress(e,kappa)
 e,kappa = strain(v,psi)
 A = inner(sigma, e)*dx + inner(mu, kappa)*dx
-t = Constant((0, 0))
-L = inner(t, v)*ds(1)
+#Volume load
+q = Constant(1)
+L = inner(q, psi) * dx
 
 #computing condition number
 Lhs = as_backend_type(assemble(A)).mat()
@@ -87,25 +89,18 @@ sigma,mu = stress(e_h, kappa_h)
 
 #Test
 W = FunctionSpace(mesh, 'DG', 0)
-#Testing on all elements
 #Testing stresses
 sigma_00 = local_project(sigma[0,0], W).vector().get_local()
-#assert (np.round(sigma_00, 4) == 4).all()
-print('Min value: %.2e  Max value: %.2e   Error: %.2e' % (sigma_00.min(), sigma_00.max(), max((sigma_00.max() - 4) / 4 * 100, (sigma_00.min() - 4) / 4 * 100)))
+print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_00.min(), sigma_00.max(), max((sigma_00.max() - 4) / 4 * 100, (sigma_00.min() - 4) / 4 * 100)))
 sigma_11 = local_project(sigma[1,1], W).vector().get_local()
-#assert (np.round(sigma_11, 4) == 4).all()
-print('Min value: %.2e  Max value: %.2e   Error: %.2e' % (sigma_11.min(), sigma_11.max(), max((sigma_11.max() - 4) / 4 * 100, (sigma_11.min() - 4) / 4 * 100)))
+print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_11.min(), sigma_11.max(), max((sigma_11.max() - 4) / 4 * 100, (sigma_11.min() - 4) / 4 * 100)))
 sigma_01 = local_project(sigma[0,1], W).vector().get_local()
-#assert (np.round(sigma_01, 4) == 1.5).all()
-print('Min value: %.2e  Max value: %.2e   Error: %.2e' % (sigma_01.min(), sigma_01.max(), max((sigma_01.max() - 1.5) / 1.5 * 100, (sigma_01.min() - 1.5) / 1.5 * 100)))
+print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_01.min(), sigma_01.max(), max((sigma_01.max() - 1) / 1 * 100, (sigma_01.min() - 1) / 1 * 100)))
 sigma_10 = local_project(sigma[1,0], W).vector().get_local()
-#assert (np.round(sigma_10, 4) == 1.5).all()
-print('Min value: %.2e  Max value: %.2e   Error: %.2e' % (sigma_10.min(), sigma_10.max(), max((sigma_10.max() - 1.5) / 1.5 * 100, (sigma_10.min() - 1.5) / 1.5 * 100)))
+print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_10.min(), sigma_10.max(), max((sigma_10.max() - 2) / 2 * 100, (sigma_10.min() - 2) / 2 * 100)))
 #Testing moments
 mu_0 = local_project(mu[0], W).vector().get_local()
-#assert (np.round(mu_0, 4)  == 0).all()
 print('Min value: %.2e  Max value: %.2e' % (mu_0.min(), mu_0.max()))
 mu_1 = local_project(mu[1], W).vector().get_local()
-#assert (np.round(mu_1, 4)  == 0).all()
 print('Min value: %.2e  Max value: %.2e' % (mu_1.min(), mu_1.max()))
 

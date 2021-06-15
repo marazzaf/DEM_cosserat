@@ -62,7 +62,6 @@ sigma,mu = problem.stresses_2d(strains)
 
 #Test
 W = FunctionSpace(problem.mesh, 'DG', 0)
-#Testing on all elements
 #Testing stresses
 sigma_00 = local_project(sigma[0,0], W).vector().get_local()
 print('Min value: %.2e  Max value: %.2e   Error: %.2f%%' % (sigma_00.min(), sigma_00.max(), max((sigma_00.max() - 4) / 4 * 100, (sigma_00.min() - 4) / 4 * 100)))
