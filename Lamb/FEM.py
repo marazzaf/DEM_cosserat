@@ -59,10 +59,11 @@ dt = Constant(T/Nsteps)
 #Ricker wavelet loading
 #position of pulse
 x0 = 0
-y0 = Ly/2 #Ly - 20
+y0 = Ly - 100
 #frequence
 sigma = 14.5
-domain = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2) < Lx*Lx/100 ? 1 : 0', h=h, x0=x0, y0=y0, Lx=Lx, degree=2)
+radius = 50
+domain = Expression('sqrt(pow(x[0]-x0,2) + pow(x[1]-y0,2)) < radius ? 1 : 0', radius=radius, x0=x0, y0=y0, degree=2)
 psi = Expression('2/sqrt(3*sigma)/pow(pi,0.25)*(1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)', sigma=sigma, t=0, degree = 1)
 #load = psi * domain * Constant((0,-1,0))
 load = psi * domain * Constant((0,-1,0))
@@ -192,6 +193,7 @@ file.parameters["flush_output"] = True
 file.parameters["functions_share_mesh"] = True
 file.parameters["rewrite_function_mesh"] = False
 file_en = open(folder+'/energies.txt', 'w', 1)
+file_disp = open(folder+'/disp.txt', 'w', 1)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -239,6 +241,10 @@ for (i, dt) in enumerate(np.diff(time)):
     file.write(u, t)
     file.write(v_old, t)
 
+    #save disp
+    X,Y = x0-300,y0-20
+    file_disp.write('%.2e %.2e %.2e\n' % (t, u(X,Y)[0], u(X,Y)[1]))
+
     psi.t = t
     # Record tip displacement and compute energies
     E_elas = assemble(0.5*k(u, u))
@@ -250,3 +256,4 @@ for (i, dt) in enumerate(np.diff(time)):
     file_en.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
 
 file_en.close()
+file_disp.close()
