@@ -35,39 +35,45 @@ boundary_parts.set_all(0)
 def top(x, on_boundary):
     return near(x[1], Ly) and on_boundary
 
+def down(x, on_boundary):
+    return near(x[1], 0) and on_boundary
+
 top_boundary = AutoSubDomain(top)
 top_boundary.mark(boundary_parts, 1)
+down_boundary = AutoSubDomain(down)
+down_boundary.mark(boundary_parts, 2)
 ds = ds(subdomain_data=boundary_parts)
 
 
 # Generalized-alpha method parameters
-gamma   = Constant(0.5)
-beta    = Constant(0.25)
+alpha_m = Constant(0.)
+alpha_f = Constant(0.)
+gamma   = Constant(0.5+alpha_f-alpha_m)
+beta    = Constant((gamma+0.5)**2/4.)
 
 # Time-stepping parameters
-T = 1
+T = 0.1 #1
 Nsteps = 50
 dt = Constant(T/Nsteps)
 
 #Ricker wavelet loading
 #position of pulse
 x0 = 0
-y0 = Ly - 20
+y0 = Ly/2 #Ly - 20
 #frequence
 sigma = 14.5
-domain = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2) < h*h ? 1 : 0', h=h, x0=x0, y0=y0, degree=2)
+domain = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2) < Lx*Lx/100 ? 1 : 0', h=h, x0=x0, y0=y0, Lx=Lx, degree=2)
 psi = Expression('2/sqrt(3*sigma)/pow(pi,0.25)*(1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)', sigma=sigma, t=0, degree = 1)
-load = psi * domain * Constant((0,-1,0))
+#load = psi * domain * Constant((0,-1,0))
+load = E * Constant((0,-1,0))
 
 # Function Space
 U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
-S = VectorElement("CG", mesh.ufl_cell(), 1) # micro rotation space
+S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
 if rank == 0:
     print('nb dofs FEM: %i' % V.dofmap().global_dimension())
 U, S = V.split()
-U_1, U_2, U_3 = U.split()
-S_1, S_2, S_3 = S.split()
 
 # Test and trial functions
 du = TrialFunction(V)
@@ -81,7 +87,7 @@ a_old = Function(V)
 
 # Set up boundary condition at left end
 zero = Constant((0, 0, 0))
-bc = DirichletBC(V, zero, boundary_parts, 0)
+bc = DirichletBC(V, zero, boundary_parts, 2)
 
 #Elastic terms
 def strain(v,psi):
@@ -101,18 +107,18 @@ def stress(e, kappa):
 
 # Mass form
 def m(w, w_):
-    u = as_vector((w[0],w[1]))
-    phi = as_scalar(w[2])
+    du = as_vector((w[0],w[1]))
+    dphi = w[2]
     u_ = as_vector((w_[0],w_[1]))
-    phi_ = as_vector(w_[2])
-    return rho*inner(u, u_)*dx + rho*I*phi*phi_*dx 
+    phi_ = w_[2]
+    return rho*inner(du, u_)*dx + rho*I*dphi*phi_*dx 
 
 # Elastic stiffness form
 def k(w, w_):
     du = as_vector((w[0],w[1]))
-    dphi = as_scalar(w[2])
+    dphi = w[2]
     u_ = as_vector((w_[0],w_[1]))
-    phi_ = as_scalar(w_[2])
+    phi_ = w_[2]
     epsilon_u,chi_u = strain(du, dphi)
     epsilon_v,chi_v = strain(u_, phi_)
 
@@ -168,8 +174,7 @@ def avg(x_old, x_new, alpha):
 # Residual
 a_new = update_a(du, u_old, v_old, a_old, ufl=True)
 v_new = update_v(a_new, u_old, v_old, a_old, ufl=True)
-res = m(a_new, u_) + k(du, u_) - Wext(u_)
-#res = m(avg(a_old, a_new, 0), u_) + k(avg(u_old, du, 0), u_) - Wext(u_)
+res = m(avg(a_old, a_new, alpha_m), u_) + k(avg(u_old, du, alpha_f), u_) - Wext(u_)
 a_form = lhs(res)
 L_form = rhs(res)
 
@@ -180,16 +185,13 @@ solver.parameters["symmetric"] = True
 
 # Time-stepping
 time = np.linspace(0, T, Nsteps+1)
-#u_tip = np.zeros((Nsteps+1,))
-#energies = np.zeros((Nsteps+1, 4))
-E_damp = 0
 E_ext = 0
-xdmf_file = XDMFFile(folder+"/flexion.xdmf")
-xdmf_file.parameters["flush_output"] = True
-xdmf_file.parameters["functions_share_mesh"] = True
-xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open(folder+'/energies.txt', 'w', 10) #, 1)
-file_disp = open(folder+'/disp.txt', 'w', 10) #, 1)
+file = XDMFFile(comm,folder+"/FEM_lamb.xdmf")
+#file = File(folder+"/FEM_lamb.pvd")
+file.parameters["flush_output"] = True
+file.parameters["functions_share_mesh"] = True
+file.parameters["rewrite_function_mesh"] = False
+file_en = open(folder+'/energies.txt', 'w', 1)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
@@ -214,40 +216,36 @@ for (i, dt) in enumerate(np.diff(time)):
         print("Time: ", t)
 
     # Forces are evaluated at t_{n+1-alpha_f}=t_{n+1}-alpha_f*dt
-    p.t = t
+    psi.t = t-float(alpha_f*dt)
 
     # Solve for new displacement
     res = assemble(L_form)
     bc.apply(res)
-    solver.solve(K, u.vector(), res)
+    mtf = res.get_local()
+    print(mtf[mtf.nonzero()])
+    solver.solve(u.vector(), res)
+
+    img = plot(u[1])
+    plt.colorbar(img)
+    plt.show()
+    U = FunctionSpace(mesh, 'CG', 1)
+    file.write(local_project(u[1], U), t)
 
 
     # Update old fields with new quantities
     update_fields(u, u_old, v_old, a_old)
 
     # Save solution to XDMF format
-    #if i % 100 == 0:
-    xdmf_file.write(u, t)
-    xdmf_file.write(v_old, t)
-    WW = TensorFunctionSpace(mesh, 'DG', 0)
-    v,phi = u.split()
-    e = strain(v, phi)
-    sigma = stress(e)
-    sigma = project(sigma, WW)
-    xdmf_file.write(sigma, t)
+    #file.write(u, t)
+    #file.write(v_old, t)
 
     # Record tip displacement and compute energies
-    u_tip = u(Lx, Ly/2, Lz/2)[1]
-    v_tip = v_old(Lx, Ly/2, Lz/2)[1]
     E_elas = assemble(0.5*k(u, u))
     E_kin = assemble(0.5*m(v_old, v_old))
     E_ext += assemble(Wext(u-u_old))
     u_old.vector()[:] = u.vector()
     
     E_tot = E_elas+E_kin
-    #energies[i+1, :] = np.array([E_elas, E_kin, E_tot, E_ext])
-    file.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
-    file_disp.write('%.2e %.2e %.2e\n' % (t, u_tip, v_tip))
+    file_en.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
 
-file.close()
-file_disp.close()
+file_en.close()

@@ -351,7 +351,7 @@ L_form = rhs(res)
 
 # Define solver for reusing factorization
 K, res = assemble_system(a_form, L_form, bc)
-solver = LUSolver(K, "mumps")
+solver = LUSolver("mumps")
 solver.parameters["symmetric"] = True
 
 # We now initiate the time stepping loop. We will keep track of the beam vertical tip displacement over time as well as the different
@@ -410,11 +410,11 @@ for (i, dt) in enumerate(np.diff(time)):
     update_fields(u, u_old, v_old, a_old)
 
     # Save solution to XDMF format
-    #xdmf_file.write(u, t)
+    xdmf_file.write(u, t)
 
     # Compute stresses and save to file
-    local_project(sigma(u), Vsig, sig)
-    xdmf_file.write(sig, t)
+    #local_project(sigma(u), Vsig, sig)
+    #xdmf_file.write(sig, t)
 
     p.t = t
     # Record tip displacement and compute energies
