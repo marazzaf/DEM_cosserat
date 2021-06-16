@@ -13,9 +13,9 @@ rank = comm.Get_rank()
 
 # Mesh
 Lx,Ly = 4e3,2e3
-nb_elt = 10 #100 computation #5 #debug
+nb_elt = 100 #100 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
-folder = 'FEM_test'
+folder = 'FEM'
 
 # Parameters
 nu = 0.25 # Poisson's ratio
@@ -52,8 +52,8 @@ gamma   = Constant(0.5+alpha_f-alpha_m)
 beta    = Constant((gamma+0.5)**2/4.)
 
 # Time-stepping parameters
-T = 0.1 #1
-Nsteps = 50
+T = 1
+Nsteps = 1000
 dt = Constant(T/Nsteps)
 
 #Ricker wavelet loading
@@ -65,7 +65,7 @@ sigma = 14.5
 domain = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2) < Lx*Lx/100 ? 1 : 0', h=h, x0=x0, y0=y0, Lx=Lx, degree=2)
 psi = Expression('2/sqrt(3*sigma)/pow(pi,0.25)*(1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)', sigma=sigma, t=0, degree = 1)
 #load = psi * domain * Constant((0,-1,0))
-load = E * Constant((0,-1,0))
+load = psi * domain * Constant((0,-1,0))
 
 # Function Space
 U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
@@ -221,24 +221,25 @@ for (i, dt) in enumerate(np.diff(time)):
     # Solve for new displacement
     res = assemble(L_form)
     bc.apply(res)
-    mtf = res.get_local()
-    print(mtf[mtf.nonzero()])
+    #mtf = res.get_local()
+    #print(mtf[mtf.nonzero()])
     solver.solve(u.vector(), res)
 
-    img = plot(u[1])
-    plt.colorbar(img)
-    plt.show()
-    U = FunctionSpace(mesh, 'CG', 1)
-    file.write(local_project(u[1], U), t)
+    #img = plot(u[1])
+    #plt.colorbar(img)
+    #plt.show()
+    #U = FunctionSpace(mesh, 'CG', 1)
+    #file.write(local_project(u[1], U), t)
 
 
     # Update old fields with new quantities
     update_fields(u, u_old, v_old, a_old)
 
     # Save solution to XDMF format
-    #file.write(u, t)
-    #file.write(v_old, t)
+    file.write(u, t)
+    file.write(v_old, t)
 
+    psi.t = t
     # Record tip displacement and compute energies
     E_elas = assemble(0.5*k(u, u))
     E_kin = assemble(0.5*m(v_old, v_old))
