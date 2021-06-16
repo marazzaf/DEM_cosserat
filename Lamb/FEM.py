@@ -11,61 +11,53 @@ parameters["allow_extrapolation"] = True
 comm = mpi4py.MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-# Define mesh
-Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
-#folder = 'test_FEM'
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
-folder = 'ref'
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
-#folder = 'ref_fine'
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 100, 13, 5) #very fine
-#folder = 'ref_very_fine'
+# Mesh
+Lx,Ly = 4e3,2e3
+nb_elt = 10 #100 computation #5 #debug
+mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
+folder = 'FEM_test'
+
+# Parameters
+nu = 0.25 # Poisson's ratio
+E = 1.88e10 #Young Modulus
+rho = 2200 #volumic mass
+G = E/(1+nu) #Shear modulus
+Gc = 0
+a = Gc/G
+h = mesh.hmax()
+l = float(0.5*h/np.sqrt(2)) # intrinsic length scale
+I = Constant(2/5*l*l)
+
+boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+boundary_parts.set_all(0)
 
 # Sub domain for clamp at left end
-def left(x, on_boundary):
-    return near(x[0], 0.) and on_boundary
+def top(x, on_boundary):
+    return near(x[1], Ly) and on_boundary
 
-# Sub domain for rotation at right end
-def right(x, on_boundary):
-    return near(x[0], Lx) and on_boundary
+top_boundary = AutoSubDomain(top)
+top_boundary.mark(boundary_parts, 1)
+ds = ds(subdomain_data=boundary_parts)
 
-# Elastic parameters
-l = 0.01e-3
-K = 16.67e9
-G = 10e9
-Gc = 5e9
-L = G*l*l #why that? No values in Rattez et al
-h3 = 2/5
-M = G * l*l / h3
-Mc = M
-
-#recomputing elastic parameters
-#nu = (K-G)/(K+G) # Poisson's ratio
-E = 9*K*G/(3*K+G) #Young's modulus
-lmbda = K -2/3*G
-
-# Mass density
-rho = Constant(2500)
-I = Constant(2/5*l*l)
 
 # Generalized-alpha method parameters
 gamma   = Constant(0.5)
 beta    = Constant(0.25)
 
 # Time-stepping parameters
-T_ref = Lx * float(sqrt(rho/E))#1 #4
-#T = T_ref * 10
-T = T_ref * 2e2
-#dt = 1e-2 #1e-5
-#Nsteps = int(T / dt) + 1
-Nsteps = 2000
+T = 1
+Nsteps = 50
 dt = Constant(T/Nsteps)
 
-p0 = E*1e-6
-cutoff_Tc = T_ref/10 #T/5
-# Define the loading as an expression depending on t
-p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
+#Ricker wavelet loading
+#position of pulse
+x0 = 0
+y0 = Ly - 20
+#frequence
+sigma = 14.5
+domain = Expression('pow(x[0]-x0,2) + pow(x[1]-y0,2) < h*h ? 1 : 0', h=h, x0=x0, y0=y0, degree=2)
+psi = Expression('2/sqrt(3*sigma)/pow(pi,0.25)*(1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)', sigma=sigma, t=0, degree = 1)
+load = psi * domain * Constant((0,-1,0))
 
 # Function Space
 U = VectorElement("CG", mesh.ufl_cell(), 2) # displacement space
@@ -87,65 +79,51 @@ u_old = Function(V)
 v_old = Function(V, name='vel')
 a_old = Function(V)
 
-# Create mesh function over the cell facets
-boundary_subdomains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-boundary_subdomains.set_all(0)
-force_boundary = AutoSubDomain(right)
-force_boundary.mark(boundary_subdomains, 3)
-
-# Define measure for boundary condition integral
-dss = ds(subdomain_data=boundary_subdomains)
-
 # Set up boundary condition at left end
-zero = Constant((0, 0, 0, 0, 0, 0))
-bc = DirichletBC(V, zero, left)
+zero = Constant((0, 0, 0))
+bc = DirichletBC(V, zero, boundary_parts, 0)
 
-# Strain and torsion
-def strain(v, eta):
-    strain = nabla_grad(v)
-    strain += as_tensor([ [ 0, -eta[2], eta[1] ] , [ eta[2], 0, -eta[0] ] , [ -eta[1], eta[0], 0 ] ] )
-    return strain
+#Elastic terms
+def strain(v,psi):
+    e = grad(v) + as_tensor(((0, 1), (-1, 0))) * psi
+    kappa = grad(psi)
+    return e,kappa
 
-def torsion(eta):
-    return nabla_grad(eta)
-
-# Stress and couple stress
-def stress(e):
-    return lmbda * tr(e) * Identity(3) + 2*G * sym(e) + 2*Gc * skew(e)
-
-def couple(kappa):
-    return L * tr(kappa) * Identity(3) + 2*M * sym(kappa) + 2*Mc * skew(kappa)
+def stress(e, kappa):
+    eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
+    aux_1 = 2*(1-nu)/(1-2*nu)
+    aux_2 = 2*nu/(1-2*nu)
+    Mat = G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+a,1-a), (0,0,1-a,1+a)))
+    sig = dot(Mat, eps)
+    sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
+    mu = 4*G*l*l * kappa
+    return sigma, mu
 
 # Mass form
 def m(w, w_):
-    u = as_vector((w[0],w[1],w[2]))
-    phi = as_vector((w[3],w[4],w[5]))
-    u_ = as_vector((w_[0],w_[1],w_[2]))
-    phi_ = as_vector((w_[3],w_[4],w_[5]))
-    return rho*inner(u, u_)*dx + rho*I*inner(phi,phi_)*dx 
+    u = as_vector((w[0],w[1]))
+    phi = as_scalar(w[2])
+    u_ = as_vector((w_[0],w_[1]))
+    phi_ = as_vector(w_[2])
+    return rho*inner(u, u_)*dx + rho*I*phi*phi_*dx 
 
 # Elastic stiffness form
 def k(w, w_):
-    du = as_vector((w[0],w[1],w[2]))
-    dphi = as_vector((w[3],w[4],w[5]))
-    u_ = as_vector((w_[0],w_[1],w_[2]))
-    phi_ = as_vector((w_[3],w_[4],w_[5]))
-    epsilon_u = strain(du, dphi)
-    epsilon_v = strain(u_, phi_)
-    chi_u = torsion(dphi)
-    chi_v = torsion(phi_)
+    du = as_vector((w[0],w[1]))
+    dphi = as_scalar(w[2])
+    u_ = as_vector((w_[0],w_[1]))
+    phi_ = as_scalar(w_[2])
+    epsilon_u,chi_u = strain(du, dphi)
+    epsilon_v,chi_v = strain(u_, phi_)
 
-    sigma_u = stress(epsilon_u)
-    sigma_v = stress(epsilon_v)
-    m_u = couple(chi_u)
-    m_v = couple(chi_v)
+    sigma_u,m_u = stress(epsilon_u,chi_u)
+    sigma_v,m_v = stress(epsilon_v,chi_v)
 
     return inner(epsilon_v, sigma_u)*dx + inner(chi_v, m_u)*dx
 
 # Work of external forces
 def Wext(u_):
-    u_aux = as_vector((u_[0],u_[1],u_[2]))
-    return dot(u_aux, p)*dss(3)
+    return dot(u_, load) * dx
 
 # Update formula for acceleration
 # a = 1/(2*beta)*((u - u0 - v0*dt)/(0.5*dt*dt) - (1-2*beta)*a0)
