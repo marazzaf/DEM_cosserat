@@ -15,9 +15,6 @@ def DEM_to_DG1_matrix(problem):
     trial_DG1 = TestFunction(problem.V_DG1)
     mat = (problem.dim+1) * inner(test_DG0, trial_DG1) / vol * dx
     Mat = assemble(mat)
-    #scipy.sparse
-    #row,col,val = as_backend_type(Mat).mat().getValuesCSR()
-    #matrice_resultat_1 = csr_matrix((val, col, row))
     #PETSc
     result_matrix_1 = as_backend_type(Mat).mat()
 
@@ -36,7 +33,6 @@ def DEM_to_DG1_matrix(problem):
     for c in cells(problem.mesh):
         index_cell = c.index()
         dof_position = dofmap_DG_1.cell_dofs(index_cell)
-        #print(dof_position)
             
         #filling out part to add the gradient term
         position_barycentre = problem.Graph.nodes[index_cell]['barycentre']
@@ -68,14 +64,12 @@ def DEM_to_DG1_matrix(problem):
                     
             for i,j in zip(List,range(problem.dim)):
                 result_matrix_2[dof, tens_dof_position[i]] = diff[j]
-        #sys.exit()
 
     result_matrix_2.assemble() #for mat *
     return result_matrix_1 + result_matrix_2 * problem.mat_grad * problem.DEM_to_CR
 
 def facet_interpolation(problem):
-    """Computes the reconstruction in the facets of the meh from the dofs of the DEM."""
-    #assert isinstance(problem,DEMProblem)
+    """Computes the reconstruction in the facets of the mesh from the dofs of the DEM."""
     
     #To store the results of the computations
     res_num = dict([])
@@ -196,8 +190,6 @@ def DEM_to_CR_matrix(problem):
     simplex_num,simplex_num_phi,simplex_coord = facet_interpolation(problem)
 
     #Storing the facet reconstructions in a matrix
-    #scipy.sparse
-    #result_matrix = dok_matrix((problem.nb_dof_CR,problem.nb_dof_DEM)) #Empty matrix
     #PETSc
     shape = (problem.nb_dof_CR,problem.nb_dof_DEM)
     result_matrix = PETSc.Mat().create()
@@ -226,4 +218,3 @@ def DEM_to_CR_matrix(problem):
     #PETSc
     result_matrix.assemble() #needed for multiplications
     return result_matrix
-    #return result_matrix.tocsr() #scipy.sparse
