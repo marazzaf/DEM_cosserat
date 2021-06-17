@@ -246,32 +246,30 @@ def facet_interpolation_test(problem):
             x = facet.barycentre #Position of the barycentre of the facet
 
             #Defining the set of dofs in which to look for the convex for barycentric reconstruction
-            print(facet.bnd)
+            print(num_facet,facet.bnd)
             if not facet.bnd:
                 (c1,c2) = facet.list_cells
                 C2 = list_cells[c2]
             else:
                 c1 = facet.list_cells[0]
             C1 = list_cells[c1]
-            print(C1.index)
-        sys.exit()
             
-#            #Computing the neighbours
-#            neigh_pool = set()
-#            for num_F in C1.list_facets:
-#                neigh_pool.update(list_facets[num_F].list_cells)
-#            if not facet.bnd:
-#                for num_F in C2.list_facets:
-#                    neigh_pool.update(list_facets[num_F].list_cells)
-#                
-#            if problem.dim == 3: #to have a larger pool for reconstruction
-#                for C in neigh_pool.copy():
-#                    for num_F in C.list_facets:
-#                        neigh_pool.update(list_facets[num_F].list_cells)
-#            
-#
-#            print(neigh_pool)
-#    sys.exit()
+            #Computing the neighbours
+            neigh_pool = set()
+            for num_F in C1.list_facets:
+                neigh_pool.update(list_facets[num_F].list_cells)
+            if not facet.bnd:
+                for num_F in C2.list_facets:
+                    neigh_pool.update(list_facets[num_F].list_cells)
+                
+            if problem.dim == 3: #to have a larger pool for reconstruction
+                for C in neigh_pool.copy():
+                    for num_F in C.list_facets:
+                        neigh_pool.update(list_facets[num_F].list_cells)
+            
+
+            print(neigh_pool)
+    sys.exit()
 #            #Final results
 #            chosen_coord_bary = []
 #            coord_num = []

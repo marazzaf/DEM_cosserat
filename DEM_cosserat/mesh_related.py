@@ -71,6 +71,7 @@ class Facet:
     """ Class that will contain the relevant info for the facets in a mesh."""
     def __init__(self, problem, f, list_cells):
         self.index = f.index()
+        print(self.index)
         self.bnd = f.exterior()
         #Get the position of the barycentre
         mp = f.midpoint()
@@ -104,21 +105,15 @@ class MESH:
     def __init__(self, problem):
         #importing cell dofs
         self.list_cells = []
-        #print(type(cells(problem.mesh)))
-        #ccells = comm.gather(cells(problem.mesh), root=0)
-        #print(type(ccells))
-        #sys.exit()
-        if rank == 0:
-        #    for c in ccells:
-            for c in cells(problem.mesh):
-                list_facets = []
-                for f in facets(c):
-                    list_facets.append(f.index())
-                assert len(list_facets) == 3
-                C = Cell(problem, c, list_facets)
-                self.list_cells.append(C)
+        for c in cells(problem.mesh):
+            print(c.index())
+            list_facets = []
+            for f in facets(c):
+                list_facets.append(f.index())
+            C = Cell(problem, c, list_facets)
+            self.list_cells.append(C)
+        sys.exit()
         print(len(self.list_cells))
-        #sys.exit()
 
         #importing facet dofs
         self.list_facets = []
@@ -128,3 +123,5 @@ class MESH:
                 list_cells.append(c.index())
             F = Facet(problem, f, list_cells)
             self.list_facets.append(F)
+        print(len(self.list_facets))
+        sys.exit()
