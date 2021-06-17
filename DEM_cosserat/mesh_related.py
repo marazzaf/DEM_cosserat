@@ -61,15 +61,34 @@ def connectivity_graph(problem):
             
 
 
+class Facet:
+    """ Class that will contain the relevant info for the facets in a mesh."""
+    def __init__(self, problem, f, list_cells):
+        self.bnd = f.exterior()
+        #Get the position of the barycentre
+        mp = f.midpoint()
+        #Get the position of the barycentre
+        if problem.dim == 2:
+            self.barycentre = array([mp.x(), mp.y()])
+        elif problem.dim == 3:
+            self.barycentre = array([mp.x(), mp.y(), mp.z()])
+        else:
+            raise ValueError('Problem with dimension of mesh')
+        ##Get the num of the dofs in global DEM vector
+        #self.dof_u = problem.U_DG.dofmap().entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
+        #self.dof_phi = problem.PHI_DG.dofmap().entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
+        #self.list_cells = list_cells #contains the index of the facets of the cell
+
 class Cell:
     """ Class that will contain the relevant info for the cells in a mesh."""
-    def __init__(self, problem, c):
+    def __init__(self, problem, c, list_facets):
         self.index = c.index()
         #Get the position of the barycentre
         self.barycentre = problem.U_DG.element().tabulate_dof_coordinates(c)[0]
         #Get the num of the dofs in global DEM vector
         self.dof_u = problem.U_DG.dofmap().entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
         self.dof_phi = problem.PHI_DG.dofmap().entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
+        self.list_facets = list_facets #contains the index of the facets of the cell
 
 
 class MESH:
@@ -79,8 +98,21 @@ class MESH:
         dofmap_DG = problem.U_DG.dofmap()
         dofmap_DG_phi = problem.PHI_DG.dofmap()
         elt_DG = problem.U_DG.element()
+        
         self.list_cells = []
         #importing cell dofs
         for c in cells(problem.mesh):
-            C = Cell(problem, c)
+            list_facets = []
+            for f in facets(c):
+                list_facets.append(f.index())
+            C = Cell(problem, c, list_facets)
             self.list_cells.append(C)
+
+        #importing facet dofs
+        self.list_facets = []
+        for f in facets(problem.mesh):
+            list_cells = []
+            for c in cells(f):
+                list_cells.append(c.index())
+            F = Facet(problem, f, list_cells)
+            self.list_facets.append(F)
