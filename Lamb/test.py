@@ -16,7 +16,8 @@ mesh = UnitSquareMesh(nb_elt, nb_elt)
 pen = 1
 problem = DEMProblem(mesh, pen)
 
-test = MESH(problem)
+print(problem.Graph.list_facets[2].list_cells)
+print(problem.Graph.list_facets[2].barycentre)
 
 #for C in test.list_cells:
 #    for F in C.list_facets:

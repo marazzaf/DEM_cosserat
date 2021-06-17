@@ -7,6 +7,10 @@ from itertools import combinations
 from DEM_cosserat.mesh_related import *
 import sys
 from petsc4py import PETSc
+import mpi4py
+
+comm = mpi4py.MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 def DEM_to_DG1_matrix(problem):
     #P0 part of DG1
@@ -230,6 +234,10 @@ def facet_interpolation_test(problem):
 
         #Defining the set of dofs in which to look for the convex for barycentric reconstruction
         if not facet.bnd:
+            if rank == 0:
+                print(num_facet)
+                print(facet.list_cells)
+                print(facet.barycentre)
             (c1,c2) = facet.list_cells
             C2 = problem.Graph.list_cells[c2]
         else:
@@ -263,12 +271,12 @@ def facet_interpolation_test(problem):
         list_phi = []
         
         #Search of the simplex
-        for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
+        for cell_indices in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
             
             #Dof positions to assemble matrix to compute barycentric coordinates
             list_positions = []   
-            for l in dof_num:
-                list_positions.append(problem.Graph.nodes[l]['barycentre'])
+            for l in cell_indices:
+                list_positions.append(problem.Graph.list_cells[l].barycentre)
 
             #Computation of barycentric coordinates
             A = np.array(list_positions)
@@ -282,18 +290,18 @@ def facet_interpolation_test(problem):
                 coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
                 if max(abs(coord_bary)) < 1: #interpolation. Stop the search
                     chosen_coord_bary = coord_bary
-                    for l in dof_num:
-                        coord_num.append(problem.Graph.nodes[l]['dof_u'])
-                        coord_num_phi.append(problem.Graph.nodes[l]['dof_phi'])
+                    for l in cell_indices:
+                        coord_num.append(problem.Graph.list_cells[l].dof_u)
+                        coord_num_phi.append(problem.Graph.list_cells[l].dof_phi)
                     break #search is over
                 elif max(abs(coord_bary)) < 10.:
                     list_coord.append(coord_bary)
                     list_max_coord.append(max(abs(coord_bary)))
                     aux_num = []
                     aux_phi = []
-                    for l in dof_num:
-                        aux_num.append(problem.Graph.nodes[l]['dof_u'])
-                        aux_phi.append(problem.Graph.nodes[l]['dof_phi'])
+                    for l in cell_indices:
+                        aux_num.append(problem.Graph.list_cells[l].dof_u)
+                        aux_phi.append(problem.Graph.list_cells[l].dof_phi)
                     list_num.append(aux_num)
                     list_phi.append(aux_phi)
                     
