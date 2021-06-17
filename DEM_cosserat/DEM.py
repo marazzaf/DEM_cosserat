@@ -65,9 +65,10 @@ class DEMProblem:
         self.U_DG1,self.PHI_DG1 = self.V_DG1.split()
         self.nb_dof_DG1 = self.V_DG1.dofmap().global_dimension()
         
-        ##Creating the graph associated with the mesh
+        #Creating the graph associated with the mesh
+        self.Graph = MESH(self)
         #self.Graph = connectivity_graph(self)
-        #
+        
         ##Computation of gradient matrix for inner penalty term
         #self.mat_grad = gradient_matrix(self)
         #

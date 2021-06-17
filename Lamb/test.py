@@ -18,4 +18,6 @@ problem = DEMProblem(mesh, pen)
 
 test = MESH(problem)
 
-print(len(test.list_cells))
+#for C in test.list_cells:
+#    for F in C.list_facets:
+#        print(test.list_facets[F].bnd)

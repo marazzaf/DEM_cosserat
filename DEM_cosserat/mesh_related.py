@@ -64,6 +64,7 @@ def connectivity_graph(problem):
 class Facet:
     """ Class that will contain the relevant info for the facets in a mesh."""
     def __init__(self, problem, f, list_cells):
+        self.index = f.index()
         self.bnd = f.exterior()
         #Get the position of the barycentre
         mp = f.midpoint()
@@ -74,10 +75,10 @@ class Facet:
             self.barycentre = array([mp.x(), mp.y(), mp.z()])
         else:
             raise ValueError('Problem with dimension of mesh')
-        ##Get the num of the dofs in global DEM vector
-        #self.dof_u = problem.U_DG.dofmap().entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
-        #self.dof_phi = problem.PHI_DG.dofmap().entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
-        #self.list_cells = list_cells #contains the index of the facets of the cell
+        self.list_cells = list_cells #contains the neighbouring cells
+        #Get the num of the dofs in CR vector
+        self.dof_CR_u = problem.U_CR.dofmap().entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
+        self.dof_CR_phi = problem.PHI_CR.dofmap().entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
 
 class Cell:
     """ Class that will contain the relevant info for the cells in a mesh."""
@@ -94,13 +95,8 @@ class Cell:
 class MESH:
     """Will contain relevent info about cells and facets."""
     def __init__(self, problem):
-        #useful in the following
-        dofmap_DG = problem.U_DG.dofmap()
-        dofmap_DG_phi = problem.PHI_DG.dofmap()
-        elt_DG = problem.U_DG.element()
-        
-        self.list_cells = []
         #importing cell dofs
+        self.list_cells = []
         for c in cells(problem.mesh):
             list_facets = []
             for f in facets(c):
