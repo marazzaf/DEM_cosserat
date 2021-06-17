@@ -58,3 +58,29 @@ def connectivity_graph(problem):
             G.add_edge(aux_bis[0], problem.nb_dof_DEM + f.index(), num=f.index(), dof_CR_u=num_global_dof_facet, dof_CR_phi=num_global_dof_facet_phi, barycentre=bary, bnd=bnd)
                 
     return G
+            
+
+
+class Cell:
+    """ Class that will contain the relevant info for the cells in a mesh."""
+    def __init__(self, problem, c):
+        self.index = c.index()
+        #Get the position of the barycentre
+        self.barycentre = problem.U_DG.element().tabulate_dof_coordinates(c)[0]
+        #Get the num of the dofs in global DEM vector
+        self.dof_u = problem.U_DG.dofmap().entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
+        self.dof_phi = problem.PHI_DG.dofmap().entity_dofs(problem.mesh, problem.dim, array([c.index()], dtype="uintp"))
+
+
+class MESH:
+    """Will contain relevent info about cells and facets."""
+    def __init__(self, problem):
+        #useful in the following
+        dofmap_DG = problem.U_DG.dofmap()
+        dofmap_DG_phi = problem.PHI_DG.dofmap()
+        elt_DG = problem.U_DG.element()
+        self.list_cells = []
+        #importing cell dofs
+        for c in cells(problem.mesh):
+            C = Cell(problem, c)
+            self.list_cells.append(C)

@@ -3,10 +3,14 @@
 from dolfin import *
 #from scipy.sparse import csr_matrix,diags
 import numpy as np
+import mpi4py
 from petsc4py import PETSc
 from DEM_cosserat.reconstructions import *
 from DEM_cosserat.mesh_related import *
 from DEM_cosserat.miscellaneous import gradient_matrix
+
+comm = mpi4py.MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 class DEMProblem:
     """ Class that will contain the basics of a DEM problem from the mesh and the dimension of the problem to reconstrucion matrices and gradient matrix."""
@@ -38,7 +42,8 @@ class DEMProblem:
         self.V_DG = FunctionSpace(self.mesh, MixedElement(U_DG,PHI_DG))
         self.U_DG,self.PHI_DG = self.V_DG.split()
         self.nb_dof_DEM = self.V_DG.dofmap().global_dimension()
-        print('nb dof DEM: %i' % self.nb_dof_DEM)
+        if rank == 0:
+            print('nb dof DEM: %i' % self.nb_dof_DEM)
 
         #Dimension of Approximation space
         u = Function(self.V_DG)
@@ -60,15 +65,15 @@ class DEMProblem:
         self.U_DG1,self.PHI_DG1 = self.V_DG1.split()
         self.nb_dof_DG1 = self.V_DG1.dofmap().global_dimension()
         
-        #Creating the graph associated with the mesh
-        self.Graph = connectivity_graph(self)
-
-        #Computation of gradient matrix for inner penalty term
-        self.mat_grad = gradient_matrix(self)
-
-        #DEM reconstructions
-        self.DEM_to_CR = DEM_to_CR_matrix(self)
-        self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
+        ##Creating the graph associated with the mesh
+        #self.Graph = connectivity_graph(self)
+        #
+        ##Computation of gradient matrix for inner penalty term
+        #self.mat_grad = gradient_matrix(self)
+        #
+        ##DEM reconstructions
+        #self.DEM_to_CR = DEM_to_CR_matrix(self)
+        #self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
     #Importing useful functions
     from DEM_cosserat.miscellaneous import assemble_volume_load
