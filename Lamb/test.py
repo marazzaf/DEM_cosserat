@@ -16,9 +16,12 @@ mesh = UnitSquareMesh(nb_elt, nb_elt)
 pen = 1
 problem = DEMProblem(mesh, pen)
 
-print(problem.Graph.list_facets[2].list_cells)
-print(problem.Graph.list_facets[2].barycentre)
+MESH = problem.Graph
+data = comm.gather(MESH.list_cells, root=0)
+aux = []
+if rank == 0:
+    print(len(data))
+    for l in data:
+        aux +=l
+print(len(aux))
 
-#for C in test.list_cells:
-#    for F in C.list_facets:
-#        print(test.list_facets[F].bnd)
