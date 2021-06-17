@@ -227,98 +227,104 @@ def facet_interpolation_test(problem):
     res_coord = dict([])
     res_num_phi = dict([])
 
-    #Loop over all facets of the mesh
-    for facet in problem.Graph.list_facets:
-        num_facet = facet.index
-        x = facet.barycentre #Position of the barycentre of the facet
+    #Gathering needed values
+    if rank == 0:
+        list_cells = []
+        aux = comm.gather(problem.Graph.list_cells, root=0)
+        for l in aux:
+            list_cells +=l
+        list_facets = []
+        aux = comm.gather(problem.Graph.list_facets, root=0)
+        for l in aux:
+            list_facets +=l
 
-        #Defining the set of dofs in which to look for the convex for barycentric reconstruction
-        if not facet.bnd:
-            if rank == 0:
-                print(num_facet)
-                print(facet.list_cells)
-                print(facet.barycentre)
-            (c1,c2) = facet.list_cells
-            C2 = problem.Graph.list_cells[c2]
-        else:
-            c1 = facet.list_cells[0]
-        C1 = problem.Graph.list_cells[c1]
-            
-        #Computing the neighbours
-        neigh_pool = set()
-        for num_F in C1.list_facets:
-            neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
-        if not facet.bnd:
-            for num_F in C2.list_facets:
-                neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
-                
-        if problem.dim == 3: #to have a larger pool for reconstruction
-            for C in neigh_pool:
-                for num_F in C.list_facets:
-                    #for num_C in problem.Graph.list_facets[num_F].list_cells:
-                    neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
-            
+        #Loop over all facets of the mesh
+        for facet in list_facets:
+            num_facet = facet.index
+            x = facet.barycentre #Position of the barycentre of the facet
 
-        #Final results
-        chosen_coord_bary = []
-        coord_num = []
-        coord_num_phi = []
-        
-        #Empty sets to store results of search
-        list_coord = []
-        list_max_coord = []
-        list_num = []
-        list_phi = []
-        
-        #Search of the simplex
-        for cell_indices in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
-            
-            #Dof positions to assemble matrix to compute barycentric coordinates
-            list_positions = []   
-            for l in cell_indices:
-                list_positions.append(problem.Graph.list_cells[l].barycentre)
-
-            #Computation of barycentric coordinates
-            A = np.array(list_positions)
-            A = A[1:,:] - A[0,:]
-            b = np.array(x - list_positions[0])
-            try:
-                partial_coord_bary = np.linalg.solve(A.T,b)
-            except np.linalg.LinAlgError: #singular matrix
-                pass
+            #Defining the set of dofs in which to look for the convex for barycentric reconstruction
+            if not facet.bnd:
+                (c1,c2) = facet.list_cells
+                C2 = list_cells[c2]
             else:
-                coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
-                if max(abs(coord_bary)) < 1: #interpolation. Stop the search
-                    chosen_coord_bary = coord_bary
-                    for l in cell_indices:
-                        coord_num.append(problem.Graph.list_cells[l].dof_u)
-                        coord_num_phi.append(problem.Graph.list_cells[l].dof_phi)
-                    break #search is over
-                elif max(abs(coord_bary)) < 10.:
-                    list_coord.append(coord_bary)
-                    list_max_coord.append(max(abs(coord_bary)))
-                    aux_num = []
-                    aux_phi = []
-                    for l in cell_indices:
-                        aux_num.append(problem.Graph.list_cells[l].dof_u)
-                        aux_phi.append(problem.Graph.list_cells[l].dof_phi)
-                    list_num.append(aux_num)
-                    list_phi.append(aux_phi)
-                    
-        #Choosing the final recontruction for the facet if not already done
-        if len(list_coord) > 0:
-            Min = np.argmin(np.array(list_max_coord))
-            chosen_coord_bary = list_coord[Min]
-            coord_num = list_num[Min]
-            coord_num_phi = list_phi[Min]
+                c1 = facet.list_cells[0]
+            C1 = list_cells[c1]
+            
+            #Computing the neighbours
+            neigh_pool = set()
+            for num_F in C1.list_facets:
+                neigh_pool.update(list_facets[num_F].list_cells)
+            if not facet.bnd:
+                for num_F in C2.list_facets:
+                    neigh_pool.update(list_facets[num_F].list_cells)
                 
-        #Tests if search was fruitful
-        assert len(chosen_coord_bary) > 0
-        assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
+            if problem.dim == 3: #to have a larger pool for reconstruction
+                for C in neigh_pool.copy():
+                    for num_F in C.list_facets:
+                        neigh_pool.update(list_facets[num_F].list_cells)
+            
 
-        res_num[num_facet] = coord_num
-        res_num_phi[num_facet] = coord_num_phi
-        res_coord[num_facet] = chosen_coord_bary
+            #Final results
+            chosen_coord_bary = []
+            coord_num = []
+            coord_num_phi = []
+        
+            #Empty sets to store results of search
+            list_coord = []
+            list_max_coord = []
+            list_num = []
+            list_phi = []
+        
+            #Search of the simplex
+            for cell_indices in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
+            
+                #Dof positions to assemble matrix to compute barycentric coordinates
+                list_positions = []   
+                for l in cell_indices:
+                    list_positions.append(problem.Graph.list_cells[l].barycentre)
+
+                #Computation of barycentric coordinates
+                A = np.array(list_positions)
+                A = A[1:,:] - A[0,:]
+                b = np.array(x - list_positions[0])
+                try:
+                    partial_coord_bary = np.linalg.solve(A.T,b)
+                except np.linalg.LinAlgError: #singular matrix
+                    pass
+                else:
+                    coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
+                    if max(abs(coord_bary)) < 1: #interpolation. Stop the search
+                        chosen_coord_bary = coord_bary
+                        for l in cell_indices:
+                            coord_num.append(problem.Graph.list_cells[l].dof_u)
+                            coord_num_phi.append(problem.Graph.list_cells[l].dof_phi)
+                        break #search is over
+                    elif max(abs(coord_bary)) < 10.:
+                        list_coord.append(coord_bary)
+                        list_max_coord.append(max(abs(coord_bary)))
+                        aux_num = []
+                        aux_phi = []
+                        for l in cell_indices:
+                            aux_num.append(problem.Graph.list_cells[l].dof_u)
+                            aux_phi.append(problem.Graph.list_cells[l].dof_phi)
+                        list_num.append(aux_num)
+                        list_phi.append(aux_phi)
+                    
+            #Choosing the final recontruction for the facet if not already done
+            if len(list_coord) > 0:
+                Min = np.argmin(np.array(list_max_coord))
+                chosen_coord_bary = list_coord[Min]
+                coord_num = list_num[Min]
+                coord_num_phi = list_phi[Min]
+                
+            #Tests if search was fruitful
+            assert len(chosen_coord_bary) > 0
+            assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
+
+            res_num[num_facet] = coord_num
+            res_num_phi[num_facet] = coord_num_phi
+            res_coord[num_facet] = chosen_coord_bary
                                 
     return res_num,res_num_phi,res_coord
 

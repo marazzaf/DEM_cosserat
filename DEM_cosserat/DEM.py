@@ -74,8 +74,8 @@ class DEMProblem:
         
         ###DEM reconstructions
         ##self.DEM_to_CR = DEM_to_CR_matrix(self)
-        #self.DEM_to_CR = DEM_to_CR_matrix_test(self)
-        #sys.exit()
+        self.DEM_to_CR = DEM_to_CR_matrix_test(self)
+        sys.exit()
         ##self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
     #Importing useful functions

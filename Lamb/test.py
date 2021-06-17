@@ -7,6 +7,7 @@ from DEM_cosserat.DEM import *
 import mpi4py
 
 comm = mpi4py.MPI.COMM_WORLD
+size = comm.Get_size()
 rank = comm.Get_rank()
 
 nb_elt = 5
@@ -23,5 +24,12 @@ if rank == 0:
     print(len(data))
     for l in data:
         aux +=l
-print(len(aux))
+print(len(aux)) #all together
+
+#Scattering
+data = comm.scatter(data, root=0)
+print(len(data))
+print(len(MESH.list_cells))
+del data
+print(data)
 

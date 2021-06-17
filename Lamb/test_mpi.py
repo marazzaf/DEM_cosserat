@@ -30,3 +30,5 @@ else:
     assert data is None
     
 print(aux)
+#del aux
+#print(aux)
