@@ -10,7 +10,7 @@ comm = mpi4py.MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-nb_elt = 5
+nb_elt = 2
 mesh = UnitSquareMesh(nb_elt, nb_elt)
 
 #Creating the DEM problem

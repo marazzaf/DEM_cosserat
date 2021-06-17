@@ -77,6 +77,8 @@ class Facet:
             raise ValueError('Problem with dimension of mesh')
         self.list_cells = list_cells #contains the neighbouring cells
         #Get the num of the dofs in CR vector
+        print(self.bnd, len(self.list_cells))
+        assert not self.bnd == int(len(self.list_cells)//2)
         self.dof_CR_u = problem.U_CR.dofmap().entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
         self.dof_CR_phi = problem.PHI_CR.dofmap().entity_dofs(problem.mesh, problem.dim - 1, array([f.index()], dtype="uintp")) #number of the dofs in CR
 

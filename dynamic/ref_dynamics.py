@@ -13,11 +13,11 @@ rank = comm.Get_rank()
 
 # Define mesh
 Lx,Ly,Lz = 1e-3, 4e-5, 4e-5
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 10, 2, 2) #test
-#folder = 'test_FEM'
-mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 30, 5, 2) #test
-folder = 'ref'
-#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 60, 10, 5) #fine
+mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 20, 2, 2) #test
+folder = 'test_ref'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 40, 2, 2)
+#folder = 'ref'
+#mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 80, 2, 2) #fine
 #folder = 'ref_fine'
 #mesh = BoxMesh(Point(0., 0., 0.), Point(Lx, Ly, Lz), 100, 13, 5) #very fine
 #folder = 'ref_very_fine'
@@ -57,13 +57,15 @@ beta    = Constant(0.25)
 T_ref = Lx * float(sqrt(rho/E))#1 #4
 #T = T_ref * 10
 T = T_ref * 2e2
-#dt = 1e-2 #1e-5
-#Nsteps = int(T / dt) + 1
+print(T)
 Nsteps = 2000
 dt = Constant(T/Nsteps)
+print(float(dt))
 
 p0 = E*1e-6
 cutoff_Tc = T_ref/10 #T/5
+print(cutoff_Tc)
+sys.exit()
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
 
@@ -210,8 +212,8 @@ xdmf_file = XDMFFile(folder+"/flexion.xdmf")
 xdmf_file.parameters["flush_output"] = True
 xdmf_file.parameters["functions_share_mesh"] = True
 xdmf_file.parameters["rewrite_function_mesh"] = False
-file = open(folder+'/energies.txt', 'w', 10) #, 1)
-file_disp = open(folder+'/disp.txt', 'w', 10) #, 1)
+file = open(folder+'/energies.txt', 'w', 1) #, 1)
+file_disp = open(folder+'/disp.txt', 'w', 1) #, 1)
 
 def local_project(v, V, u=None):
     """Element-wise projection using LocalSolver"""
