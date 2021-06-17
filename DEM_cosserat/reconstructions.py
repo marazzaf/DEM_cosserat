@@ -229,31 +229,27 @@ def facet_interpolation_test(problem):
         x = facet.barycentre #Position of the barycentre of the facet
 
         #Defining the set of dofs in which to look for the convex for barycentric reconstruction
-        if not facet.bnd: #inner facet
+        if not facet.bnd:
             (c1,c2) = facet.list_cells
-            C1 = problem.list_cells[c1]
-            #Computing the neighbours
-            if problem.dim == 2:
-                neigh_pool = set()
-                for num_F in C1.list_facets:
-                    neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
-                for num_F in C2.list_facets:
-                    neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
-                
-            #What to do for 3D????
-            #elif problem.dim == 3:
-            #    path_1 = nx.single_source_shortest_path(problem.Graph, c1, cutoff=2)
-            #    path_2 = nx.single_source_shortest_path(problem.Graph, c2, cutoff=2)
+            C2 = problem.Graph.list_cells[c2]
+        else:
+            c1 = facet.list_cells[0]
+        C1 = problem.Graph.list_cells[c1]
             
-        else: #boundary facet
-            assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
-
-            neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=problem.dim)) - {num_facet + problem.nb_dof_DEM} #2
-
-            neigh_pool = np.array(list(neigh_pool))
-            for_deletion = np.where(neigh_pool >= problem.nb_dof_DEM)
-            neigh_pool[for_deletion] = -1
-            neigh_pool = set(neigh_pool) - {-1}
+        #Computing the neighbours
+        neigh_pool = set()
+        for num_F in C1.list_facets:
+            neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
+        if not facet.bnd:
+            for num_F in C2.list_facets:
+                neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
+                
+        if problem.dim == 3: #to have a larger pool for reconstruction
+            for C in neigh_pool:
+                for num_F in C.list_facets:
+                    #for num_C in problem.Graph.list_facets[num_F].list_cells:
+                    neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
+            
 
         #Final results
         chosen_coord_bary = []
