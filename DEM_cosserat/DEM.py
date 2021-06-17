@@ -69,11 +69,13 @@ class DEMProblem:
         self.Graph = MESH(self)
         #self.Graph = connectivity_graph(self)
         
-        ##Computation of gradient matrix for inner penalty term
-        #self.mat_grad = gradient_matrix(self)
-        #
+        #Computation of gradient matrix for inner penalty term
+        self.mat_grad = gradient_matrix(self)
+        
         ##DEM reconstructions
         #self.DEM_to_CR = DEM_to_CR_matrix(self)
+        self.DEM_to_CR = DEM_to_CR_matrix_test(self)
+        sys.exit()
         #self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
     #Importing useful functions

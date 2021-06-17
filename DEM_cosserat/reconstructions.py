@@ -181,10 +181,6 @@ def facet_interpolation(problem):
 
 def DEM_to_CR_matrix(problem):
     """ Matrix used for facet interpolation."""
-
-    #dofmaps to fill the matrix
-    dofmap_U_CR = problem.U_CR.dofmap()
-    dofmap_PHI_CR = problem.PHI_CR.dofmap()
     
     #Computing the facet reconstructions
     simplex_num,simplex_num_phi,simplex_coord = facet_interpolation(problem)
@@ -205,6 +201,145 @@ def DEM_to_CR_matrix(problem):
         simplex_phi = simplex_num_phi.get(num_global_facet)
         simplex_c = simplex_coord.get(num_global_facet)
 
+        #Filling the reconstruction matrix
+        for i,j,k in zip(simplex_f,simplex_c,simplex_phi):
+            result_matrix[num_global_ddl[0],i[0]] = j #Disp x
+            result_matrix[num_global_ddl[1],i[1]] = j #Disp y
+            result_matrix[num_global_ddl_phi[0],k[0]] = j #Rotation
+            if problem.dim == 3:
+                result_matrix[num_global_ddl[2],i[2]] = j #Disp z
+                result_matrix[num_global_ddl_phi[1],k[1]] = j #Rotation y
+                result_matrix[num_global_ddl_phi[2],k[2]] = j #Rotation z
+
+    #PETSc
+    result_matrix.assemble() #needed for multiplications
+    return result_matrix
+
+def facet_interpolation_test(problem):
+    """Computes the reconstruction in the facets of the mesh from the dofs of the DEM."""
+    
+    #To store the results of the computations
+    res_num = dict([])
+    res_coord = dict([])
+    res_num_phi = dict([])
+
+    #Loop over all facets of the mesh
+    for facet in problem.Graph.list_facets:
+        num_facet = facet.index
+        x = facet.barycentre #Position of the barycentre of the facet
+
+        #Defining the set of dofs in which to look for the convex for barycentric reconstruction
+        if not facet.bnd: #inner facet
+            (c1,c2) = facet.list_cells
+            C1 = problem.list_cells[c1]
+            #Computing the neighbours
+            if problem.dim == 2:
+                neigh_pool = set()
+                for num_F in C1.list_facets:
+                    neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
+                for num_F in C2.list_facets:
+                    neigh_pool.update(problem.Graph.list_facets[num_F].list_cells)
+                
+            #What to do for 3D????
+            #elif problem.dim == 3:
+            #    path_1 = nx.single_source_shortest_path(problem.Graph, c1, cutoff=2)
+            #    path_2 = nx.single_source_shortest_path(problem.Graph, c2, cutoff=2)
+            
+        else: #boundary facet
+            assert c2 >= problem.nb_dof_DEM #Check that cell_2 is a boundary node that is not useful
+
+            neigh_pool = set(nx.single_source_shortest_path(problem.Graph, c1, cutoff=problem.dim)) - {num_facet + problem.nb_dof_DEM} #2
+
+            neigh_pool = np.array(list(neigh_pool))
+            for_deletion = np.where(neigh_pool >= problem.nb_dof_DEM)
+            neigh_pool[for_deletion] = -1
+            neigh_pool = set(neigh_pool) - {-1}
+
+        #Final results
+        chosen_coord_bary = []
+        coord_num = []
+        coord_num_phi = []
+        
+        #Empty sets to store results of search
+        list_coord = []
+        list_max_coord = []
+        list_num = []
+        list_phi = []
+        
+        #Search of the simplex
+        for dof_num in combinations(neigh_pool, problem.dim+1): #test reconstruction with a set of right size
+            
+            #Dof positions to assemble matrix to compute barycentric coordinates
+            list_positions = []   
+            for l in dof_num:
+                list_positions.append(problem.Graph.nodes[l]['barycentre'])
+
+            #Computation of barycentric coordinates
+            A = np.array(list_positions)
+            A = A[1:,:] - A[0,:]
+            b = np.array(x - list_positions[0])
+            try:
+                partial_coord_bary = np.linalg.solve(A.T,b)
+            except np.linalg.LinAlgError: #singular matrix
+                pass
+            else:
+                coord_bary = np.append(1. - partial_coord_bary.sum(), partial_coord_bary)
+                if max(abs(coord_bary)) < 1: #interpolation. Stop the search
+                    chosen_coord_bary = coord_bary
+                    for l in dof_num:
+                        coord_num.append(problem.Graph.nodes[l]['dof_u'])
+                        coord_num_phi.append(problem.Graph.nodes[l]['dof_phi'])
+                    break #search is over
+                elif max(abs(coord_bary)) < 10.:
+                    list_coord.append(coord_bary)
+                    list_max_coord.append(max(abs(coord_bary)))
+                    aux_num = []
+                    aux_phi = []
+                    for l in dof_num:
+                        aux_num.append(problem.Graph.nodes[l]['dof_u'])
+                        aux_phi.append(problem.Graph.nodes[l]['dof_phi'])
+                    list_num.append(aux_num)
+                    list_phi.append(aux_phi)
+                    
+        #Choosing the final recontruction for the facet if not already done
+        if len(list_coord) > 0:
+            Min = np.argmin(np.array(list_max_coord))
+            chosen_coord_bary = list_coord[Min]
+            coord_num = list_num[Min]
+            coord_num_phi = list_phi[Min]
+                
+        #Tests if search was fruitful
+        assert len(chosen_coord_bary) > 0
+        assert len(chosen_coord_bary) == len(coord_num) == len(coord_num_phi)
+
+        res_num[num_facet] = coord_num
+        res_num_phi[num_facet] = coord_num_phi
+        res_coord[num_facet] = chosen_coord_bary
+                                
+    return res_num,res_num_phi,res_coord
+
+def DEM_to_CR_matrix_test(problem):
+    """ Matrix used for facet interpolation."""
+    
+    #Computing the facet reconstructions
+    simplex_num,simplex_num_phi,simplex_coord = facet_interpolation_test(problem)
+
+    #Storing the facet reconstructions in a matrix
+    #PETSc
+    shape = (problem.nb_dof_CR,problem.nb_dof_DEM)
+    result_matrix = PETSc.Mat().create()
+    result_matrix.setSizes(shape)
+    result_matrix.setType('aij')
+    result_matrix.setUp()
+    for F in problem.Graph.list_facets:
+        num_global_facet = F.index
+        num_global_ddl = F.dof_CR_u
+        num_global_ddl_phi = F.dof_CR_phi
+        
+        simplex_f = simplex_num.get(num_global_facet)
+        simplex_phi = simplex_num_phi.get(num_global_facet)
+        simplex_c = simplex_coord.get(num_global_facet)
+    
         #Filling the reconstruction matrix
         for i,j,k in zip(simplex_f,simplex_c,simplex_phi):
             result_matrix[num_global_ddl[0],i[0]] = j #Disp x
