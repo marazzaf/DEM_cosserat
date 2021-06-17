@@ -254,6 +254,7 @@ def facet_interpolation_test(problem):
                 c1 = facet.list_cells[0]
             C1 = list_cells[c1]
             print(C1.index)
+        sys.exit()
             
 #            #Computing the neighbours
 #            neigh_pool = set()
