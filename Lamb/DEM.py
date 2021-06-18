@@ -97,9 +97,10 @@ time = np.linspace(0, T, Nsteps+1)
 #Mass matrix
 I = 2/5*l*l
 M = mass_matrix(problem, rho, I)
-m1 = 1/beta/dt_**2
+m1 = 1/beta/dt_/dt_
 m2 = 1/beta/dt_
 m3 = 1 - 0.5/beta
+K_ref = K.copy()
 K += m1*M
 
 #damping (penalty on velocity)
@@ -111,7 +112,7 @@ K_pv = problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(res_
 c1 = gamma/beta/dt_
 c2 = 1 - gamma/beta
 c3 = dt_ * (1 - 0.5*gamma/beta)
-K += c1*K_pv
+#K += c1*K_pv
 K = PETScMatrix(K)
 
 
@@ -120,36 +121,7 @@ file = XDMFFile(folder+"/output.xdmf")
 file.parameters["flush_output"] = True
 file.parameters["functions_share_mesh"] = True
 file.parameters["rewrite_function_mesh"] = False
-
-##test Verlet
-#M = mass_matrix_vec(problem, rho, I).vec()
-##M_min = min(PETScVector(M))
-##eigensolver = SLEPcEigenSolver(PETScMatrix(K))
-##eigensolver.solve()
-##print(eigensolver.get_number_converged())
-##K_max, i = eigensolver.get_eigenvalue(0)
-##print(K_max)
-##dt_ = np.sqrt(M_min/K_max)
-##print(dt_)
-#dt_ = 1e-6
-#Nsteps = int(T/dt_)
-#time = np.linspace(0, T, Nsteps+1)
-#for (i, dt) in enumerate(np.diff(time)):
-#    t = time[i+1]
-#    if i%100 == 0:
-#        print("Time: ", t)
-#    psi.t = t 
-#
-#    Rhs = problem.assemble_volume_load(load)
-#
-#    u.vector()[:] += v_old.vector() * dt_
-#    v_old.vector()[:] += dt_ * (Rhs - K*u.vector().vec()) / M
-#    #output
-#    if i%100 == 0:
-#        u_DG1.vector()[:] = problem.DEM_to_DG1 * u.vector().vec()
-#        v_old_DG1.vector()[:] = problem.DEM_to_DG1 * v_old.vector().vec()
-#        file.write(u_DG1, t)
-#        file.write(v_old_DG1, t)
+file_en = open(folder+'/energies.txt', 'w', 1)
 
 #implicit integration
 for (i, dt) in enumerate(np.diff(time)):
@@ -160,7 +132,7 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Solve for new displacement
     Rhs = problem.assemble_volume_load(load)
-    res = PETScVector(Rhs) - PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector()) - PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
+    res = PETScVector(Rhs) - PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector())# - PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
     solve(K, u.vector(), res, 'mumps')
     
     # Update old fields with new quantities
@@ -180,4 +152,12 @@ for (i, dt) in enumerate(np.diff(time)):
     file.write(u, t)
     file.write(v_old, t)
 
+    #Check energy balance
+    E_elas = 0.5 * u.vector().inner(PETScMatrix(K_ref)*u.vector())
+    E_kin = 0.5 * v_old.vector().inner(PETScMatrix(M)*v_old.vector())
+    #E_ext += assemble(Wext(u-u_old))
+    E_tot = E_elas+E_kin
+    file_en.write('%.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot))#, E_ext))
 
+
+file_en.close()
