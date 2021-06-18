@@ -21,7 +21,7 @@ folder = 'FEM'
 nu = 0.25 # Poisson's ratio
 E = 1.88e10 #Young Modulus
 rho = 2200 #volumic mass
-G = E/(1+nu) #Shear modulus
+G = 0.5*E/(1+nu) #Shear modulus
 Gc = G
 a = Gc/G
 h = mesh.hmax()
@@ -88,7 +88,9 @@ a_old = Function(V)
 
 # Set up boundary condition at left end
 zero = Constant((0, 0, 0))
-bc = DirichletBC(V, zero, boundary_parts, 2)
+bc_1 = DirichletBC(V, zero, boundary_parts, 2)
+bc_2 = DirichletBC(U.sub(0), Constant(0), boundary_parts, 0)
+bcs = [bc_1, bc_2]
 
 #Elastic terms
 def strain(v,psi):
