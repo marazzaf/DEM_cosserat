@@ -110,11 +110,10 @@ u_DG1_,phi_DG1_ = TrialFunctions(problem.V_DG1)
 res_pv = 4*G * (inner(v_DG1,u_DG1_) + l*l*psi_DG1*phi_DG1_) / h * ds(2)
 K_pv = problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(res_pv)).mat() * problem.DEM_to_DG1
 c1 = gamma/beta/dt_
-c2 = 1 - gamma/beta
-c3 = dt_ * (1 - 0.5*gamma/beta)
-#K += c1*K_pv
+c2 = -(1 - gamma/beta)
+c3 = -dt_ * (1 - gamma + gamma - 0.5*gamma/beta)
+K += c1*K_pv
 K = PETScMatrix(K)
-
 
 #outputs
 file = XDMFFile(folder+"/output.xdmf")
@@ -133,7 +132,7 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Solve for new displacement
     Rhs = problem.assemble_volume_load(load)
-    res = PETScVector(Rhs) + PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector())# - PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
+    res = PETScVector(Rhs) + PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector()) + PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
     solve(K, u.vector(), res, 'mumps')
     
     # Update old fields with new quantities
