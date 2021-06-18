@@ -72,7 +72,7 @@ K = elas
 K += inner_penalty(problem)
 
 #Nitsche penalty bilinear form
-bc = [[0, Constant(0), 2], [1, Constant(0), 2], [2, Constant(0), 2]] #Homogeneous Dirichlet on all boundary apart from top surface
+bc = [[0, Constant(0), 2], [1, Constant(0), 2], [2, Constant(0), 2]] #Homogeneous Dirichlet on bottom boundary surface
 K += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Newmark-beta parameters
@@ -87,8 +87,6 @@ u_old = Function(problem.V_DG)
 v_old = Function(problem.V_DG, name='vel')
 v_old_DG1 = Function(problem.V_DG1, name='vel DG1')
 a_old = Function(problem.V_DG)
-#Necessary
-v_DG,psi_DG = TestFunctions(problem.V_DG)
 
 # Time-stepping implicit
 T = 0.5 #second
@@ -99,14 +97,23 @@ time = np.linspace(0, T, Nsteps+1)
 #Mass matrix
 I = 2/5*l*l
 M = mass_matrix(problem, rho, I)
-K += M/beta/dt_**2
+m1 = 1/beta/dt_**2
+m2 = 1/beta/dt_
+m3 = 1 - 0.5/beta
+K += m1*M
+
+#damping (penalty on velocity)
+h = CellDiameter(mesh)
+v_DG1,psi_DG1 = TestFunctions(problem.V_DG1)
+u_DG1_,phi_DG1_ = TrialFunctions(problem.V_DG1)
+res_pv = 4*G * (inner(v_DG1,u_DG1_) + l*l*psi_DG1*phi_DG1_) / h * ds(2)
+K_pv = problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(res_pv)).mat() * problem.DEM_to_DG1
+c1 = gamma/beta/dt_
+c2 = 1 - gamma/beta
+c3 = dt_ * (1 - 0.5*gamma/beta)
+K += c1*K_pv
 K = PETScMatrix(K)
-#corresponding rhs
-def L(uu, vv, aa):
-    aux = (uu+dt_*vv)/beta/dt_**2 + (1-2*beta)/2/beta*aa
-    disp = as_vector((aux[0],aux[1]))
-    rot = aux[2]
-    return rho*inner(disp, v_DG)*dx + rho*I*inner(rot,psi_DG)*dx
+
 
 #outputs
 file = XDMFFile(folder+"/output.xdmf")
@@ -149,11 +156,11 @@ for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
     print("Time: ", t)
     psi.t = t
-    #load = psi * Constant((0,-1,0))
+    load = psi * domain * Constant((0,-1,0))
 
     # Solve for new displacement
     Rhs = problem.assemble_volume_load(load)
-    res = as_backend_type(assemble(L(u_old, v_old, a_old))) + PETScVector(Rhs)
+    res = PETScVector(Rhs) - PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector()) - PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
     solve(K, u.vector(), res, 'mumps')
     
     # Update old fields with new quantities
