@@ -90,7 +90,7 @@ a_old = Function(problem.V_DG)
 
 # Time-stepping implicit
 T = 0.5 #second
-Nsteps = 1000
+Nsteps = 10000
 dt_ = T/Nsteps
 time = np.linspace(0, T, Nsteps+1)
 
@@ -111,7 +111,7 @@ res_pv = 4*G * (inner(v_DG1,u_DG1_) + l*l*psi_DG1*phi_DG1_) / h * ds(2)
 K_pv = problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(res_pv)).mat() * problem.DEM_to_DG1
 c1 = gamma/beta/dt_
 c2 = -(1 - gamma/beta)
-c3 = -dt_ * (1 - gamma + gamma - 0.5*gamma/beta)
+c3 = -dt_ * (1 - 0.5*gamma/beta)
 K += c1*K_pv
 K = PETScMatrix(K)
 
