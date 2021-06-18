@@ -12,6 +12,10 @@ rank = comm.Get_rank()
 
 nb_elt = 1
 mesh = UnitSquareMesh(nb_elt, nb_elt)
+#parameters["mesh_partitioner"] = "ParMETIS" #"SCOTCH"
+#print(parameters["mesh_partitioner"])
+print(mesh.mpi_comm())
+sys.exit()
 
 #Creating the DEM problem
 pen = 1

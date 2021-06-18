@@ -89,8 +89,8 @@ v_old_DG1 = Function(problem.V_DG1, name='vel DG1')
 a_old = Function(problem.V_DG)
 
 # Time-stepping implicit
-T = 1e-2 #second
-Nsteps = 100
+T = 0.5 #second
+Nsteps = 1000
 dt_ = T/Nsteps
 time = np.linspace(0, T, Nsteps+1)
 
@@ -133,7 +133,7 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Solve for new displacement
     Rhs = problem.assemble_volume_load(load)
-    res = PETScVector(Rhs) + PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector())# + PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
+    res = PETScVector(Rhs) + PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector())# - PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
     solve(K, u.vector(), res, 'mumps')
     
     # Update old fields with new quantities
