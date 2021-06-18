@@ -17,7 +17,7 @@ parameters["form_compiler"]["optimize"] = True
     
 # Mesh
 Lx,Ly = 2e3,1e3
-nb_elt = 10 #100 computation #5 #debug
+nb_elt = 100 #100 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
 folder = 'test' #'big' #'test'
 
@@ -26,7 +26,7 @@ nu = 0.25 # Poisson's ratio
 E = 1.88e10 #Young Modulus
 rho = 2200 #volumic mass
 G = E/(1+nu) #Shear modulus
-Gc = 0
+Gc = G
 a = Gc/G
 h = mesh.hmax()
 l = float(0.5*h/np.sqrt(2)) # intrinsic length scale

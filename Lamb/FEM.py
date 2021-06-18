@@ -12,7 +12,7 @@ comm = mpi4py.MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 # Mesh
-Lx,Ly = 4e3,2e3
+Lx,Ly = 2e3, 1e3 #4e3,2e3
 nb_elt = 100 #100 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
 folder = 'FEM'
@@ -22,7 +22,7 @@ nu = 0.25 # Poisson's ratio
 E = 1.88e10 #Young Modulus
 rho = 2200 #volumic mass
 G = E/(1+nu) #Shear modulus
-Gc = 0
+Gc = G
 a = Gc/G
 h = mesh.hmax()
 l = float(0.5*h/np.sqrt(2)) # intrinsic length scale
@@ -52,7 +52,7 @@ gamma   = Constant(0.5+alpha_f-alpha_m)
 beta    = Constant((gamma+0.5)**2/4.)
 
 # Time-stepping parameters
-T = 1
+T = 0.5
 Nsteps = 1000
 dt = Constant(T/Nsteps)
 
