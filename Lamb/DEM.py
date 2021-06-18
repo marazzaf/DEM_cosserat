@@ -89,7 +89,7 @@ v_old_DG1 = Function(problem.V_DG1, name='vel DG1')
 a_old = Function(problem.V_DG)
 
 # Time-stepping implicit
-T = 0.5 #second
+T = 1e-2 #second
 Nsteps = 100
 dt_ = T/Nsteps
 time = np.linspace(0, T, Nsteps+1)
@@ -99,7 +99,7 @@ I = 2/5*l*l
 M = mass_matrix(problem, rho, I)
 m1 = 1/beta/dt_/dt_
 m2 = 1/beta/dt_
-m3 = 1 - 0.5/beta
+m3 = 0.5/beta - 1
 K_ref = K.copy()
 K += m1*M
 
@@ -124,6 +124,7 @@ file.parameters["rewrite_function_mesh"] = False
 file_en = open(folder+'/energies.txt', 'w', 1)
 
 #implicit integration
+E_ext = 0
 for (i, dt) in enumerate(np.diff(time)):
     t = time[i+1]
     print("Time: ", t)
@@ -132,7 +133,7 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Solve for new displacement
     Rhs = problem.assemble_volume_load(load)
-    res = PETScVector(Rhs) - PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector())# - PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
+    res = PETScVector(Rhs) + PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector())# + PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
     solve(K, u.vector(), res, 'mumps')
     
     # Update old fields with new quantities
@@ -140,7 +141,6 @@ for (i, dt) in enumerate(np.diff(time)):
     v0_vec, a0_vec = v_old.vector(), a_old.vector()
     a_old.vector()[:] = (u_vec-u0_vec-dt_*v0_vec)/beta/dt_**2 - (1-2*beta)/2/beta*a0_vec
     v_old.vector()[:] = v0_vec + dt_*((1-gamma)*a0_vec + gamma*a_old.vector())
-    u_old.vector()[:] = u.vector() #Useful?
 
     ##img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
     #img = plot(sqrt(v_old[1]*v_old[1]+v_old[0]*v_old[0]))
@@ -155,9 +155,10 @@ for (i, dt) in enumerate(np.diff(time)):
     #Check energy balance
     E_elas = 0.5 * u.vector().inner(PETScMatrix(K_ref)*u.vector())
     E_kin = 0.5 * v_old.vector().inner(PETScMatrix(M)*v_old.vector())
-    #E_ext += assemble(Wext(u-u_old))
+    E_ext += PETScVector(Rhs).inner(u.vector()-u_old.vector())
+    u_old.vector()[:] = u.vector()
     E_tot = E_elas+E_kin
-    file_en.write('%.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot))#, E_ext))
+    file_en.write('%.2e %.2e %.2e %.2e %.2e\n' % (t, E_elas, E_kin, E_tot, E_ext))
 
 
 file_en.close()
