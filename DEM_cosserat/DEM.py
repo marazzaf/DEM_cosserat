@@ -66,17 +66,16 @@ class DEMProblem:
         self.nb_dof_DG1 = self.V_DG1.dofmap().global_dimension()
         
         #Creating the graph associated with the mesh
-        self.Graph = MESH(self)
-        #self.Graph = connectivity_graph(self)
+        #self.Graph = MESH(self)
+        self.Graph = connectivity_graph(self)
         
         #Computation of gradient matrix for inner penalty term
         self.mat_grad = gradient_matrix(self)
         
-        ###DEM reconstructions
-        ##self.DEM_to_CR = DEM_to_CR_matrix(self)
-        self.DEM_to_CR = DEM_to_CR_matrix_test(self)
-        sys.exit()
-        ##self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
+        #DEM reconstructions
+        self.DEM_to_CR = DEM_to_CR_matrix(self)
+        #self.DEM_to_CR = DEM_to_CR_matrix_test(self)
+        self.DEM_to_DG1 = DEM_to_DG1_matrix(self)
 
     #Importing useful functions
     from DEM_cosserat.miscellaneous import assemble_volume_load
