@@ -21,12 +21,16 @@ folder = 'FEM_test' #'FEM'
 nu = 0.25 # Poisson's ratio
 E = 1.88e10 #Young Modulus
 rho = 2200 #volumic mass
-G = 0 #0.5*E/(1+nu) #Shear modulus
-Gc = 0.5*E/(1+nu) #G
-a = G/Gc #Gc/G
+G = 0.5*E/(1+nu) #Shear modulus
+Gc = G #0.5*E/(1+nu) #G
+a = Gc/G #Gc/G
 h = mesh.hmax()
-l = float(0.5*h/np.sqrt(2)) # intrinsic length scale
+l = float(h/np.sqrt(2)) # intrinsic length scale
+Gamma = 0.5*E/(1+nu)*h*h
 I = Constant(l*l/6)
+
+if rank ==0:
+    print('Size of mesh: %.2em' % h)
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
@@ -97,25 +101,25 @@ def strain(v,psi):
     kappa = grad(psi)
     return e,kappa
 
-#def stress(e, kappa):
-#    eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
-#    aux_1 = 2*(1-nu)/(1-2*nu)
-#    aux_2 = 2*nu/(1-2*nu)
-#    Mat = G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+a,1-a), (0,0,1-a,1+a)))
-#    sig = dot(Mat, eps)
-#    sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
-#    mu = 4*G*l*l * kappa
-#    return sigma, mu
-
 def stress(e, kappa):
     eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
     aux_1 = 2*(1-nu)/(1-2*nu)
     aux_2 = 2*nu/(1-2*nu)
-    Mat = Gc * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1-a,1+a), (0,0,1+a,1-a)))
+    Mat = G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+a,1-a), (0,0,1-a,1+a)))
     sig = dot(Mat, eps)
     sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
-    mu = 4*Gc*l*l * kappa
+    mu = Gamma * kappa
     return sigma, mu
+
+#def stress(e, kappa):
+#    eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
+#    aux_1 = 2*(1-nu)/(1-2*nu)
+#    aux_2 = 2*nu/(1-2*nu)
+#    Mat = Gc * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1-a,1+a), (0,0,1+a,1-a)))
+#    sig = dot(Mat, eps)
+#    sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
+#    mu = Gamma * kappa
+#    return sigma, mu
 
 # Mass form
 def m(w, w_):

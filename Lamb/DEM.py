@@ -29,7 +29,7 @@ G = 0.5*E/(1+nu) #Shear modulus
 Gc = G
 a = Gc/G
 h = mesh.hmax()
-l = float(0.5*h/np.sqrt(2)) # intrinsic length scale
+l = 0.5*h # intrinsic length scale
 
 #Creating the DEM problem
 pen = 1
