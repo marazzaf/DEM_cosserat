@@ -72,7 +72,7 @@ K = elas
 K += inner_penalty(problem)
 
 #Nitsche penalty bilinear form
-bc = [[0, Constant(0), 2], [1, Constant(0), 2], [2, Constant(0), 2], [0, Constant(0), 0]] #Homogeneous Dirichlet on bottom boundary surface
+bc = [[0, Constant(0), 2], [1, Constant(0), 2], [2, Constant(0), 2]] #Homogeneous Dirichlet on bottom boundary surface
 K += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Newmark-beta parameters
