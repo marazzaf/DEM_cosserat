@@ -92,8 +92,8 @@ a_old = Function(V)
 # Set up boundary condition at left end
 zero = Constant((0, 0, 0))
 bc_1 = DirichletBC(V, zero, boundary_parts, 2)
-bc_2 = DirichletBC(U.sub(0), Constant(0), boundary_parts, 0)
-bcs = [bc_1, bc_2]
+#bc_2 = DirichletBC(U.sub(0), Constant(0), boundary_parts, 0)
+bcs = [bc_1] #[bc_1, bc_2]
 
 #Elastic terms
 def strain(v,psi):
@@ -258,7 +258,7 @@ for (i, dt) in enumerate(np.diff(time)):
     file.write(v_old, t)
 
     #save disp
-    X,Y = x0-50,y0-200
+    X,Y = x0-300,y0
     file_disp.write('%.2e %.2e %.2e\n' % (t, u(X,Y)[0], u(X,Y)[1]))
 
     psi.t = t
