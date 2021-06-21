@@ -15,18 +15,18 @@ rank = comm.Get_rank()
 Lx,Ly = 2e3, 1e3 #4e3,2e3
 nb_elt = 100 #100 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
-folder = 'FEM'
+folder = 'FEM_test' #'FEM'
 
 # Parameters
 nu = 0.25 # Poisson's ratio
 E = 1.88e10 #Young Modulus
 rho = 2200 #volumic mass
-G = 0.5*E/(1+nu) #Shear modulus
-Gc = G
-a = Gc/G
+G = 0 #0.5*E/(1+nu) #Shear modulus
+Gc = 0.5*E/(1+nu) #G
+a = G/Gc #Gc/G
 h = mesh.hmax()
 l = float(0.5*h/np.sqrt(2)) # intrinsic length scale
-I = Constant(2/5*l*l)
+I = Constant(l*l/6)
 
 boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_parts.set_all(0)
@@ -64,8 +64,7 @@ y0 = Ly - 100
 sigma = 14.5
 radius = 50
 domain = Expression('sqrt(pow(x[0]-x0,2) + pow(x[1]-y0,2)) < radius ? 1 : 0', radius=radius, x0=x0, y0=y0, degree=2)
-psi = Expression('2/sqrt(3*sigma)/pow(pi,0.25)*(1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)', sigma=sigma, t=0, degree = 1)
-#load = psi * domain * Constant((0,-1,0))
+psi = Expression('2/sqrt(3*sigma)/pow(pi,0.25)*(1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)', sigma=sigma, t=0, degree = 5)
 load = psi * domain * Constant((0,-1,0))
 
 # Function Space
@@ -98,14 +97,24 @@ def strain(v,psi):
     kappa = grad(psi)
     return e,kappa
 
+#def stress(e, kappa):
+#    eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
+#    aux_1 = 2*(1-nu)/(1-2*nu)
+#    aux_2 = 2*nu/(1-2*nu)
+#    Mat = G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+a,1-a), (0,0,1-a,1+a)))
+#    sig = dot(Mat, eps)
+#    sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
+#    mu = 4*G*l*l * kappa
+#    return sigma, mu
+
 def stress(e, kappa):
     eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
     aux_1 = 2*(1-nu)/(1-2*nu)
     aux_2 = 2*nu/(1-2*nu)
-    Mat = G * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1+a,1-a), (0,0,1-a,1+a)))
+    Mat = Gc * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1-a,1+a), (0,0,1+a,1-a)))
     sig = dot(Mat, eps)
     sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
-    mu = 4*G*l*l * kappa
+    mu = 4*Gc*l*l * kappa
     return sigma, mu
 
 # Mass form
@@ -182,7 +191,7 @@ a_form = lhs(res)
 L_form = rhs(res)
 
 # Define solver for reusing factorization
-K, res = assemble_system(a_form, L_form, bc)
+K, res = assemble_system(a_form, L_form, bcs)
 solver = LUSolver(K, "mumps")
 solver.parameters["symmetric"] = True
 
@@ -224,7 +233,8 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Solve for new displacement
     res = assemble(L_form)
-    bc.apply(res)
+    for bc in bcs:
+        bc.apply(res)
     #mtf = res.get_local()
     #print(mtf[mtf.nonzero()])
     solver.solve(u.vector(), res)
@@ -244,7 +254,7 @@ for (i, dt) in enumerate(np.diff(time)):
     file.write(v_old, t)
 
     #save disp
-    X,Y = x0-300,y0-20
+    X,Y = x0-50,y0-200
     file_disp.write('%.2e %.2e %.2e\n' % (t, u(X,Y)[0], u(X,Y)[1]))
 
     psi.t = t

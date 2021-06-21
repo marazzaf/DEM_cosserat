@@ -19,7 +19,7 @@ parameters["form_compiler"]["optimize"] = True
 Lx,Ly = 2e3,1e3
 nb_elt = 100 #100 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
-folder = 'test' #'big' #'test'
+folder = 'big' #'big' #'test'
 
 # Parameters
 nu = 0.25 # Poisson's ratio
@@ -57,7 +57,7 @@ y0 = Ly - 100
 sigma = 14.5
 radius = 50
 domain = Expression('sqrt(pow(x[0]-x0,2) + pow(x[1]-y0,2)) < radius ? 1 : 0', radius=radius, x0=x0, y0=y0, degree=2)
-psi = Expression('2/sqrt(3*sigma)/pow(pi,0.25)*(1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)', sigma=sigma, t=0, degree = 1)
+psi = Expression('2/sqrt(3*sigma)/pow(pi,0.25)*(1 - t*t/sigma/sigma) * exp(-0.5*t*t/sigma/sigma)', sigma=sigma, t=0, degree = 5)
 load = psi * domain * Constant((0,-1,0))
 Rhs = problem.assemble_volume_load(load)
 
@@ -95,7 +95,7 @@ dt_ = T/Nsteps
 time = np.linspace(0, T, Nsteps+1)
 
 #Mass matrix
-I = 2/5*l*l
+I = l*l/6
 M = mass_matrix(problem, rho, I)
 m1 = 1/beta/dt_/dt_
 m2 = 1/beta/dt_
