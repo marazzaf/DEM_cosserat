@@ -68,6 +68,7 @@ p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, de
 #Creating the DEM problem
 pen = 1
 problem = DEMProblem(mesh, pen)
+sys.exit()
 
 #Computing coefficients for Cosserat material
 problem.micropolar_constants_3d(lmbda, G, Gc, L, M, Mc)

@@ -9,7 +9,6 @@ from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
 from petsc4py import PETSc
 from ufl import sign
-#from scipy.sparse.linalg import eigsh
 
 # Form compiler options
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -17,7 +16,7 @@ parameters["form_compiler"]["optimize"] = True
     
 # Mesh
 Lx,Ly = 2e3,1e3
-nb_elt = 100 #100 computation #5 #debug
+nb_elt = 80 #100 computation #test 10 #5 debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
 folder = 'big' #'big' #'test'
 
@@ -63,6 +62,7 @@ Rhs = problem.assemble_volume_load(load)
 
 #compliance tensor
 problem.micropolar_constants(E, nu, l/2, a)
+sys.exit()
 
 # Variational problem
 elas = problem.elastic_bilinear_form()
@@ -71,9 +71,9 @@ K = elas
 #Penalty matrix
 K += inner_penalty(problem)
 
-#Nitsche penalty bilinear form
-bc = [[0, Constant(0), 2], [1, Constant(0), 2], [2, Constant(0), 2]] #Homogeneous Dirichlet on bottom boundary surface
-K += lhs_bnd_penalty(problem, boundary_parts, bc)
+##Nitsche penalty bilinear form
+#bc = [[0, Constant(0), 2], [1, Constant(0), 2], [2, Constant(0), 2]] #Homogeneous Dirichlet on bottom boundary surface
+#K += lhs_bnd_penalty(problem, boundary_parts, bc)
 
 #Newmark-beta parameters
 gamma = 0.5
@@ -90,7 +90,7 @@ a_old = Function(problem.V_DG)
 
 # Time-stepping implicit
 T = 0.5 #second
-Nsteps = 10000
+Nsteps = 10000 #10000
 dt_ = T/Nsteps
 time = np.linspace(0, T, Nsteps+1)
 
@@ -112,7 +112,7 @@ K_pv = problem.DEM_to_DG1.transpose(PETSc.Mat()) * as_backend_type(assemble(res_
 c1 = gamma/beta/dt_
 c2 = -(1 - gamma/beta)
 c3 = -dt_ * (1 - 0.5*gamma/beta)
-K += c1*K_pv
+#K += c1*K_pv
 K = PETScMatrix(K)
 
 #outputs
@@ -121,6 +121,7 @@ file.parameters["flush_output"] = True
 file.parameters["functions_share_mesh"] = True
 file.parameters["rewrite_function_mesh"] = False
 file_en = open(folder+'/energies.txt', 'w', 1)
+file_disp = open(folder+'/disp.txt', 'w', 1)
 
 #implicit integration
 E_ext = 0
@@ -132,7 +133,7 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Solve for new displacement
     Rhs = problem.assemble_volume_load(load)
-    res = PETScVector(Rhs) + PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector()) + PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
+    res = PETScVector(Rhs) + PETScMatrix(M) * (m1*u_old.vector()+m2*v_old.vector()+m3*a_old.vector())# + PETScMatrix(K_pv) * (c1*u_old.vector()+c2*v_old.vector()+c3*a_old.vector())
     solve(K, u.vector(), res, 'mumps')
     
     # Update old fields with new quantities
@@ -141,15 +142,13 @@ for (i, dt) in enumerate(np.diff(time)):
     a_old.vector()[:] = (u_vec-u0_vec-dt_*v0_vec)/beta/dt_**2 - (1-2*beta)/2/beta*a0_vec
     v_old.vector()[:] = v0_vec + dt_*((1-gamma)*a0_vec + gamma*a_old.vector())
 
-    ##img = plot(sqrt(u[1]*u[1]+u[0]*u[0]))
-    #img = plot(sqrt(v_old[1]*v_old[1]+v_old[0]*v_old[0]))
-    #plt.colorbar(img)
-    #plt.show()
-    ##sys.exit()
-
     #output
     file.write(u, t)
     file.write(v_old, t)
+
+    #save disp
+    X,Y = -300,Ly
+    file_disp.write('%.2e %.2e %.2e\n' % (t, u(X,Y)[0], u(X,Y)[1]))
 
     #Check energy balance
     E_elas = 0.5 * u.vector().inner(PETScMatrix(K_ref)*u.vector())
@@ -161,3 +160,4 @@ for (i, dt) in enumerate(np.diff(time)):
 
 
 file_en.close()
+file_disp.close()

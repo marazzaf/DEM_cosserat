@@ -65,7 +65,6 @@ print(float(dt))
 p0 = E*1e-6
 cutoff_Tc = T_ref/10 #T/5
 print(cutoff_Tc)
-sys.exit()
 # Define the loading as an expression depending on t
 p = Expression(("0", "t <= tc ? p0*t/tc : 0", "0"), t=0, tc=cutoff_Tc, p0=p0, degree=0)
 
@@ -78,6 +77,7 @@ if rank == 0:
 U, S = V.split()
 U_1, U_2, U_3 = U.split()
 S_1, S_2, S_3 = S.split()
+sys.exit()
 
 # Test and trial functions
 du = TrialFunction(V)

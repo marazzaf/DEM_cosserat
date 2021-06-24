@@ -2,6 +2,7 @@ from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
 import mpi4py
+import sys
 
 # Form compiler options
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -15,14 +16,14 @@ rank = comm.Get_rank()
 Lx,Ly = 2e3, 1e3 #4e3,2e3
 nb_elt = 100 #100 computation #5 #debug
 mesh = RectangleMesh(Point(-Lx/2,0),Point(Lx/2,Ly),int(Lx/Ly)*nb_elt,nb_elt,"crossed")
-folder = 'FEM_test' #'FEM'
+folder = 'FEM' #'FEM_test' #'FEM'
 
 # Parameters
 nu = 0.25 # Poisson's ratio
 E = 1.88e10 #Young Modulus
 rho = 2200 #volumic mass
 G = 0.5*E/(1+nu) #Shear modulus
-Gc = G #0.5*E/(1+nu) #G
+Gc = G # #0.5*E/(1+nu) #G
 a = Gc/G #Gc/G
 h = mesh.hmax()
 l = float(h/np.sqrt(2)) # intrinsic length scale
@@ -77,6 +78,7 @@ S = FiniteElement("CG", mesh.ufl_cell(), 1) # micro rotation space
 V = FunctionSpace(mesh, MixedElement(U,S)) # dim 6
 if rank == 0:
     print('nb dofs FEM: %i' % V.dofmap().global_dimension())
+sys.exit()
 U, S = V.split()
 
 # Test and trial functions
@@ -91,9 +93,11 @@ a_old = Function(V)
 
 # Set up boundary condition at left end
 zero = Constant((0, 0, 0))
-bc_1 = DirichletBC(V, zero, boundary_parts, 2)
+bc_1 = DirichletBC(U.sub(1), Constant(0), boundary_parts, 2)
+#bc_1 = DirichletBC(V, zero, boundary_parts, 2)
 #bc_2 = DirichletBC(U.sub(0), Constant(0), boundary_parts, 0)
-bcs = [bc_1] #[bc_1, bc_2]
+#bc_2 = DirichletBC(V, zero, boundary_parts, 0)
+bcs = [bc_1] #[bc_1] #[bc_1, bc_2]
 
 #Elastic terms
 def strain(v,psi):
@@ -110,16 +114,6 @@ def stress(e, kappa):
     sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
     mu = Gamma * kappa
     return sigma, mu
-
-#def stress(e, kappa):
-#    eps = as_vector((e[0,0], e[1,1], e[0,1], e[1,0]))
-#    aux_1 = 2*(1-nu)/(1-2*nu)
-#    aux_2 = 2*nu/(1-2*nu)
-#    Mat = Gc * as_tensor(((aux_1,aux_2,0,0), (aux_2, aux_1,0,0), (0,0,1-a,1+a), (0,0,1+a,1-a)))
-#    sig = dot(Mat, eps)
-#    sigma = as_tensor(((sig[0], sig[2]), (sig[3], sig[1])))
-#    mu = Gamma * kappa
-#    return sigma, mu
 
 # Mass form
 def m(w, w_):
@@ -195,7 +189,7 @@ a_form = lhs(res)
 L_form = rhs(res)
 
 # Define solver for reusing factorization
-K, res = assemble_system(a_form, L_form, bcs)
+K, res = assemble_system(a_form, L_form) #, bcs)
 solver = LUSolver(K, "mumps")
 solver.parameters["symmetric"] = True
 
@@ -237,18 +231,9 @@ for (i, dt) in enumerate(np.diff(time)):
 
     # Solve for new displacement
     res = assemble(L_form)
-    for bc in bcs:
-        bc.apply(res)
-    #mtf = res.get_local()
-    #print(mtf[mtf.nonzero()])
+    #for bc in bcs:
+    #    bc.apply(res)
     solver.solve(u.vector(), res)
-
-    #img = plot(u[1])
-    #plt.colorbar(img)
-    #plt.show()
-    #U = FunctionSpace(mesh, 'CG', 1)
-    #file.write(local_project(u[1], U), t)
-
 
     # Update old fields with new quantities
     update_fields(u, u_old, v_old, a_old)
@@ -258,7 +243,7 @@ for (i, dt) in enumerate(np.diff(time)):
     file.write(v_old, t)
 
     #save disp
-    X,Y = x0-300,y0
+    X,Y = -300,Ly
     file_disp.write('%.2e %.2e %.2e\n' % (t, u(X,Y)[0], u(X,Y)[1]))
 
     psi.t = t
