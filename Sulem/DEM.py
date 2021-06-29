@@ -9,6 +9,18 @@ sys.path.append('../')
 from DEM_cosserat.DEM import *
 from DEM_cosserat.miscellaneous import *
 from petsc4py import PETSc
+
+SMALL_SIZE = 14
+MEDIUM_SIZE = 14
+BIGGER_SIZE = 14
+
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
     
 # Mesh
 h = 1e-3
@@ -120,7 +132,7 @@ ref_u =  -2*Gc/(G+Gc)*(K1/delta*np.exp(delta*xx) - K2/delta*np.exp(-delta*xx)) +
 err_u = abs(disp - ref_u) / abs(ref_u) * 100
 #print(err_u[1:])
 print(err_u[1:].max())
-sys.exit()
+#sys.exit()
 
 ##plot ref rotation
 xxx = np.arange(0, h, 1e-6)
@@ -130,9 +142,10 @@ plt.plot(xx, rot, '*', label='computed')
 plt.xlim((0, h))
 plt.ylim((-0.1, 0))
 plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
+plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
 plt.title('Rotation')
-plt.ylabel(r'$\varphi(x_2)$')
-plt.xlabel(r'$x_2$')
+plt.ylabel(r'$\varphi(x_2) \ (rad)$')
+plt.xlabel(r'$x_2 \ (m)$')
 plt.legend(loc='lower left')
 plt.savefig('rotation.pdf')
 plt.show()
@@ -144,9 +157,9 @@ plt.plot(xx, disp, '*', label='computed')
 plt.xlim((0, h))
 plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
 plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-plt.ylabel(r'$u_1(x_2)$')
+plt.ylabel(r'$u_1(x_2) \ (m)$')
 plt.title('Vertical displacement')
-plt.xlabel(r'$x_2$')
+plt.xlabel(r'$x_2 \ (m)$')
 plt.legend(loc='upper left')
 plt.savefig('disp.pdf')
 plt.show()
